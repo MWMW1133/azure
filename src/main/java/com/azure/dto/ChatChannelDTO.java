@@ -5,19 +5,19 @@ import java.time.LocalDate;
 import java.math.BigDecimal;
 
 public class ChatChannelDTO {
-    private Long id;
+    private int id;
     private String channelType;
-    private Long projectId;
+    private int projectId;
     private String name;
-    private Long createdBy;
+    private int createdBy;
     private LocalDateTime createdAt;
 
 
-    public Long getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -29,11 +29,11 @@ public class ChatChannelDTO {
         this.channelType = channelType;
     }
 
-    public Long getProjectId() {
+    public int getProjectId() {
         return projectId;
     }
 
-    public void setProjectId(Long projectId) {
+    public void setProjectId(int projectId) {
         this.projectId = projectId;
     }
 
@@ -45,11 +45,11 @@ public class ChatChannelDTO {
         this.name = name;
     }
 
-    public Long getCreatedBy() {
+    public int getCreatedBy() {
         return createdBy;
     }
 
-    public void setCreatedBy(Long createdBy) {
+    public void setCreatedBy(int createdBy) {
         this.createdBy = createdBy;
     }
 

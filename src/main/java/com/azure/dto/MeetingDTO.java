@@ -5,35 +5,35 @@ import java.time.LocalDate;
 import java.math.BigDecimal;
 
 public class MeetingDTO {
-    private Long id;
-    private Long eventId;
-    private Long projectId;
+    private int id;
+    private int eventId;
+    private int projectId;
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
-    private Long recordingFile;
+    private int recordingFile;
 
 
-    public Long getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(int id) {
         this.id = id;
     }
 
-    public Long getEventId() {
+    public int getEventId() {
         return eventId;
     }
 
-    public void setEventId(Long eventId) {
+    public void setEventId(int eventId) {
         this.eventId = eventId;
     }
 
-    public Long getProjectId() {
+    public int getProjectId() {
         return projectId;
     }
 
-    public void setProjectId(Long projectId) {
+    public void setProjectId(int projectId) {
         this.projectId = projectId;
     }
 
@@ -53,11 +53,11 @@ public class MeetingDTO {
         this.endedAt = endedAt;
     }
 
-    public Long getRecordingFile() {
+    public int getRecordingFile() {
         return recordingFile;
     }
 
-    public void setRecordingFile(Long recordingFile) {
+    public void setRecordingFile(int recordingFile) {
         this.recordingFile = recordingFile;
     }
 }

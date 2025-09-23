@@ -1,20 +1,17 @@
 package com.azure.dto;
 
-import java.time.LocalDateTime;
-import java.time.LocalDate;
-import java.math.BigDecimal;
 
 public class PriorityDTO {
-    private Short id;
+    private int id;
     private String name;
-    private Byte level;
+    private int level;
 
 
-    public Short getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(Short id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -26,11 +23,11 @@ public class PriorityDTO {
         this.name = name;
     }
 
-    public Byte getLevel() {
+    public int getLevel() {
         return level;
     }
 
-    public void setLevel(Byte level) {
+    public void setLevel(int level) {
         this.level = level;
     }
 }

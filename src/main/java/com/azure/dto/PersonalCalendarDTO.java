@@ -1,37 +1,36 @@
 package com.azure.dto;
 
 import java.time.LocalDateTime;
-import java.time.LocalDate;
-import java.math.BigDecimal;
+
 
 public class PersonalCalendarDTO {
-    private Long id;
-    private Long personalCalendarId;
+    private int id;
+    private int personalCalendarId;
     private String title;
     private String description;
     private LocalDateTime startAt;
     private LocalDateTime endAt;
-    private Boolean allDay;
+    private boolean allDay;
     private String rrule;
     private String location;
-    private Long createdBy;
+    private int createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
 
-    public Long getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(int id) {
         this.id = id;
     }
 
-    public Long getPersonalCalendarId() {
+    public int getPersonalCalendarId() {
         return personalCalendarId;
     }
 
-    public void setPersonalCalendarId(Long personalCalendarId) {
+    public void setPersonalCalendarId(int personalCalendarId) {
         this.personalCalendarId = personalCalendarId;
     }
 
@@ -67,11 +66,11 @@ public class PersonalCalendarDTO {
         this.endAt = endAt;
     }
 
-    public Boolean getAllDay() {
+    public boolean getAllDay() {
         return allDay;
     }
 
-    public void setAllDay(Boolean allDay) {
+    public void setAllDay(boolean allDay) {
         this.allDay = allDay;
     }
 
@@ -91,11 +90,11 @@ public class PersonalCalendarDTO {
         this.location = location;
     }
 
-    public Long getCreatedBy() {
+    public int getCreatedBy() {
         return createdBy;
     }
 
-    public void setCreatedBy(Long createdBy) {
+    public void setCreatedBy(int createdBy) {
         this.createdBy = createdBy;
     }
 

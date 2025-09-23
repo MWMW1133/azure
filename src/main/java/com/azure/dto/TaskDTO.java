@@ -5,15 +5,15 @@ import java.time.LocalDate;
 import java.math.BigDecimal;
 
 public class TaskDTO {
-    private Long id;
-    private Long projectId;
-    private Long parentTaskId;
+    private int id;
+    private int projectId;
+    private int parentTaskId;
     private String title;
     private String description;
-    private Long assigneeId;
-    private Long reporterId;
-    private Long workflowStageId;
-    private Short priorityId;
+    private int assigneeId;
+    private int reporterId;
+    private int workflowStageId;
+    private int priorityId;
     private LocalDate startDate;
     private LocalDate dueDate;
     private LocalDateTime completedAt;
@@ -23,27 +23,27 @@ public class TaskDTO {
     private LocalDateTime updatedAt;
 
 
-    public Long getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(int id) {
         this.id = id;
     }
 
-    public Long getProjectId() {
+    public int getProjectId() {
         return projectId;
     }
 
-    public void setProjectId(Long projectId) {
+    public void setProjectId(int projectId) {
         this.projectId = projectId;
     }
 
-    public Long getParentTaskId() {
+    public int getParentTaskId() {
         return parentTaskId;
     }
 
-    public void setParentTaskId(Long parentTaskId) {
+    public void setParentTaskId(int parentTaskId) {
         this.parentTaskId = parentTaskId;
     }
 
@@ -63,35 +63,35 @@ public class TaskDTO {
         this.description = description;
     }
 
-    public Long getAssigneeId() {
+    public int getAssigneeId() {
         return assigneeId;
     }
 
-    public void setAssigneeId(Long assigneeId) {
+    public void setAssigneeId(int assigneeId) {
         this.assigneeId = assigneeId;
     }
 
-    public Long getReporterId() {
+    public int getReporterId() {
         return reporterId;
     }
 
-    public void setReporterId(Long reporterId) {
+    public void setReporterId(int reporterId) {
         this.reporterId = reporterId;
     }
 
-    public Long getWorkflowStageId() {
+    public int getWorkflowStageId() {
         return workflowStageId;
     }
 
-    public void setWorkflowStageId(Long workflowStageId) {
+    public void setWorkflowStageId(int workflowStageId) {
         this.workflowStageId = workflowStageId;
     }
 
-    public Short getPriorityId() {
+    public int getPriorityId() {
         return priorityId;
     }
 
-    public void setPriorityId(Short priorityId) {
+    public void setPriorityId(int priorityId) {
         this.priorityId = priorityId;
     }
 

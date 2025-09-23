@@ -1,28 +1,25 @@
 package com.azure.dto;
 
-import java.time.LocalDateTime;
-import java.time.LocalDate;
-import java.math.BigDecimal;
 
 public class ProjectMemberDTO {
-    private Long projectId;
-    private Long userId;
+    private int projectId;
+    private int userId;
     private String role;
 
 
-    public Long getProjectId() {
+    public int getProjectId() {
         return projectId;
     }
 
-    public void setProjectId(Long projectId) {
+    public void setProjectId(int projectId) {
         this.projectId = projectId;
     }
 
-    public Long getUserId() {
+    public int getUserId() {
         return userId;
     }
 
-    public void setUserId(Long userId) {
+    public void setUserId(int userId) {
         this.userId = userId;
     }
 

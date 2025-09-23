@@ -1,27 +1,24 @@
 package com.azure.dto;
 
-import java.time.LocalDateTime;
-import java.time.LocalDate;
-import java.math.BigDecimal;
 
 public class TaskTagDTO {
-    private Long taskId;
-    private Long tagId;
+    private int taskId;
+    private int tagId;
 
 
-    public Long getTaskId() {
+    public int getTaskId() {
         return taskId;
     }
 
-    public void setTaskId(Long taskId) {
+    public void setTaskId(int taskId) {
         this.taskId = taskId;
     }
 
-    public Long getTagId() {
+    public int getTagId() {
         return tagId;
     }
 
-    public void setTagId(Long tagId) {
+    public void setTagId(int tagId) {
         this.tagId = tagId;
     }
 }

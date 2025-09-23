@@ -5,16 +5,16 @@ import java.time.LocalDate;
 import java.math.BigDecimal;
 
 public class DepartmentDTO {
-    private Long id;
+    private int id;
     private String name;
     private LocalDateTime createdAt;
 
 
-    public Long getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(int id) {
         this.id = id;
     }
 

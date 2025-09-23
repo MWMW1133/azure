@@ -5,24 +5,24 @@ import java.time.LocalDate;
 import java.math.BigDecimal;
 
 public class ChannelMemberDTO {
-    private Long channelId;
-    private Long userId;
+    private int channelId;
+    private int userId;
     private LocalDateTime joinedAt;
 
 
-    public Long getChannelId() {
+    public int getChannelId() {
         return channelId;
     }
 
-    public void setChannelId(Long channelId) {
+    public void setChannelId(int channelId) {
         this.channelId = channelId;
     }
 
-    public Long getUserId() {
+    public int getUserId() {
         return userId;
     }
 
-    public void setUserId(Long userId) {
+    public void setUserId(int userId) {
         this.userId = userId;
     }
 

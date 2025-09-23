@@ -5,28 +5,28 @@ import java.time.LocalDate;
 import java.math.BigDecimal;
 
 public class AuditLogDTO {
-    private Long id;
-    private Long actorId;
+    private int id;
+    private int actorId;
     private String entityType;
-    private Long entityId;
+    private int entityId;
     private String action;
     private String diffJson;
     private LocalDateTime createdAt;
 
 
-    public Long getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(int id) {
         this.id = id;
     }
 
-    public Long getActorId() {
+    public int getActorId() {
         return actorId;
     }
 
-    public void setActorId(Long actorId) {
+    public void setActorId(int actorId) {
         this.actorId = actorId;
     }
 
@@ -38,11 +38,11 @@ public class AuditLogDTO {
         this.entityType = entityType;
     }
 
-    public Long getEntityId() {
+    public int getEntityId() {
         return entityId;
     }
 
-    public void setEntityId(Long entityId) {
+    public void setEntityId(int entityId) {
         this.entityId = entityId;
     }
 
