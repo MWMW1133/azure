@@ -1,19 +1,20 @@
 package com.azure.dto;
 
 import java.time.LocalDateTime;
-
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class DepartmentDTO {
-    private int id;
+    private Long id;
     private String name;
     private LocalDateTime createdAt;
 
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

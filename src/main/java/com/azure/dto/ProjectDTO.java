@@ -2,23 +2,24 @@ package com.azure.dto;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class ProjectDTO {
-    private int id;
+    private Long id;
     private String name;
     private String description;
-    private int ownerId;
-    private int departmentId;
+    private Long ownerId;
+    private Long departmentId;
     private LocalDate startDate;
     private LocalDate dueDate;
     private LocalDateTime createdAt;
 
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -38,19 +39,19 @@ public class ProjectDTO {
         this.description = description;
     }
 
-    public int getOwnerId() {
+    public Long getOwnerId() {
         return ownerId;
     }
 
-    public void setOwnerId(int ownerId) {
+    public void setOwnerId(Long ownerId) {
         this.ownerId = ownerId;
     }
 
-    public int getDepartmentId() {
+    public Long getDepartmentId() {
         return departmentId;
     }
 
-    public void setDepartmentId(int departmentId) {
+    public void setDepartmentId(Long departmentId) {
         this.departmentId = departmentId;
     }
 

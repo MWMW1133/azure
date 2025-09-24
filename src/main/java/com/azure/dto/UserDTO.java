@@ -1,25 +1,26 @@
 package com.azure.dto;
 
 import java.time.LocalDateTime;
-
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class UserDTO {
-    private int id;
+    private Long id;
     private String email;
     private String passwordHash;
     private String name;
     private String avatarUrl;
     private String timezone;
     private String lang;
-    private boolean isActive;
+    private Boolean isActive;
     private LocalDateTime createdAt;
 
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -71,11 +72,11 @@ public class UserDTO {
         this.lang = lang;
     }
 
-    public boolean getIsActive() {
+    public Boolean getIsActive() {
         return isActive;
     }
 
-    public void setIsActive(boolean isActive) {
+    public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
     }
 

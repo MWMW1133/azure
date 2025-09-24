@@ -1,27 +1,29 @@
 package com.azure.dto;
 
-
+import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class MeetingTranscriptDTO {
-    private int id;
-    private int meetingId;
+    private Long id;
+    private Long meetingId;
     private String lang;
     private String content;
 
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public int getMeetingId() {
+    public Long getMeetingId() {
         return meetingId;
     }
 
-    public void setMeetingId(int meetingId) {
+    public void setMeetingId(Long meetingId) {
         this.meetingId = meetingId;
     }
 

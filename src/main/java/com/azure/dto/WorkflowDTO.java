@@ -1,29 +1,32 @@
 package com.azure.dto;
 
+import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class WorkflowDTO {
-    private int id;
-    private int projectId;
+    private Long id;
+    private Long projectId;
     private String name;
-    private int sortOrder;
-    private boolean isBlocking;
-    private boolean isTerminal;
-    private boolean isDefault;
+    private Integer sortOrder;
+    private Boolean isBlocking;
+    private Boolean isTerminal;
+    private Boolean isDefault;
 
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public int getProjectId() {
+    public Long getProjectId() {
         return projectId;
     }
 
-    public void setProjectId(int projectId) {
+    public void setProjectId(Long projectId) {
         this.projectId = projectId;
     }
 
@@ -35,35 +38,35 @@ public class WorkflowDTO {
         this.name = name;
     }
 
-    public int getSortOrder() {
+    public Integer getSortOrder() {
         return sortOrder;
     }
 
-    public void setSortOrder(int sortOrder) {
+    public void setSortOrder(Integer sortOrder) {
         this.sortOrder = sortOrder;
     }
 
-    public boolean getIsBlocking() {
+    public Boolean getIsBlocking() {
         return isBlocking;
     }
 
-    public void setIsBlocking(boolean isBlocking) {
+    public void setIsBlocking(Boolean isBlocking) {
         this.isBlocking = isBlocking;
     }
 
-    public boolean getIsTerminal() {
+    public Boolean getIsTerminal() {
         return isTerminal;
     }
 
-    public void setIsTerminal(boolean isTerminal) {
+    public void setIsTerminal(Boolean isTerminal) {
         this.isTerminal = isTerminal;
     }
 
-    public boolean getIsDefault() {
+    public Boolean getIsDefault() {
         return isDefault;
     }
 
-    public void setIsDefault(boolean isDefault) {
+    public void setIsDefault(Boolean isDefault) {
         this.isDefault = isDefault;
     }
 }

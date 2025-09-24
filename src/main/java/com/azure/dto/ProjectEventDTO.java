@@ -1,37 +1,38 @@
 package com.azure.dto;
 
 import java.time.LocalDateTime;
-
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class ProjectEventDTO {
-    private int id;
-    private int projectCalendarId;
+    private Long id;
+    private Long projectCalendarId;
     private String title;
     private String description;
     private LocalDateTime startAt;
     private LocalDateTime endAt;
-    private boolean allDay;
+    private Boolean allDay;
     private String rrule;
     private String location;
-    private int relatedTaskId;
-    private int createdBy;
+    private Long relatedTaskId;
+    private Long createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public int getProjectCalendarId() {
+    public Long getProjectCalendarId() {
         return projectCalendarId;
     }
 
-    public void setProjectCalendarId(int projectCalendarId) {
+    public void setProjectCalendarId(Long projectCalendarId) {
         this.projectCalendarId = projectCalendarId;
     }
 
@@ -67,11 +68,11 @@ public class ProjectEventDTO {
         this.endAt = endAt;
     }
 
-    public boolean getAllDay() {
+    public Boolean getAllDay() {
         return allDay;
     }
 
-    public void setAllDay(boolean allDay) {
+    public void setAllDay(Boolean allDay) {
         this.allDay = allDay;
     }
 
@@ -91,19 +92,19 @@ public class ProjectEventDTO {
         this.location = location;
     }
 
-    public int getRelatedTaskId() {
+    public Long getRelatedTaskId() {
         return relatedTaskId;
     }
 
-    public void setRelatedTaskId(int relatedTaskId) {
+    public void setRelatedTaskId(Long relatedTaskId) {
         this.relatedTaskId = relatedTaskId;
     }
 
-    public int getCreatedBy() {
+    public Long getCreatedBy() {
         return createdBy;
     }
 
-    public void setCreatedBy(int createdBy) {
+    public void setCreatedBy(Long createdBy) {
         this.createdBy = createdBy;
     }
 

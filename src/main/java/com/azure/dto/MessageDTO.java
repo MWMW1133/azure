@@ -1,38 +1,40 @@
 package com.azure.dto;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class MessageDTO {
-    private int id;
-    private int channelId;
-    private int authorId;
+    private Long id;
+    private Long channelId;
+    private Long authorId;
     private String body;
-    private int fileId;
-    private int replyToId;
+    private Long fileId;
+    private Long replyToId;
     private LocalDateTime createdAt;
 
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public int getChannelId() {
+    public Long getChannelId() {
         return channelId;
     }
 
-    public void setChannelId(int channelId) {
+    public void setChannelId(Long channelId) {
         this.channelId = channelId;
     }
 
-    public int getAuthorId() {
+    public Long getAuthorId() {
         return authorId;
     }
 
-    public void setAuthorId(int authorId) {
+    public void setAuthorId(Long authorId) {
         this.authorId = authorId;
     }
 
@@ -44,19 +46,19 @@ public class MessageDTO {
         this.body = body;
     }
 
-    public int getFileId() {
+    public Long getFileId() {
         return fileId;
     }
 
-    public void setFileId(int fileId) {
+    public void setFileId(Long fileId) {
         this.fileId = fileId;
     }
 
-    public int getReplyToId() {
+    public Long getReplyToId() {
         return replyToId;
     }
 
-    public void setReplyToId(int replyToId) {
+    public void setReplyToId(Long replyToId) {
         this.replyToId = replyToId;
     }
 

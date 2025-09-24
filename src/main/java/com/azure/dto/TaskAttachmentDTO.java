@@ -1,24 +1,27 @@
 package com.azure.dto;
 
+import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class TaskAttachmentDTO {
-    private int taskId;
-    private int fileId;
+    private Long taskId;
+    private Long fileId;
 
 
-    public int getTaskId() {
+    public Long getTaskId() {
         return taskId;
     }
 
-    public void setTaskId(int taskId) {
+    public void setTaskId(Long taskId) {
         this.taskId = taskId;
     }
 
-    public int getFileId() {
+    public Long getFileId() {
         return fileId;
     }
 
-    public void setFileId(int fileId) {
+    public void setFileId(Long fileId) {
         this.fileId = fileId;
     }
 }

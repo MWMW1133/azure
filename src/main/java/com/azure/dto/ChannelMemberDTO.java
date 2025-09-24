@@ -1,27 +1,28 @@
 package com.azure.dto;
 
 import java.time.LocalDateTime;
-
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class ChannelMemberDTO {
-    private int channelId;
-    private int userId;
+    private Long channelId;
+    private Long userId;
     private LocalDateTime joinedAt;
 
 
-    public int getChannelId() {
+    public Long getChannelId() {
         return channelId;
     }
 
-    public void setChannelId(int channelId) {
+    public void setChannelId(Long channelId) {
         this.channelId = channelId;
     }
 
-    public int getUserId() {
+    public Long getUserId() {
         return userId;
     }
 
-    public void setUserId(int userId) {
+    public void setUserId(Long userId) {
         this.userId = userId;
     }
 

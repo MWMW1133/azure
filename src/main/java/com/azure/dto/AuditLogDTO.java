@@ -1,30 +1,32 @@
 package com.azure.dto;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class AuditLogDTO {
-    private int id;
-    private int actorId;
+    private Long id;
+    private Long actorId;
     private String entityType;
-    private int entityId;
+    private Long entityId;
     private String action;
     private String diffJson;
     private LocalDateTime createdAt;
 
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public int getActorId() {
+    public Long getActorId() {
         return actorId;
     }
 
-    public void setActorId(int actorId) {
+    public void setActorId(Long actorId) {
         this.actorId = actorId;
     }
 
@@ -36,11 +38,11 @@ public class AuditLogDTO {
         this.entityType = entityType;
     }
 
-    public int getEntityId() {
+    public Long getEntityId() {
         return entityId;
     }
 
-    public void setEntityId(int entityId) {
+    public void setEntityId(Long entityId) {
         this.entityId = entityId;
     }
 

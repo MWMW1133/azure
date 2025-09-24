@@ -1,23 +1,24 @@
 package com.azure.dto;
 
 import java.time.LocalDateTime;
-
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class FileObjectDTO {
-    private int id;
+    private Long id;
     private String storageKey;
     private String fileName;
     private String mimeType;
-    private int size;
-    private int uploaderId;
+    private Long size;
+    private Long uploaderId;
     private LocalDateTime createdAt;
 
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -45,19 +46,19 @@ public class FileObjectDTO {
         this.mimeType = mimeType;
     }
 
-    public int getSize() {
+    public Long getSize() {
         return size;
     }
 
-    public void setSize(int size) {
+    public void setSize(Long size) {
         this.size = size;
     }
 
-    public int getUploaderId() {
+    public Long getUploaderId() {
         return uploaderId;
     }
 
-    public void setUploaderId(int uploaderId) {
+    public void setUploaderId(Long uploaderId) {
         this.uploaderId = uploaderId;
     }
 

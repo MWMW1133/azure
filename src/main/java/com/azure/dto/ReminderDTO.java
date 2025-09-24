@@ -1,25 +1,28 @@
 package com.azure.dto;
 
+import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class ReminderDTO {
-    private int projectCalendarId;
-    private int minutesBefore;
+    private Long projectCalendarId;
+    private Integer minutesBefore;
     private String method;
 
 
-    public int getProjectCalendarId() {
+    public Long getProjectCalendarId() {
         return projectCalendarId;
     }
 
-    public void setProjectCalendarId(int projectCalendarId) {
+    public void setProjectCalendarId(Long projectCalendarId) {
         this.projectCalendarId = projectCalendarId;
     }
 
-    public int getMinutesBefore() {
+    public Integer getMinutesBefore() {
         return minutesBefore;
     }
 
-    public void setMinutesBefore(int minutesBefore) {
+    public void setMinutesBefore(Integer minutesBefore) {
         this.minutesBefore = minutesBefore;
     }
 

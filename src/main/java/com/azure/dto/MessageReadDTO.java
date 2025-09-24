@@ -1,36 +1,37 @@
 package com.azure.dto;
 
 import java.time.LocalDateTime;
-
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class MessageReadDTO {
-    private int channelId;
-    private int userId;
-    private int lastReadMessageId;
+    private Long channelId;
+    private Long userId;
+    private Long lastReadMessageId;
     private LocalDateTime updatedAt;
 
 
-    public int getChannelId() {
+    public Long getChannelId() {
         return channelId;
     }
 
-    public void setChannelId(int channelId) {
+    public void setChannelId(Long channelId) {
         this.channelId = channelId;
     }
 
-    public int getUserId() {
+    public Long getUserId() {
         return userId;
     }
 
-    public void setUserId(int userId) {
+    public void setUserId(Long userId) {
         this.userId = userId;
     }
 
-    public int getLastReadMessageId() {
+    public Long getLastReadMessageId() {
         return lastReadMessageId;
     }
 
-    public void setLastReadMessageId(int lastReadMessageId) {
+    public void setLastReadMessageId(Long lastReadMessageId) {
         this.lastReadMessageId = lastReadMessageId;
     }
 

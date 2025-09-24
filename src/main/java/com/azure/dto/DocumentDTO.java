@@ -1,30 +1,32 @@
 package com.azure.dto;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class DocumentDTO {
-    private int id;
-    private int projectId;
+    private Long id;
+    private Long projectId;
     private String title;
     private String templateKey;
-    private int authorId;
+    private Long authorId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public int getProjectId() {
+    public Long getProjectId() {
         return projectId;
     }
 
-    public void setProjectId(int projectId) {
+    public void setProjectId(Long projectId) {
         this.projectId = projectId;
     }
 
@@ -44,11 +46,11 @@ public class DocumentDTO {
         this.templateKey = templateKey;
     }
 
-    public int getAuthorId() {
+    public Long getAuthorId() {
         return authorId;
     }
 
-    public void setAuthorId(int authorId) {
+    public void setAuthorId(Long authorId) {
         this.authorId = authorId;
     }
 

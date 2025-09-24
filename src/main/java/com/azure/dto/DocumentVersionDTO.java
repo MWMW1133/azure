@@ -1,53 +1,55 @@
 package com.azure.dto;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class DocumentVersionDTO {
-    private int id;
-    private int documentId;
-    private int versionNum;
-    private int fileId;
-    private int authorId;
+    private Long id;
+    private Long documentId;
+    private Integer versionNum;
+    private Long fileId;
+    private Long authorId;
     private LocalDateTime createdAt;
 
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public int getDocumentId() {
+    public Long getDocumentId() {
         return documentId;
     }
 
-    public void setDocumentId(int documentId) {
+    public void setDocumentId(Long documentId) {
         this.documentId = documentId;
     }
 
-    public int getVersionNum() {
+    public Integer getVersionNum() {
         return versionNum;
     }
 
-    public void setVersionNum(int versionNum) {
+    public void setVersionNum(Integer versionNum) {
         this.versionNum = versionNum;
     }
 
-    public int getFileId() {
+    public Long getFileId() {
         return fileId;
     }
 
-    public void setFileId(int fileId) {
+    public void setFileId(Long fileId) {
         this.fileId = fileId;
     }
 
-    public int getAuthorId() {
+    public Long getAuthorId() {
         return authorId;
     }
 
-    public void setAuthorId(int authorId) {
+    public void setAuthorId(Long authorId) {
         this.authorId = authorId;
     }
 

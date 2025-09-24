@@ -1,34 +1,37 @@
 package com.azure.dto;
 
+import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class UserSettingDTO {
-    private int userId;
-    private boolean receiveEmail;
-    private boolean receivePush;
+    private Long userId;
+    private Boolean receiveEmail;
+    private Boolean receivePush;
     private String defaultView;
 
 
-    public int getUserId() {
+    public Long getUserId() {
         return userId;
     }
 
-    public void setUserId(int userId) {
+    public void setUserId(Long userId) {
         this.userId = userId;
     }
 
-    public boolean getReceiveEmail() {
+    public Boolean getReceiveEmail() {
         return receiveEmail;
     }
 
-    public void setReceiveEmail(boolean receiveEmail) {
+    public void setReceiveEmail(Boolean receiveEmail) {
         this.receiveEmail = receiveEmail;
     }
 
-    public boolean getReceivePush() {
+    public Boolean getReceivePush() {
         return receivePush;
     }
 
-    public void setReceivePush(boolean receivePush) {
+    public void setReceivePush(Boolean receivePush) {
         this.receivePush = receivePush;
     }
 

@@ -1,26 +1,29 @@
 package com.azure.dto;
 
+import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class EventAttendeeDTO {
-    private int projectCalendarId;
-    private int userId;
+    private Long projectCalendarId;
+    private Long userId;
     private String role;
     private String response;
 
 
-    public int getProjectCalendarId() {
+    public Long getProjectCalendarId() {
         return projectCalendarId;
     }
 
-    public void setProjectCalendarId(int projectCalendarId) {
+    public void setProjectCalendarId(Long projectCalendarId) {
         this.projectCalendarId = projectCalendarId;
     }
 
-    public int getUserId() {
+    public Long getUserId() {
         return userId;
     }
 
-    public void setUserId(int userId) {
+    public void setUserId(Long userId) {
         this.userId = userId;
     }
 

@@ -1,30 +1,31 @@
 package com.azure.dto;
 
 import java.time.LocalDateTime;
-
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class NotificationDTO {
-    private int id;
-    private int userId;
+    private Long id;
+    private Long userId;
     private String type;
     private String payload;
-    private boolean isRead;
+    private Boolean isRead;
     private LocalDateTime createdAt;
 
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public int getUserId() {
+    public Long getUserId() {
         return userId;
     }
 
-    public void setUserId(int userId) {
+    public void setUserId(Long userId) {
         this.userId = userId;
     }
 
@@ -44,11 +45,11 @@ public class NotificationDTO {
         this.payload = payload;
     }
 
-    public boolean getIsRead() {
+    public Boolean getIsRead() {
         return isRead;
     }
 
-    public void setIsRead(boolean isRead) {
+    public void setIsRead(Boolean isRead) {
         this.isRead = isRead;
     }
 

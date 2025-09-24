@@ -1,35 +1,38 @@
 package com.azure.dto;
 
+import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 public class TaskDependencyDTO {
-    private int id;
-    private int predecessorId;
-    private int successorId;
+    private Long id;
+    private Long predecessorId;
+    private Long successorId;
     private String type;
-    private int lagDays;
+    private Integer lagDays;
 
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public int getPredecessorId() {
+    public Long getPredecessorId() {
         return predecessorId;
     }
 
-    public void setPredecessorId(int predecessorId) {
+    public void setPredecessorId(Long predecessorId) {
         this.predecessorId = predecessorId;
     }
 
-    public int getSuccessorId() {
+    public Long getSuccessorId() {
         return successorId;
     }
 
-    public void setSuccessorId(int successorId) {
+    public void setSuccessorId(Long successorId) {
         this.successorId = successorId;
     }
 
@@ -41,11 +44,11 @@ public class TaskDependencyDTO {
         this.type = type;
     }
 
-    public int getLagDays() {
+    public Integer getLagDays() {
         return lagDays;
     }
 
-    public void setLagDays(int lagDays) {
+    public void setLagDays(Integer lagDays) {
         this.lagDays = lagDays;
     }
 }
