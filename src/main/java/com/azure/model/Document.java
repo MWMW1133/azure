@@ -3,7 +3,7 @@ package com.azure.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-@Entity @Table(name="documents", indexes=@Index(name="idx_doc_project", columnList="project_id"))
+@Entity @Table(name="documents", indexes=@Index(name="idx_doc_project", columnList="progitject_id"))
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Document extends BaseTimeEntity {
   @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
