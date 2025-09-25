@@ -1,6 +1,7 @@
 package com.azure.repository;
 
-import com.azure.model.MeetingSummary;
+import com.azure.model.MeetingSummaryEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface MeetingSummaryRepository extends JpaRepository<MeetingSummary, Long> {}
+public interface MeetingSummaryRepository extends JpaRepository<MeetingSummaryEntity, Long> {
+}

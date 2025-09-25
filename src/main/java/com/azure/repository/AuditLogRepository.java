@@ -1,6 +1,7 @@
 package com.azure.repository;
 
-import com.azure.model.AuditLog;
+import com.azure.model.AuditLogEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {}
+public interface AuditLogRepository extends JpaRepository<AuditLogEntity, Long> {
+}

@@ -1,6 +1,7 @@
 package com.azure.repository;
 
-import com.azure.model.ProjectMember;
+import com.azure.model.ProjectMemberEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ProjectMemberRepository extends JpaRepository<ProjectMember, com.azure.model.ProjectMemberId> {}
+public interface ProjectMemberRepository extends JpaRepository<ProjectMemberEntity, Long> {
+}

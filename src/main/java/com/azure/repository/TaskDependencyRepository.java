@@ -1,6 +1,7 @@
 package com.azure.repository;
 
-import com.azure.model.TaskDependency;
+import com.azure.model.TaskDependencyEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface TaskDependencyRepository extends JpaRepository<TaskDependency, com.azure.model.TaskDependencyId> {}
+public interface TaskDependencyRepository extends JpaRepository<TaskDependencyEntity, Long> {
+}
