@@ -1,0 +1,9 @@
+package com.azure.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import com.azure.model.MeetingTranscript;
+import java.util.List;
+
+public interface MeetingTranscriptRepository extends JpaRepository<MeetingTranscript, Long> {
+    List<MeetingTranscript> findByMeetingId(Long meetingId);
+}
