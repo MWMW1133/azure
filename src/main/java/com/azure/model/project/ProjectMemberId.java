@@ -1,10 +1,11 @@
-package com.azure.model;
-
+package com.azure.model.project;
 
 import jakarta.persistence.Embeddable;
-import java.io.Serializable;
 import lombok.Data;
-@Data @Embeddable
+import java.io.Serializable;
+
+@Data
+@Embeddable
 public class ProjectMemberId implements Serializable {
     private Long projectId;
     private Long userId;

@@ -1,11 +1,11 @@
-package com.azure.model;
-
+package com.azure.model.task;
 
 import jakarta.persistence.Embeddable;
-import java.io.Serializable;
 import lombok.Data;
+import java.io.Serializable;
 
-@Data @Embeddable
+@Data
+@Embeddable
 public class TaskAttachmentId implements Serializable {
     private Long taskId;
     private Long fileId;
