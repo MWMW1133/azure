@@ -1,6 +1,6 @@
 package com.azure.repository;
 
-import com.azure.model.Project;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.azure.model.project.Project;
 
-public interface ProjectRepository extends JpaRepository<Project, Long> {}
+public interface ProjectRepository extends JpaRepository<Project, Long> { }

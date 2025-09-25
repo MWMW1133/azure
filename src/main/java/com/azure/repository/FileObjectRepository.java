@@ -1,6 +1,6 @@
 package com.azure.repository;
 
-import com.azure.model.FileObject;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.azure.model.file.FileObject;
 
-public interface FileObjectRepository extends JpaRepository<FileObject, Long> {}
+public interface FileObjectRepository extends JpaRepository<FileObject, Long> { }

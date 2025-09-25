@@ -1,6 +1,6 @@
 package com.azure.repository;
 
-import com.azure.model.ChatChannel;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.azure.model.chat.ChatChannel;
 
-public interface ChatChannelRepository extends JpaRepository<ChatChannel, Long> {}
+public interface ChatChannelRepository extends JpaRepository<ChatChannel, Long> { }

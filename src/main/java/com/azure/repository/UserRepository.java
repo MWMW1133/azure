@@ -1,6 +1,9 @@
 package com.azure.repository;
 
-import com.azure.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.azure.model.user.User;
+import java.util.List;
 
-public interface UserRepository extends JpaRepository<User, Long> {}
+public interface UserRepository extends JpaRepository<User, Long> {
+    List<User> findByOrganizationId(Long organizationId);
+}

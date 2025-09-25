@@ -1,6 +1,10 @@
 package com.azure.repository;
 
-import com.azure.model.ChannelMember;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.azure.model.chat.ChannelMember;
+import com.azure.model.chat.ChannelMemberId;
+import java.util.List;
 
-public interface ChannelMemberRepository extends JpaRepository<ChannelMember, com.azure.model.ChannelMemberId> {}
+public interface ChannelMemberRepository extends JpaRepository<ChannelMember, ChannelMemberId> {
+    List<ChannelMember> findById_ChannelId(Long channelId);
+}

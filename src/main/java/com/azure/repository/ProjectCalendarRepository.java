@@ -1,6 +1,9 @@
 package com.azure.repository;
 
-import com.azure.model.ProjectCalendarEvent;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.azure.model.calendar.ProjectCalendar;
+import java.util.List;
 
-public interface ProjectCalendarRepository extends JpaRepository<ProjectCalendarEvent, Long> {}
+public interface ProjectCalendarRepository extends JpaRepository<ProjectCalendar, Long> {
+    List<ProjectCalendar> findByProjectId(Long projectId);
+}

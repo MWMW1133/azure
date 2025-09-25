@@ -1,6 +1,10 @@
 package com.azure.repository;
 
-import com.azure.model.TaskAttachment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.azure.model.task.TaskAttachment;
+import com.azure.model.task.TaskAttachmentId;
+import java.util.List;
 
-public interface TaskAttachmentRepository extends JpaRepository<TaskAttachment, com.azure.model.TaskAttachmentId> {}
+public interface TaskAttachmentRepository extends JpaRepository<TaskAttachment, TaskAttachmentId> {
+    List<TaskAttachment> findById_TaskId(Long taskId);
+}

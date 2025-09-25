@@ -1,6 +1,6 @@
 package com.azure.repository;
 
-import com.azure.model.Priority;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.azure.model.task.Priority;
 
-public interface PriorityRepository extends JpaRepository<Priority, Long> {}
+public interface PriorityRepository extends JpaRepository<Priority, Integer> { }
