@@ -5,5 +5,7 @@ import com.azure.model.meeting.MeetingSummary;
 import java.util.List;
 
 public interface MeetingSummaryRepository extends JpaRepository<MeetingSummary, Long> {
-    List<MeetingSummary> findByMeetingId(Long meetingId);
+
+    // ★ 특정 회의의 요약 목록
+    List<MeetingSummary> findByMeeting_Id(Long meetingId);
 }

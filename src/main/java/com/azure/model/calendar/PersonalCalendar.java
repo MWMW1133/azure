@@ -5,6 +5,11 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import com.azure.model.user.User;
 
+/**
+ * 개인 캘린더 엔티티.
+ * - is_done 컬럼(Boolean) 추가: 기본값 false
+ * - MySQL TINYINT(1)과 JPA Boolean은 자동 매핑됨.
+ */
 @Data
 @Entity
 @Table(name = "personal_calendars")
@@ -35,6 +40,10 @@ public class PersonalCalendar {
 
     @Column(name = "location", length = 200)
     private String location;
+
+    /** 완료 여부 (DB TINYINT(1) 기본 false). */
+    @Column(name = "is_done", nullable = false)
+    private Boolean isDone = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
