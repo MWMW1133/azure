@@ -12,4 +12,5 @@ public class WorkflowDTO {
     private Boolean isTerminal;
     private Boolean isDefault;
     private LocalDateTime createdAt;
+    private String color;
 }

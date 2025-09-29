@@ -32,10 +32,6 @@ public class Task {
     private User assignee;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reporter_id")
-    private User reporter;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "workflows_id")
     private Workflow workflow;
 

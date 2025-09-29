@@ -25,16 +25,18 @@ public interface UserService {
     /**
      * 사용자를 생성한다.
      * @param organizationId organizations.id FK
+     * @param loginId 사용자가 직접 입력한 로그인 ID (중복 불가)
      * @param passwordHash 해시된 비밀번호(예: BCrypt)
      * @param name 표시 이름
      * @param avatarUrl 아바타 URL(선택)
-     * @param isActive 활성 여부(선택, DB 기본값 사용 가능)
+     * @param workStatus 근무 상태 (기본값: WORKING)
      */
-    User create(Long organizationId, String passwordHash, String name, String avatarUrl, Boolean isActive);
+    User create(Long organizationId, String loginId, String passwordHash,
+                String name, String avatarUrl, User.WorkStatus workStatus);
 
-    /** 프로필 필드 수정(조직/비밀번호 변경은 포함하지 않음). */
-    User update(Long userId, String name, String avatarUrl, Boolean isActive);
+    /** 프로필 필드 수정(조직/로그인ID 변경은 포함하지 않음). */
+    User update(String passwordHash, String name, String avatarUrl, User.WorkStatus workStatus);
 
-    /** 물리 삭제. 소프트 삭제가 필요하면 컨트롤러에서 isActive=false를 적용. */
+    /** 물리 삭제. 소프트 삭제가 필요하면 workStatus = LEAVE 등으로 대체 가능. */
     void delete(Long userId);
 }

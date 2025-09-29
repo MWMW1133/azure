@@ -20,14 +20,23 @@ public interface TaskService {
      */
     Page<Task> listByProject(Long projectId, Pageable pageable);
 
-    /** 최소 정보로 태스크 생성(제목/리포터/워크플로우/우선순위). 나머지는 후속 수정. */
-    Task create(Long projectId, Long reporterId, String title, Long workflowId, Integer priorityId);
+    /** 개인 태스크 */
+    Page<Task> listPersonalTasks(Long userId, Pageable pageable);
+
+    /** 프로젝트 태스크 생성 */
+    Task create(Long projectId, Long assigneeId, String title, Long workflowId, Integer priorityId);
+
+    /** 개인 태스크 생성 (project_id = null, assignee_id = 본인) */
+    Task createPersonalTask(Long userId, String title, Integer priorityId);
+
+     /** 하위 태스크 생성 (상위 태스크 ID 기준). */
+    Task createSubTask(Long parentTaskId, Long assigneeId, String title, Long workflowId, Integer priorityId);
 
     /** 담당자 지정/해제(assigneeId가 null이면 해제). */
     Task assign(Long taskId, Long assigneeId);
 
     /** 다른 워크플로우(칸반 컬럼)로 이동. */
-    Task moveToWorkflow(Long taskId, Long workflowId);
+    Task setWorkflow(Long taskId, Long workflowId);
 
     /** 계획 시작일/마감일 설정. */
     Task setDates(Long taskId, LocalDate startDate, LocalDate dueDate);

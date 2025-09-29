@@ -33,4 +33,7 @@ public class Workflow {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "color")
+    private String color;
 }

@@ -23,29 +23,30 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
 
-    @Override
+    @Override   
     public Notification notifyUser(Long userId, String type, String payload) {
-        Notification n = new Notification();
-        n.setUser(new com.azure.model.user.User()); n.getUser().setId(userId);
-        n.setType(type);
-        n.setPayload(payload);
-        n.setIsRead(false);
-        return notificationRepository.save(n);
+        Notification n = new Notification(); // 새 알림 생성    
+        n.setUser(new com.azure.model.user.User()); // User 객체 생성
+        n.getUser().setId(userId); // User 객체는 ID만 설정
+        n.setType(type);        
+        n.setPayload(payload); 
+        n.setIsRead(false); // 기본값 읽지 않음
+        return notificationRepository.save(n); 
     }
 
     @Override
     public void markRead(Long notificationId, boolean read) {
-        Notification n = notificationRepository.findById(notificationId).orElseThrow();
-        n.setIsRead(read);
-        notificationRepository.save(n);
+        Notification n = notificationRepository.findById(notificationId).orElseThrow(); // 알림 조회          
+        n.setIsRead(read); // 변경 감지로 업데이트
+        notificationRepository.save(n); 
     }
 
     @Override @Transactional(readOnly = true)
     public Page<Notification> listByUser(Long userId, Pageable pageable, Boolean isRead) {
         // TODO: 레포에 findByUser_IdAndIsRead(userId, isRead, Pageable) 추가 시 이 로직 교체
-        List<Notification> all = notificationRepository.findAll();
+        List<Notification> all = notificationRepository.findAll();                  
         int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), all.size());
+        int end = Math.min(start + pageable.getPageSize(), all.size()); 
         List<Notification> content = (start > end) ? List.of() : all.subList(start, end);
         return new PageImpl<>(content, pageable, all.size());
     }

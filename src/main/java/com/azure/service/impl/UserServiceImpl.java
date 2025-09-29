@@ -27,7 +27,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
 
-    /** 조회 전용 트랜잭션: 더 가볍고, 실수로 flush되지 않도록 보호. */
+    /** 조회 전용 트랜잭션 */
     @Override @Transactional(readOnly = true)
     public User get(Long id) {
         return userRepository.findById(id)
@@ -38,41 +38,53 @@ public class UserServiceImpl implements UserService {
     public Page<User> list(Pageable pageable) {
         return userRepository.findAll(pageable);
     }
-
-    @Override @Transactional(readOnly = true)
+ 
+    @Override @Transactional(readOnly = true) 
     public List<User> listByOrganization(Long organizationId) {
-        return userRepository.findByOrganizationId(organizationId);
+        // 장기휴가, 연차, 반차자는 제외
+        return userRepository.findByOrganizationIdAndWorkStatus(organizationId, User.WorkStatus.WORKING);
     }
 
     @Override
-    public User create(Long organizationId, String passwordHash, String name, String avatarUrl, Boolean isActive) {
-        // FK 무결성 확인
-        Organization org = organizationRepository.findById(organizationId)
-                .orElseThrow();
+    public User create(Long organizationId, String loginId, String passwordHash, String name, String avatarUrl, User.WorkStatus workStatus) {
+        // 로그인 ID 중복 체크
+        if (userRepository.existsByLoginId(loginId)) {
+            throw new IllegalArgumentException("이미 사용 중인 아이디입니다: " + loginId);
+        }
 
-        // 엔티티 조립
+        Organization org = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new NotFoundException("Organization not found: " + organizationId));
+
         User u = new User();
+        u.setLoginId(loginId);
         u.setPasswordHash(passwordHash);
         u.setName(name);
         u.setAvatarUrl(avatarUrl);
-        u.setIsActive(isActive);
+        u.setWorkStatus(workStatus != null ? workStatus : User.WorkStatus.WORKING); // 기본값 WORKING
         u.setOrganization(org);
-
         return userRepository.save(u);
     }
 
     @Override
-    public User update(Long userId, String name, String avatarUrl, Boolean isActive) {
-        User u = get(userId);
+    public User update(String passwordHash, String name, String avatarUrl, User.WorkStatus workStatus) {
+        Long currentUserId = com.azure.security.SecurityUtil.getCurrentUserId();
+        if (currentUserId == null) {
+            throw new IllegalStateException("로그인된 사용자가 없습니다.");
+        }
+
+        User u = get(currentUserId);
+        if (passwordHash != null) u.setPasswordHash(passwordHash);
         if (name != null) u.setName(name);
         if (avatarUrl != null) u.setAvatarUrl(avatarUrl);
-        if (isActive != null) u.setIsActive(isActive);
+        if (workStatus != null) u.setWorkStatus(workStatus);
+
         return userRepository.save(u);
     }
 
     @Override
     public void delete(Long userId) {
-        // 소프트 삭제로 바꾸고 싶다면 isActive=false로 전환하는 정책을 사용
-        userRepository.delete(get(userId));
+        User u = get(userId);
+        // 삭제 대신 "휴면/퇴사 상태"로 처리할 수 있음 → 여기서는 물리 삭제
+        userRepository.delete(u);
     }
 }

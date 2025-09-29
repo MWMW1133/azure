@@ -12,8 +12,8 @@ public interface ProjectService {
     /** ID로 프로젝트 조회. 없으면 NotFoundException. */
     Project get(Long id);
 
-    /** 프로젝트 목록(페이징). */
-    Page<Project> list(Pageable pageable);
+    /** 특정 사용자가 속한 모든 회사의 프로젝트 목록(페이징). */
+    Page<Project> listByUser(Long userId, Pageable pageable);
 
     /** 조직 소속으로 프로젝트 생성(소유자 지정). */
     Project create(Long organizationId, Long ownerId, String name, String description);

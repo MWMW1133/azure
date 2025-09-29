@@ -10,7 +10,6 @@ public class TaskDTO {
     private Long parentTaskId;
     private String title;
     private Long assigneeId;
-    private Long reporterId;
     private Long workflowsId;
     private Integer priorityId;
     private LocalDate startDate;

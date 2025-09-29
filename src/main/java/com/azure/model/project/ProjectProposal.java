@@ -1,40 +1,60 @@
 package com.azure.model.project;
 
+import com.azure.model.Organization;
+import com.azure.model.user.User;
 import jakarta.persistence.*;
 import lombok.Data;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import com.azure.model.enums.ProposalStatus;
-import com.azure.model.user.User;
-import com.azure.model.Organization;
 
 @Data
 @Entity
 @Table(name = "project_proposals")
 public class ProjectProposal {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    public enum Status {
+        APPROVED, PENDING, REJECTED
+    }
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** 제안자 (users.id FK) */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "proposer_id")
+    @JoinColumn(name = "proposer_id", nullable = false)
     private User proposer;
+
+    /** 조직 (organizations.id FK) */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id", nullable = false)
+    private Organization organization;
+
+    /** 승인 후 연결된 프로젝트 (projects.id FK) */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id")
+    private Project project;
 
     @Column(nullable = false, length = 255)
     private String name;
 
-    @Lob @Column
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Enumerated(EnumType.STRING) @Column(length = 16)
-    private ProposalStatus status = ProposalStatus.PENDING;
+    /** 제안 상태 */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Status status = Status.PENDING;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    /** 예상 시작일 */
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
+    /** 예상 마감일 */
+    @Column(name = "due_date")
+    private LocalDate dueDate;
+
+    @Column(name = "created_at", updatable = false, insertable = false)
     private LocalDateTime createdAt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id")
-    private Organization organization;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id")
-    private Project project;
 }
