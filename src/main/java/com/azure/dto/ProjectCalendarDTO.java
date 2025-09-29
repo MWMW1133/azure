@@ -17,5 +17,4 @@ public class ProjectCalendarDTO {
     private Long createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Long externalCalendarId;
 }

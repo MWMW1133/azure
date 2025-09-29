@@ -5,6 +5,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 태스크 CRUD 및 워크플로우 전이 규칙을 제공한다.
@@ -22,6 +24,12 @@ public interface TaskService {
 
     /** 개인 태스크 */
     Page<Task> listPersonalTasks(Long userId, Pageable pageable);
+
+    /** 워크플로우의 마지막 단계(완료 상태)에 있는 태스크 리스트 (프로젝트별) */
+    Page<Task> listCompletedTasksByProject(Long projectId, Pageable pageable);
+
+    /** 프로젝트별 직원별 담당 태스크 리스트 */
+    Map<Long, List<Task>> listTasksByAssignee(Long projectId);
 
     /** 프로젝트 태스크 생성 */
     Task create(Long projectId, Long assigneeId, String title, Long workflowId, Integer priorityId);

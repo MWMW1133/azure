@@ -52,7 +52,4 @@ public class ProjectCalendar {
 
     @Column(name = "updated_at", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
-
-    @Column(name = "external_calendar_id")
-    private Long externalCalendarId;
 }
