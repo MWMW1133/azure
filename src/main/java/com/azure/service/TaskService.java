@@ -1,5 +1,6 @@
 package com.azure.service;
 
+import com.azure.dto.GanttTaskDTO;
 import com.azure.model.task.Task;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +31,9 @@ public interface TaskService {
 
     /** 프로젝트별 직원별 담당 태스크 리스트 */
     Map<Long, List<Task>> listTasksByAssignee(Long projectId);
+
+    /** 프로젝트별 태스크 간트차트 데이터 */
+    List<GanttTaskDTO> getProjectTasksForGantt(Long projectId);
 
     /** 프로젝트 태스크 생성 */
     Task create(Long projectId, Long assigneeId, String title, Long workflowId, Integer priorityId);

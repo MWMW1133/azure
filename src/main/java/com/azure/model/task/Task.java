@@ -30,7 +30,7 @@ public class Task {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assignee_id")
     private User assignee;
-
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "workflows_id")
     private Workflow workflow;

@@ -1,5 +1,6 @@
 package com.azure.service.impl;
 
+import com.azure.dto.GanttTaskDTO;
 import com.azure.model.file.FileObject;
 import com.azure.model.task.*;
 import com.azure.model.user.User;
@@ -90,6 +91,26 @@ public class TaskServiceImpl implements TaskService {
         return tasks.stream()
                 .filter(t -> t.getAssignee() != null)
                 .collect(Collectors.groupingBy(t -> t.getAssignee().getId()));
+    }
+
+    /* 프로젝트 태스크 간트차트 데이터 */
+    @Override
+    @Transactional(readOnly = true)
+    public List<GanttTaskDTO> getProjectTasksForGantt(Long projectId) {
+        List<Task> tasks = taskRepository.findByProjectId(projectId);
+
+        return tasks.stream()
+                .map(t -> new GanttTaskDTO(
+                        t.getId(),
+                        t.getTitle(),
+                        (t.getAssignee() != null ? t.getAssignee().getName() : null),
+                        (t.getAssignee() != null ? t.getAssignee().getAvatarUrl() : null), // ✅ User 통해 avatarUrl 가져오기
+                        t.getStartDate(),
+                        t.getDueDate(),
+                        t.getProgressPct(),
+                        (t.getWorkflow() != null ? t.getWorkflow().getName() : null)
+                ))
+                .toList();
     }
 
     /* 최소 정보로 태스크 생성 */
