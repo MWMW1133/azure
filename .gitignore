@@ -1,0 +1,11 @@
+﻿.env
+*.env
+application.properties
+application.yml
+*.p12
+*.keystore
+target/
+build/
+out/
+.vscode/
+.idea/
