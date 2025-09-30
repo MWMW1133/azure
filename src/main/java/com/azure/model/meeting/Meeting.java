@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import com.azure.model.calendar.ProjectCalendar;
 import com.azure.model.file.FileObject;
 import com.azure.model.Organization;
+import com.azure.model.project.Project;
 
 @Data
 @Entity
@@ -14,15 +15,20 @@ public class Meeting {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** 회의가 연결된 프로젝트 이벤트 (NOT NULL) */
+    /** 연결된 프로젝트 이벤트 (NOT NULL) */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private ProjectCalendar event;
 
-    /** 소속 조직 (NULL 허용, SET NULL) */
+    /** 소속 조직 (NULL 허용, ON DELETE SET NULL) */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organization_id")
     private Organization organization;
+
+    /** 소속 프로젝트 (NULL 허용) */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id")
+    private Project project;
 
     /** 회의 시작/종료 시각 */
     @Column(name = "started_at")
@@ -35,4 +41,8 @@ public class Meeting {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recording_file")
     private FileObject recordingFile;
+
+    /** DB DEFAULT CURRENT_TIMESTAMP → 애플리케이션에서 값을 세팅하지 않도록 */
+    @Column(name = "created_at", insertable = false, updatable = false)
+    private LocalDateTime createdAt;
 }

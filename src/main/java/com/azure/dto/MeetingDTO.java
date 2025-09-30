@@ -6,9 +6,11 @@ import java.time.LocalDateTime;
 @Data
 public class MeetingDTO {
     private Long id;
-    private Long eventId;           // project_event_id
-    private Long organizationId;    // organization_id
+    private Long eventId;          // meetings.event_id
+    private Long organizationId;   // meetings.organization_id
+    private Long projectId;        // meetings.project_id
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
-    private Long recordingFileId;   // file_objects.id
+    private Long recordingFileId;  // meetings.recording_file (file_objects.id)
+    private LocalDateTime createdAt;
 }

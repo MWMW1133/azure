@@ -3,8 +3,10 @@ package com.azure.service.impl;
 import com.azure.model.Organization;
 import com.azure.model.calendar.ProjectCalendar;
 import com.azure.model.meeting.Meeting;
+import com.azure.model.project.Project;
 import com.azure.repository.MeetingRepository;
 import com.azure.repository.ProjectCalendarRepository;
+import com.azure.repository.ProjectRepository;
 import com.azure.service.MeetingService;
 import com.azure.service.exception.BadRequestException;
 import com.azure.service.exception.NotFoundException;
@@ -14,79 +16,106 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-/**
- * 회의 서비스 구현.
- *
- * 역할
- * - 프로젝트 일정(ProjectCalendar)에 연결된 회의(Meeting)의 시작/종료 처리.
- * - 비즈니스 규칙(입력 검증, 중복 회의 방지, 시간 검증) 캡슐화.
- *
- * 트랜잭션
- * - 클래스 레벨 @Transactional: 쓰기 메서드 기본 트랜잭션.
- * - 읽기 전용 조회는 @Transactional(readOnly = true) 권장.
- */
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class MeetingServiceImpl implements MeetingService {
 
+    private static final String ORG_MEETING_PROJECT_NAME_PREFIX = "ORG-MEETING-"; // 조직 공용 프로젝트명
+    private static final String ORG_MEETING_EVENT_TITLE = "[OrgRoom]";            // 앵커 이벤트 제목
+
     private final MeetingRepository meetingRepository;
     private final ProjectCalendarRepository projectCalendarRepository;
+    private final ProjectRepository projectRepository;
 
-    /**
-     * 회의 시작.
-     * @param eventId        project_calendars.id (필수)
-     * @param organizationId organizations.id (선택)
-     * @param startedAt      지정 없으면 now
-     */
     @Override
-    public Meeting startMeeting(Long eventId, Long organizationId, LocalDateTime startedAt) {
+    public Meeting startMeeting(Long eventId, Long organizationId, Long projectId, LocalDateTime startedAt) {
         if (eventId == null) throw new BadRequestException("eventId는 필수입니다.");
 
-        // 1) 이벤트 존재 확인
+        // 1) 이벤트 확인
         ProjectCalendar event = projectCalendarRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Project event not found: " + eventId));
 
-        // 2) 중복 진행 회의 방지(정책에 따라 제거 가능)
+        // 2) 중복 진행 방지(같은 event에 미종료 회의 존재?)
         if (meetingRepository.existsByEvent_IdAndEndedAtIsNull(eventId)) {
             throw new BadRequestException("이미 진행 중인 회의가 있습니다.");
         }
 
-        // 3) 엔티티 조립 (연관 FK는 ID만 세팅한 얕은 엔티티로 연결)
+        // 3) 조립
         Meeting m = new Meeting();
         m.setEvent(event);
 
         if (organizationId != null) {
-            Organization org = new Organization();
-            org.setId(organizationId);
+            Organization org = new Organization(); org.setId(organizationId);
             m.setOrganization(org);
         }
+        if (projectId != null) {
+            Project p = new Project(); p.setId(projectId);
+            m.setProject(p);
+        }
 
-        // 4) 시간 기본값 처리
         m.setStartedAt(startedAt != null ? startedAt : LocalDateTime.now());
-
         return meetingRepository.save(m);
     }
 
-    /**
-     * 회의 종료.
-     * @param meetingId meetings.id
-     * @param endedAt   지정 없으면 now
-     */
     @Override
     public Meeting endMeeting(Long meetingId, LocalDateTime endedAt) {
-        // 1) 회의 존재 확인
         Meeting m = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new NotFoundException("Meeting not found: " + meetingId));
 
-        // 2) 종료 시각 검증: 시작 이후여야 함
         LocalDateTime end = (endedAt != null ? endedAt : LocalDateTime.now());
         if (m.getStartedAt() != null && !end.isAfter(m.getStartedAt())) {
             throw new BadRequestException("endedAt은 startedAt 이후여야 합니다.");
         }
-
-        // 3) 종료 처리
         m.setEndedAt(end);
         return meetingRepository.save(m);
+    }
+
+    // ─────────────────────────────────────────────
+    // [ADD] 조직 공용 회의방 시작 (eventId 몰라도 호출 가능)
+    // ─────────────────────────────────────────────
+    @Override
+    public Meeting startOrgRoom(Long organizationId, LocalDateTime startedAt) {
+        if (organizationId == null) throw new BadRequestException("organizationId는 필수입니다.");
+        Long anchorEventId = ensureOrgAnchorEvent(organizationId);
+        // projectId는 고정 프로젝트의 id를 넘겨도 되고, null이어도 동작 가능(스키마상 선택)
+        Long anchorProjectId = findOrgAnchorProjectId(organizationId);
+        return startMeeting(anchorEventId, organizationId, anchorProjectId, startedAt);
+    }
+
+    // 조직별 "공용 회의 프로젝트" id 조회(없으면 생성)
+    private Long findOrgAnchorProjectId(Long organizationId) {
+        String projectName = ORG_MEETING_PROJECT_NAME_PREFIX + organizationId;
+        return projectRepository.findByOrganization_IdAndName(organizationId, projectName)
+                .orElseGet(() -> {
+                    Project p = new Project();
+                    p.setName(projectName);
+                    // p.setCode(...); p.setDescription(...); 필요 시 채우기
+                    // 조직 FK
+                    Organization org = new Organization(); org.setId(organizationId);
+                    p.setOrganization(org);
+                    return projectRepository.save(p);
+                })
+                .getId();
+    }
+
+    // 조직별 앵커 "ProjectCalendar 이벤트" id 조회(없으면 생성)
+    private Long ensureOrgAnchorEvent(Long organizationId) {
+        Long projectId = findOrgAnchorProjectId(organizationId);
+
+        return projectCalendarRepository
+                .findFirstByProject_IdAndTitle(projectId, ORG_MEETING_EVENT_TITLE)
+                .orElseGet(() -> {
+                    ProjectCalendar e = new ProjectCalendar();
+                    Project project = new Project(); project.setId(projectId);
+                    e.setProject(project);
+                    e.setTitle(ORG_MEETING_EVENT_TITLE);
+                    // 상시룸이므로 시간은 의미 없음(필드 NOT NULL이면 기본값)
+                    e.setAllDay(true);
+                    e.setDescription("Organization shared meeting room anchor");
+                    // start/end NULL 허용 스키마면 생략; 아니면 현재 시각/미래시각 넣기
+                    return projectCalendarRepository.save(e);
+                })
+                .getId();
     }
 }
