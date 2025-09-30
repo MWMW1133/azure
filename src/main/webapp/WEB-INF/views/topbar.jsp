@@ -2,10 +2,6 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
     <!-- Bootstrap CSS -->
     <link href="${pageContext.request.contextPath}/css/bootstrap/bootstrap.css" rel="stylesheet">
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/hwan
     <style>
         body {
             margin: 0;
@@ -694,6 +690,5 @@
 <script src="${pageContext.request.contextPath}/js/todo.js"></script>
 <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
 
->>>>>>> origin/hwan
 
 </body>

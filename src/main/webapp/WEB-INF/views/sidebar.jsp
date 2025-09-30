@@ -342,15 +342,13 @@
   </div>
 
   <!-- 정적 JS 로드 -->
-<<<<<<< HEAD
   <script src="/js/sidebar.js"></script>
-=======
   <script src="${pageContext.request.contextPath}/js/bootstrap/bootstrap.bundle.js"></script>
   <script src="${pageContext.request.contextPath}/js/sidebar.js?v=spa_2"></script>
   <script src="${pageContext.request.contextPath}/js/notification.js"></script>
   <script src="${pageContext.request.contextPath}/js/todo.js"></script>
   <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
   <script src="${pageContext.request.contextPath}/js/meeting.js?v=spa_2"></script>
->>>>>>> origin/hwan
+
 </body>
 </html>

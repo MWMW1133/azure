@@ -18,6 +18,26 @@ public class pageController {
         model.addAttribute("body", "viewProfile.jsp");
         return "mainbar";
     }
+
+    @GetMapping({"/", "/sidebar"})
+    public String sidebar() {
+        return "sidebar"; // -> /WEB-INF/views/sidebar.jsp
+    }
+
+    @GetMapping("/topbar")
+    public String topbar(){
+        return "topbar"; // -> /WEB-INF/views/topbar.jsp
+    }
+
+    @GetMapping("/mainbar")
+    public String mainbar(){
+        return "mainbar"; // -> /WEB-INF/views/mainbar.jsp
+    }
+
+    @GetMapping("/meeting")
+    public String meeting() {
+        return "meeting"; // /WEB-INF/views/meeting.jsp
+    }
 }
 
 
