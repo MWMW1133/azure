@@ -24,7 +24,6 @@ window.initCalendar = function () {
 
   // --- FullCalendar 초기화 ---
   const calendar = new FullCalendar.Calendar(calendarEl, {
-    plugins: [FullCalendarDayGrid, FullCalendarTimeGrid, FullCalendarInteraction, FullCalendarRrule],
     initialView: "dayGridMonth",
     headerToolbar: {
       left: "prev,next today",

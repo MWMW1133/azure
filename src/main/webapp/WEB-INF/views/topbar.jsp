@@ -221,7 +221,6 @@
             <!-- 채팅 아이콘 -->
             <div class="nav-item">
                 <a href="javascript:void(0)" class="nav-link" onclick="openChatModal()">
-<<<<<<< HEAD
                     <i class="bi bi-chat-dots fs-5"></i>
                 </a>
             </div>

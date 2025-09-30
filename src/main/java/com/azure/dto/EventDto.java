@@ -8,6 +8,7 @@ public class EventDto {
     private String id;
     private String title;
     private String start;
+    private String rrule;
     private String end;
     private boolean allDay;
     private String backgroundColor;

@@ -60,17 +60,11 @@
     <script src="${pageContext.request.contextPath}/js/notification.js"></script>
     <script src="${pageContext.request.contextPath}/js/todo.js"></script>
     <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
-    <script src="${pageContext.request.contextPath}/js/my-calendar.js"></script>
     <script src="${pageContext.request.contextPath}/js/my-tasks.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="${pageContext.request.contextPath}/js/project-plan.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.15/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.15/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.15/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/rrule@6.1.15/index.global.min.js"></script>
+
 
     <script src="${pageContext.request.contextPath}/js/bootstrap/bootstrap.bundle.js"></script>
     <script src="${pageContext.request.contextPath}/js/sidebar.js"></script>
@@ -92,6 +86,8 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/home.css" />
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/project-plan.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
+    <script src="${pageContext.request.contextPath}/js/my-calendar.js"></script>
 
   </body>
 </html>
