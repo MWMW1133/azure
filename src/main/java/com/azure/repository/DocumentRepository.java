@@ -1,9 +1,12 @@
 package com.azure.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
 import com.azure.model.document.Document;
-import java.util.List;
+import org.springframework.data.domain.Page;        // ★ 추가
+import org.springframework.data.domain.Pageable; // ★ 추가
+import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DocumentRepository extends JpaRepository<Document, Long> {
-    List<Document> findByProjectId(Long projectId);
+
+    // ★ 변경: DB 페이징 + 연관경로(project.id) 명시
+    Page<Document> findByProject_Id(Long projectId, Pageable pageable); // ★
 }

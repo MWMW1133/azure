@@ -10,13 +10,17 @@ public class MeetingSummary {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 요약이 속한 회의
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "meeting_id")
     private Meeting meeting;
 
-    @Lob @Column(name = "summary_md")
+    // 마크다운 본문
+    @Column(name = "summary_md")
     private String summaryMd;
 
-    @Lob @Column(name = "action_items")
-    private String actionItems; // JSON string
+    // 액션아이템(JSON String). 필요 시 @Convert로 JSON 매핑 가능
+    @Column(name = "action_items")
+    private String actionItems;
 }
+

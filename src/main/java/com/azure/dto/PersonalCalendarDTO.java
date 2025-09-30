@@ -11,6 +11,7 @@ public class PersonalCalendarDTO {
     private LocalDateTime startAt;
     private LocalDateTime endAt;
     private Boolean allDay;
+    private Boolean isDone;
     private String rrule;
     private String location;
     private Long createdBy;

@@ -10,13 +10,17 @@ public class MeetingTranscript {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 전사가 속한 회의
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "meeting_id")
     private Meeting meeting;
 
+    // 언어 코드(예: "ko-KR", "en-US")
     @Column(name = "lang", length = 20)
     private String lang;
 
-    @Lob @Column(name = "content")
+    // 전사 본문(대용량 텍스트)
+    @Column(name = "content")
     private String content;
 }
+
