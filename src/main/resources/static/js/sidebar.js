@@ -40,6 +40,7 @@
       .presence{
         font-size:15px !important; font-weight:var(--sb-pres-fw) !important; letter-spacing:0; color:#6b7280;
       }`;
+
     const st = document.createElement('style');
     st.id = 'sb-typo-runtime';
     st.textContent = css;
@@ -55,19 +56,62 @@
   const Router = {
     go(name, params = {}) {
       switch (name) {
-        case 'home':      render(''); break;
-        case 'tasks':     render(''); break;
-        case 'calendar':  render(''); break;
-        case 'plan':      render(''); break;
-        case 'room':      render(''); break;
-        case 'project':      render(''); break;
+// <<<<<<< HEAD
+//         case 'home':      render(''); break;
+//         case 'tasks':     render(''); break;
+//         case 'calendar':  render(''); break;
+//         case 'plan':      render(''); break;
+//         case 'room':      render(''); break;
+//         case 'project':      render(''); break;
+//         // case 'project':   render('' + params.name + '</h1><p>프로젝트 ID: ' + params.id + '</p>'); break;
+//         default:          render('<h1>Not Found</h1>');
+//       }
+//     }
+//   };
+//
+//   function render(html) { if (main) main.innerHTML = html; }
+// =======
+        case "home":
+          fetch("/home", { cache: "no-cache" })
+            .then((res) => res.text())
+            .then((html) => render(html));
+          break;
+        case "tasks":
+          fetch("/tasks/my", { cache: "no-cache" })
+            .then((res) => res.text())
+            .then((html) => render(html));
+          break;
+        case "calendar":
+          fetch("/calendar")
+            .then((res) => res.text())
+            .then((html) => render(html));
+          break;
+        case "plan":
+          fetch("/project-plan")
+            .then((res) => res.text())
+            .then((html) => render(html));
+          break;
+        case "room":
+          render("");
+          break;
+        case "project":
+          render("");
+          break;
         // case 'project':   render('' + params.name + '</h1><p>프로젝트 ID: ' + params.id + '</p>'); break;
-        default:          render('<h1>Not Found</h1>');
+        default:
+          render("<h1>Not Found</h1>");
       }
-    }
+    },
   };
 
-  function render(html) { if (main) main.innerHTML = html; }
+  function render(html) {
+    if (main) main.innerHTML = html;
+    if (document.getElementById("calendar")) {
+      //캘린더 생성
+      window.initCalendar();
+    }
+  }
+
 
   // 글씨 bold처리 문제 ========================================
   // active 토글 전용 함수
@@ -97,13 +141,22 @@
     });
   })();
 
+  // // 프로젝트 목록 버튼
+  // document.querySelectorAll('.proj-list .proj-row:not(.room)').forEach((btn, i) => {
+  //   const name = btn.querySelector('span:last-child')?.textContent?.trim() || ('프로젝트 ' + (i + 1));
+  //   const id = 11 + i; // 더미 ID
+  //   // btn.addEventListener('click', () => Router.go('project', { id, name }));
+  //   btn.addEventListener('click', (e) => {
+  //     Router.go('project', { id, name });
+
+
   // 프로젝트 목록 버튼
-  document.querySelectorAll('.proj-list .proj-row:not(.room)').forEach((btn, i) => {
-    const name = btn.querySelector('span:last-child')?.textContent?.trim() || ('프로젝트 ' + (i + 1));
+  document.querySelectorAll(".proj-list .proj-row").forEach((btn, i) => {
+    const name = btn.querySelector("span:last-child")?.textContent?.trim() || "프로젝트 " + (i + 1);
     const id = 11 + i; // 더미 ID
     // btn.addEventListener('click', () => Router.go('project', { id, name }));
-    btn.addEventListener('click', (e) => {
-      Router.go('project', { id, name });
+    btn.addEventListener("click", (e) => {
+      Router.go("project", { id, name });
       setActiveNav(e.currentTarget);
     });
   });
@@ -129,8 +182,17 @@
   // Router.go('home');
 
 
+  // 회의실
+  const roomBtn = document.querySelector(".proj-row.room");
+  // if (roomBtn) roomBtn.addEventListener('click', () => Router.go('room'));
+  if (roomBtn)
+    roomBtn.addEventListener("click", (e) => {
+      Router.go("room");
+      setActiveNav(e.currentTarget);
+    });
+
   // 초기 active: 홈 버튼
-  const firstNav = document.querySelector('.nav-fixed .nav-item');
+  const firstNav = document.querySelector(".nav-fixed .nav-item");
   if (firstNav) setActiveNav(firstNav);
 
   // ===== Presence Status (상태 선택 팝오버) =====
@@ -147,6 +209,7 @@
   // 팝오버 스타일(팝오버 전용) — 부족하면 자동 주입
   function ensurePresenceStyles(){
     if (document.getElementById('presence-style')) return;
+
     const css = `
       .status-popover{
         position:fixed; z-index:1000; background:#fff;
@@ -163,6 +226,7 @@
       .status-dot{ width:12px; height:12px; border-radius:999px; border:1px solid rgba(0,0,0,.06); }
       .status-item:focus{ outline:2px solid #93c5fd; outline-offset:2px; }
     `;
+
     const st = document.createElement('style');
     st.id = 'presence-style';
     st.textContent = css;
@@ -197,10 +261,14 @@
       setPresence(item.dataset.key);
       hidePopover();
     });
-    pop.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        const item = document.activeElement.closest('.status-item');
-        if (item){ setPresence(item.dataset.key); hidePopover(); }
+
+    pop.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        const item = document.activeElement.closest(".status-item");
+        if (item) {
+          setPresence(item.dataset.key);
+          hidePopover();
+        }
       }
     });
 
@@ -209,52 +277,57 @@
   }
 
   // 오른쪽(사이드바 경계 기준) 위치
-  function showPopover(){
+  function showPopover() {
     const p = ensurePopover();
-    p.style.display = 'block';
+    p.style.display = "block";
 
     const hostRect = presenceEl.getBoundingClientRect();
-    const sideRect = document.querySelector('.sidebar').getBoundingClientRect();
-    const pRect    = p.getBoundingClientRect();
+    const sideRect = document.querySelector(".sidebar").getBoundingClientRect();
+    const pRect = p.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    const EDGE_GAP = 6;    // 사이드바 경계 기준 기본 간격
-    const NUDGE_X  = -120;  // 음수=왼쪽(경계쪽), 양수=오른쪽
+    const EDGE_GAP = 6; // 사이드바 경계 기준 기본 간격
+    const NUDGE_X = -120; // 음수=왼쪽(경계쪽), 양수=오른쪽
     const Y_MARGIN = 8;
 
     let left = sideRect.right + EDGE_GAP + NUDGE_X;
-    let top  = hostRect.top + (hostRect.height - pRect.height) / 2;
+    let top = hostRect.top + (hostRect.height - pRect.height) / 2;
 
     left = Math.max(0, Math.min(left, vw - pRect.width - 8));
-    top  = Math.max(Y_MARGIN, Math.min(top, vh - pRect.height - Y_MARGIN));
+    top = Math.max(Y_MARGIN, Math.min(top, vh - pRect.height - Y_MARGIN));
 
     p.style.left = `${left}px`;
-    p.style.top  = `${top}px`;
+    p.style.top = `${top}px`;
 
-    setTimeout(() => document.addEventListener('mousedown', onDocDown));
+    setTimeout(() => document.addEventListener("mousedown", onDocDown));
   }
 
-  function hidePopover(){
-    if (pop) pop.style.display = 'none';
-    document.removeEventListener('mousedown', onDocDown);
+  function hidePopover() {
+    if (pop) pop.style.display = "none";
+    document.removeEventListener("mousedown", onDocDown);
   }
-  function onDocDown(e){
+
+  function onDocDown(e) {
     if (!pop) return;
     if (pop.contains(e.target) || presenceEl.contains(e.target)) return;
     hidePopover();
   }
 
-  function setPresence(key){
+
+  function setPresence(key) {
     const conf = PRESENCE[key] || PRESENCE.online;
     if (presenceDot) presenceDot.style.background = conf.color;
-    if (presenceEl){
-      presenceEl.setAttribute('data-status', key);
-      presenceEl.childNodes.forEach(n => { if (n.nodeType === 3) n.remove(); });
-      presenceEl.appendChild(document.createTextNode(' ' + conf.label));
+    if (presenceEl) {
+      presenceEl.setAttribute("data-status", key);
+      presenceEl.childNodes.forEach((n) => {
+        if (n.nodeType === 3) n.remove();
+      });
+      presenceEl.appendChild(document.createTextNode(" " + conf.label));
     }
-    try { localStorage.setItem('presence', key); } catch(e){}
-
+    try {
+      localStorage.setItem("presence", key);
+    } catch (e) {}
     /* [백엔드 연결 지점]
        fetch('/api/me/status', {
          method:'POST', headers:{'Content-Type':'application/json'},
@@ -332,7 +405,6 @@
     }, true);
   }
 })();
-
 
   /* ========= [백엔드 연결 예시 – 이 주석만 보고 교체] =========
   // 1) 유저 정보 로드

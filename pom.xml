@@ -47,6 +47,7 @@
 			<optional>true</optional>
 		</dependency>
 
+
 		<!-- 웹 MVC -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -70,6 +71,13 @@
 			<groupId>org.glassfish.web</groupId>
 			<artifactId>jakarta.servlet.jsp.jstl</artifactId>
 			<version>3.0.1</version>
+		</dependency>
+		
+		<!-- Lombok -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
 		</dependency>
 	</dependencies>
 
