@@ -1,4 +1,5 @@
 package com.azure.dto;
+
 import lombok.Data;
 
 @Data
