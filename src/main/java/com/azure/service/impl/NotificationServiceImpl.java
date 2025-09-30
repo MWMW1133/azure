@@ -3,6 +3,7 @@ package com.azure.service.impl;
 import com.azure.model.notify.Notification;
 import com.azure.model.user.User;
 import com.azure.repository.NotificationRepository;
+import com.azure.repository.ProjectMemberRepository;
 import com.azure.service.NotificationService;
 import com.azure.service.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -22,17 +23,22 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final ProjectMemberRepository projectMemberRepository;
 
+
+    // 채팅 메시지 도착 알림
     @Override
     public Notification notifyUser(Long userId, String type, String payload) {
         Notification n = new Notification();
-        n.setUser(new User()); n.getUser().setId(userId);
+        n.setUser(new User()); 
+        n.getUser().setId(userId);
         n.setType(type);
         n.setPayload(payload);
         n.setRead(false);                     // ← 엔티티 필드명이 read
         return notificationRepository.save(n);
     }
 
+    // 프로젝트 멤버로 추가됨 알림
     @Override
     @Transactional(readOnly = true)
     public Page<Notification> listByUser(Long userId, Pageable pageable, Boolean read) {
@@ -42,17 +48,28 @@ public class NotificationServiceImpl implements NotificationService {
         return notificationRepository.findByUser_IdAndReadOrderByIdDesc(userId, read, pageable);
     }
 
+    // 읽지 않은 알림 개수
     @Override
     @Transactional(readOnly = true)
     public long unreadCount(Long userId) {
         return notificationRepository.countByUser_IdAndReadFalse(userId);
     }
 
+    //  읽음 상태 변경
     @Override
     public void markRead(Long notificationId, Long userId, boolean read) {
         Notification n = notificationRepository.findByIdAndUser_Id(notificationId, userId)
                 .orElseThrow(() -> new NotFoundException("notification not found: " + notificationId));
         n.setRead(read);                       // ← 여기서도 setRead
         notificationRepository.save(n);
+    }
+
+    @Override
+    public void notifyProjectMembers(Long projectId, String type, String payload) {
+        var memberIds = projectMemberRepository.findUserIdsByProjectId(projectId);
+
+        for (Long userId : memberIds) {
+            notifyUser(userId, type, payload);
+        }
     }
 }

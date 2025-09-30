@@ -54,7 +54,9 @@ public class ProjectController {
 
     @DeleteMapping("/{projectId}/members/{userId}")
     public void removeMember(@PathVariable Long projectId,
-                             @PathVariable Long userId) {
-        projectService.removeMember(projectId, userId);
+                             @PathVariable Long userId,
+                             @RequestParam Long removedByUserId) {
+    projectService.removeMember(projectId, userId, removedByUserId);
     }
+
 }

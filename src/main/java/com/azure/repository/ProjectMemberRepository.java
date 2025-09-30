@@ -1,6 +1,8 @@
 package com.azure.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
 import com.azure.model.project.ProjectMember;
 import com.azure.model.project.ProjectMemberId;
 import java.util.List;
@@ -8,4 +10,6 @@ import java.util.List;
 public interface ProjectMemberRepository extends JpaRepository<ProjectMember, ProjectMemberId> {
     List<ProjectMember> findById_ProjectId(Long projectId);
     List<ProjectMember> findById_UserId(Long userId);
+    @Query("select pm.user.id from ProjectMember pm where pm.project.id = :projectId")
+    List<Long> findUserIdsByProjectId(Long projectId);
 }

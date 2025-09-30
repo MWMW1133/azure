@@ -1,5 +1,7 @@
 package com.azure.service.impl;
 
+import com.azure.event.ProposalCreatedEvent;
+import com.azure.event.ProposalStatusChangedEvent;
 import com.azure.model.Organization;
 import com.azure.model.project.Project;
 import com.azure.model.project.ProjectProposal;
@@ -11,6 +13,8 @@ import com.azure.repository.UserRepository;
 import com.azure.service.ProjectProposalService;
 import com.azure.service.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,6 +31,8 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
+    private final ApplicationEventPublisher publisher; // 📢 이벤트 퍼블리셔 추가
+
 
     @Override
     @Transactional(readOnly = true)
@@ -58,7 +64,12 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
         proposal.setDueDate(dueDate);
         proposal.setStatus(ProjectProposal.Status.PENDING);
 
-        return proposalRepository.save(proposal);
+        ProjectProposal saved = proposalRepository.save(proposal);
+
+        // 📢 이벤트 발행 (관리자에게 새 제안 생성 알림)
+        publisher.publishEvent(new ProposalCreatedEvent(saved.getId()));
+
+        return saved;
     }
 
     @Override
@@ -85,6 +96,9 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
         // proposal과 project 연결
         proposal.setProject(savedProject);
         proposalRepository.save(proposal);
+        
+        // 📢 이벤트 발행 (제안자에게 승인 알림)
+        publisher.publishEvent(new ProposalStatusChangedEvent(proposal.getId(), proposal.getStatus().name()));
 
         return savedProject;
     }
@@ -96,8 +110,13 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
         if (proposal.getStatus() != ProjectProposal.Status.PENDING) {
             throw new IllegalStateException("Proposal is not in PENDING state");
         }
-
+        
         proposal.setStatus(ProjectProposal.Status.REJECTED);
-        return proposalRepository.save(proposal);
+        ProjectProposal saved = proposalRepository.save(proposal);
+
+        // 📢 이벤트 발행 (제안자에게 거절 알림)
+        publisher.publishEvent(new ProposalStatusChangedEvent(saved.getId(), saved.getStatus().name()));
+
+        return saved;
     }
 }

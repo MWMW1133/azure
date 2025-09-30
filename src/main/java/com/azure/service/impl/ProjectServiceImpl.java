@@ -1,5 +1,7 @@
 package com.azure.service.impl;
 
+import com.azure.event.ProjectMemberAddedEvent;
+import com.azure.event.ProjectMemberRemovedEvent;
 import com.azure.model.Organization;
 import com.azure.model.project.Project;
 import com.azure.model.project.ProjectMember;
@@ -14,6 +16,8 @@ import com.azure.repository.WorkflowRepository;
 import com.azure.service.ProjectService;
 import com.azure.service.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -29,6 +33,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
     private final WorkflowRepository workflowRepository; // ✅ 추가
+        private final ApplicationEventPublisher publisher; // 📢 이벤트 퍼블리셔 추가
 
     @Override
     @Transactional(readOnly = true)
@@ -133,14 +138,22 @@ public class ProjectServiceImpl implements ProjectService {
         pm.setProject(project);
         pm.setUser(user);
         pm.setRole(role);
-        return projectMemberRepository.save(pm);
+                ProjectMember saved = projectMemberRepository.save(pm);
+
+        // 📢 이벤트 발행 (멤버 추가 알림)
+        publisher.publishEvent(new ProjectMemberAddedEvent(projectId, userId, project.getOwner().getId()));
+
+        return saved;
     }
 
     @Override
-    public void removeMember(Long projectId, Long userId) {
+    public void removeMember(Long projectId, Long userId, Long removedByUserId) {
         ProjectMemberId id = new ProjectMemberId();
         id.setProjectId(projectId);
         id.setUserId(userId);
         projectMemberRepository.deleteById(id);
-    }
+        // 📢 이벤트 발행 (멤버 제거 알림)
+        publisher.publishEvent(new ProjectMemberRemovedEvent(projectId, userId, get(projectId).getOwner().getId()));
+        
+    }   
 }

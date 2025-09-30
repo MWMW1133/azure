@@ -1,6 +1,7 @@
 package com.azure.service.impl;
 
 import com.azure.dto.GanttTaskDTO;
+import com.azure.event.TaskWorkflowChangedEvent;
 import com.azure.model.file.FileObject;
 import com.azure.model.task.*;
 import com.azure.model.user.User;
@@ -10,6 +11,8 @@ import com.azure.repository.*;
 import com.azure.service.TaskService;
 import com.azure.service.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +42,7 @@ public class TaskServiceImpl implements TaskService {
     private final UserRepository userRepository;
     private final TaskAttachmentRepository taskAttachmentRepository;
     private final FileObjectRepository fileObjectRepository;
+    private final ApplicationEventPublisher publisher;
 
     /* ID로 태스크 조회. 없으면 NotFoundException. */
     @Override
@@ -111,6 +115,29 @@ public class TaskServiceImpl implements TaskService {
                         (t.getWorkflow() != null ? t.getWorkflow().getName() : null)
                 ))
                 .toList();
+    }
+
+        /* 태스크 워크플로 단계 변경 */
+    @Transactional
+    public Task changeWorkflow(Long taskId, String toStage, Long actorUserId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("Task not found: " + taskId));
+
+        String fromStage = task.getWorkflow().getName();
+        task.getWorkflow().setName(toStage);
+        taskRepository.save(task);
+
+        // 📢 이벤트 발행 (워크플로 변경 알림)
+        publisher.publishEvent(new TaskWorkflowChangedEvent(
+                task.getProject().getId(),
+                task.getId(),
+                fromStage,
+                toStage,
+                actorUserId,
+                task.getTitle()
+        ));
+
+        return task;
     }
 
     /* 최소 정보로 태스크 생성 */

@@ -1,5 +1,6 @@
 package com.azure.service.impl;
 
+import com.azure.event.ChatMessageCreatedEvent;
 import com.azure.model.chat.*;
 import com.azure.model.enums.ChannelType;
 import com.azure.model.file.FileObject;
@@ -10,6 +11,8 @@ import com.azure.service.ChatService;
 import com.azure.service.exception.BadRequestException;   // ★ 추가: 입력 검증용
 import com.azure.service.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,9 +39,8 @@ public class ChatServiceImpl implements ChatService {
     private final MessageRepository messageRepository;
     private final MessageReadRepository messageReadRepository;
     private final UserRepository userRepository;
-    private final ProjectRepository projectRepository;
     private final FileObjectRepository fileObjectRepository;
-
+    private final ApplicationEventPublisher publisher;
     // ───────────────────────── 내부 유틸(멤버십/검증) ─────────────────────────
 
     /** 해당 사용자가 채널 멤버인지 검사 (ChannelMemberRepository의 파생쿼리 활용) ★ */
@@ -92,19 +94,17 @@ public class ChatServiceImpl implements ChatService {
 
     // ───────────────────────── 메시지 ─────────────────────────
 
-    @Override
+        @Override
     public Message postMessage(Long channelId, Long authorId, String body, Long fileId, Long replyToId) {
         ChatChannel channel = chatChannelRepository.findById(channelId)
                 .orElseThrow(() -> new NotFoundException("Channel not found: " + channelId));
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + authorId));
 
-        // ★ 멤버십 검사: 채널 멤버만 전송 허용
         if (!isMember(channelId, authorId)) {
             throw new BadRequestException("채널 멤버만 메시지를 보낼 수 있습니다.");
         }
 
-        // ★ 내용 검증(빈 문자열/공백 불가)
         if (body == null || body.isBlank()) {
             throw new BadRequestException("메시지 내용은 비어 있을 수 없습니다.");
         }
@@ -123,23 +123,26 @@ public class ChatServiceImpl implements ChatService {
         if (replyToId != null) {
             Message ref = messageRepository.findById(replyToId)
                     .orElseThrow(() -> new NotFoundException("Message not found: " + replyToId));
-            // ★ 동일 채널 참조만 허용
             if (!ref.getChannel().getId().equals(channelId)) {
-                throw new BadRequestException("다른 채널의 메시지를 답글로 참조할 수 없습니다.");
+                throw new BadRequestException("다른 채널 메시지를 답글로 참조할 수 없습니다.");
             }
             msg.setReplyTo(ref);
         }
 
-        return messageRepository.save(msg);
+        Message saved = messageRepository.save(msg);
+
+        // 📢 이벤트 발행 (알림)
+        String preview = body.length() > 20 ? body.substring(0, 20) + "..." : body;
+        publisher.publishEvent(new ChatMessageCreatedEvent(channelId, saved.getId(), authorId, preview));
+
+        return saved;
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<Message> listMessages(Long channelId, Pageable pageable) {
-        // ★변경: 레포지토리의 DB 페이징 메서드 직접 호출
         return messageRepository.findByChannel_IdOrderByIdAsc(channelId, pageable);
     }
-
 
     // ───────────────────────── 읽음표시 ─────────────────────────
 

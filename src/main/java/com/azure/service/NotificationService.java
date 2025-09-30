@@ -18,4 +18,7 @@ public interface NotificationService {
 
     /** 읽음/안읽음 표시(소유자 검증 포함) */
     void markRead(Long notificationId, Long userId, boolean read);
+
+    // 프로젝트 멤버들에게 알림 생성
+    void notifyProjectMembers(Long projectId, String type, String payload);
 }

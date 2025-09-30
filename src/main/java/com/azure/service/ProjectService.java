@@ -28,5 +28,5 @@ public interface ProjectService {
     ProjectMember addMember(Long projectId, Long userId, String role);
 
     /** 멤버 제거(존재하지 않으면 무시). */
-    void removeMember(Long projectId, Long userId);
+    void removeMember(Long projectId, Long userId, Long removedByUserId);
 }
