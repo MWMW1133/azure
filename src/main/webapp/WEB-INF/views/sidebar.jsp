@@ -313,7 +313,7 @@
 
         <div class="room-section">
           <hr class="divider divider-room" />
-          <button class="proj-row room">
+          <a class="proj-row room" href="#" data-route="room">
             <span class="ic">
               <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
                 <path d="M4 13a8 8 0 0 1 16 0"></path>
@@ -322,7 +322,7 @@
               </svg>
             </span>
             <span>회의실</span>
-          </button>
+          </a>
           <hr class="divider divider-room" />
         </div>
 
@@ -342,6 +342,15 @@
   </div>
 
   <!-- 정적 JS 로드 -->
+<<<<<<< HEAD
   <script src="/js/sidebar.js"></script>
+=======
+  <script src="${pageContext.request.contextPath}/js/bootstrap/bootstrap.bundle.js"></script>
+  <script src="${pageContext.request.contextPath}/js/sidebar.js?v=spa_2"></script>
+  <script src="${pageContext.request.contextPath}/js/notification.js"></script>
+  <script src="${pageContext.request.contextPath}/js/todo.js"></script>
+  <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
+  <script src="${pageContext.request.contextPath}/js/meeting.js?v=spa_2"></script>
+>>>>>>> origin/hwan
 </body>
 </html>

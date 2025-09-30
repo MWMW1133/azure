@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+=======
+>>>>>>> origin/hwan
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <!doctype html>
 <html lang="ko">
@@ -11,13 +14,17 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
     <!-- 각자 css 불러오기(나중에 파일 분리하면) -->
+<<<<<<< HEAD
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/chat.css">
     <link href="${pageContext.request.contextPath}/css/layout.css" rel="stylesheet">
 
+=======
+>>>>>>> origin/hwan
     <!-- <link href="${pageContext.request.contextPath}/css/sidebar.css" rel="stylesheet"> -->
     <!-- <link href="${pageContext.request.contextPath}/css/topbar.css" rel="stylesheet"> -->
 </head>
 <body>
+<<<<<<< HEAD
 <%--<div class="app">--%>
 <div class="wrapper d-flex">
     <!-- 사이드바 -->
@@ -46,6 +53,15 @@
 <%--            <jsp:include page="${body}" />--%>
 <%--        </div>--%>
 <%--    </main>--%>
+=======
+<div class="app">
+    <jsp:include page="sidebar.jsp"/>
+    <main class="main-content">
+        <jsp:include page="topbar.jsp"/>
+        <div class="page-body">
+        </div>
+    </main>
+>>>>>>> origin/hwan
 </div>
 
 <!-- JS -->
@@ -54,6 +70,7 @@
 <script src="${pageContext.request.contextPath}/js/notification.js"></script>
 <script src="${pageContext.request.contextPath}/js/todo.js"></script>
 <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
+<<<<<<< HEAD
 <script src="${pageContext.request.contextPath}/js/search.js"></script>
 <%--<jsp:include page="/WEB-INF/views/chat/createModal.jsp"/>--%>
 <jsp:include page="chat/createModal.jsp"/>
@@ -64,5 +81,8 @@
 <%--    <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>--%>
 <%--    <jsp:include page="chat/createModal.jsp"/>--%>
 <%--</c:if>--%>
+=======
+<script src="${pageContext.request.contextPath}/js/meeting.js"></script>
+>>>>>>> origin/hwan
 </body>
 </html>
