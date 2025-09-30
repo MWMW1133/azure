@@ -16,11 +16,11 @@ public class MeetingSummary {
     private Meeting meeting;
 
     // 마크다운 본문
-    @Lob @Column(name = "summary_md")
+    @Column(name = "summary_md")
     private String summaryMd;
 
     // 액션아이템(JSON String). 필요 시 @Convert로 JSON 매핑 가능
-    @Lob @Column(name = "action_items")
+    @Column(name = "action_items")
     private String actionItems;
 }
 

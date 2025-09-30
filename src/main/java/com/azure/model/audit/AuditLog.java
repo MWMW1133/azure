@@ -25,7 +25,7 @@ public class AuditLog {
     @Column(length = 50)
     private String action;
 
-    @Lob @Column(name = "diff_json")
+    @Column(name = "diff_json")
     private String diffJson;
 
     @Column(name = "created_at", insertable = false, updatable = false)

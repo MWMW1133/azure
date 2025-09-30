@@ -21,7 +21,7 @@ public class Message {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
-    @Lob @Column(name = "body")
+    @Column(name = "body", columnDefinition = "TEXT")
     private String body;
 
     @ManyToOne(fetch = FetchType.LAZY)

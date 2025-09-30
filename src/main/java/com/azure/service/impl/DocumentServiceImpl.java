@@ -12,10 +12,13 @@ import com.azure.service.DocumentService;
 import com.azure.service.exception.BadRequestException; // 입력 검증/비즈니스 규칙 위반
 import com.azure.service.exception.NotFoundException;   // 조회 대상 없음
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;              // [ADD]
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;                                                // [ADD]
 
 /**
  * 문서/버전 도메인 서비스 구현.
@@ -43,6 +46,12 @@ public class DocumentServiceImpl implements DocumentService {
     private final DocumentVersionRepository documentVersionRepository;
     /** 업로드 파일 메타(저장키/이름/MIME/크기 등) */
     private final FileObjectRepository fileObjectRepository;
+
+    // =========================================
+    // [ADD] 최근 N개만 유지 보존 정책 (application.properties)
+    // =========================================
+    @Value("${documents.retain-versions:3}")
+    private int retainVersions;
 
     /**
      * 단건 조회.
@@ -78,18 +87,16 @@ public class DocumentServiceImpl implements DocumentService {
      */
     @Override
     public Document create(Long projectId, Long authorId, String title, String templateKey) {
-        // 필수 파라미터 검증
         if (projectId == null) throw new BadRequestException("projectId는 필수입니다.");
         if (authorId == null) throw new BadRequestException("authorId는 필수입니다.");
         if (title == null || title.isBlank()) throw new BadRequestException("title은 필수입니다.");
 
-        // 얕은 연관 세팅(영속성 컨텍스트에 프록시만 올라옴)
         Document d = new Document();
         d.setProject(new Project()); d.getProject().setId(projectId);
         d.setAuthor(new User());     d.getAuthor().setId(authorId);
 
-        d.setTitle(title.trim());      // 공백 트리밍으로 일관성 유지
-        d.setTemplateKey(templateKey); // 선택 필드
+        d.setTitle(title.trim());
+        d.setTemplateKey(templateKey);
 
         return documentRepository.save(d);
     }
@@ -97,81 +104,144 @@ public class DocumentServiceImpl implements DocumentService {
     /**
      * 문서 메타데이터 수정(부분 업데이트).
      * - null이 아닌 값만 반영.
-     * - 제목은 공백 문자열 금지 + 트리밍.
      */
     @Override
     public Document update(Long documentId, String title, String templateKey) {
-        Document d = get(documentId); // 존재 확인 겸 로딩
+        Document d = get(documentId);
 
         if (title != null) {
-            if (title.isBlank()) throw new BadRequestException("title은 빈 값일 수 없습니다.");
-            d.setTitle(title.trim());
+            String t = title.trim();
+            if (t.isEmpty()) throw new BadRequestException("title은 빈 값일 수 없습니다.");
+            if (t.length() > 200) throw new BadRequestException("title은 200자를 넘을 수 없습니다."); // [ADD]
+            d.setTitle(t);
         }
         if (templateKey != null) {
+            if (templateKey.length() > 100)
+                throw new BadRequestException("templateKey는 100자를 넘을 수 없습니다.");           // [ADD]
             d.setTemplateKey(templateKey);
         }
-        // updated_at 은 DB가 자동 갱신(ON UPDATE CURRENT_TIMESTAMP 등)
         return documentRepository.save(d);
     }
 
     /**
      * 문서 삭제.
-     * - 사전 존재 확인으로 의미있는 예외 제공(NotFound).
      * - 연결된 버전들을 먼저 제거(ON DELETE CASCADE 미사용 가정).
-     *   ※ 만약 DB에서 CASCADE가 설정되어 있다면 선삭제는 생략 가능.
      */
     @Override
     public void delete(Long documentId) {
         if (!documentRepository.existsById(documentId)) {
             throw new NotFoundException("Document not found: " + documentId);
         }
-        // 문서-버전 관계가 CASCADE가 아니면 FK 제약 회피를 위해 선삭제 필요
+        // [NOTE] DB에 CASCADE가 켜져 있으면 다음 줄은 생략 가능
         documentVersionRepository.deleteByDocument_Id(documentId);
-        // 본문서 삭제
         documentRepository.deleteById(documentId);
     }
 
     /**
      * 새 버전 추가.
-     * - fileId는 반드시 존재해야 함(파일 메타 선등록 전제).
      * - versionNum 미지정(null)이면 자동 증가(마지막 버전 + 1).
-     * - versionNum 지정 시 중복 방지.
-     *
-     * <h3>동시성 주의</h3>
-     * - 서비스 레벨에서 중복을 막아도, 동시 요청 레이스가 있으면 드물게 충돌 가능.
-     *   → DB에 (document_id, version_num) UNIQUE 제약을 두고,
-     *     DataIntegrityViolationException을 상위에서 잡아 메시지 변환하면 가장 안전.
+     * - 저장 후 [ADD] 보존 정책(enforceRetention) 적용.
      */
     @Override
     public DocumentVersion addVersion(Long documentId, Long fileId, Long authorId, Integer versionNum) {
         if (authorId == null) throw new BadRequestException("authorId는 필수입니다.");
         if (fileId == null)   throw new BadRequestException("fileId는 필수입니다.");
 
-        // 참조 무결성(문서/파일 존재) 검사
         Document doc = get(documentId);
         FileObject file = fileObjectRepository.findById(fileId)
                 .orElseThrow(() -> new NotFoundException("File not found: " + fileId));
 
-        // 버전 번호 정책: null → 자동 증가, 지정 → 중복 검사
         if (versionNum == null) {
             int next = documentVersionRepository
-                    .findTopByDocument_IdOrderByVersionNumDesc(documentId) // 최신 버전 조회
-                    .map(v -> v.getVersionNum() + 1)                       // 다음 번호
-                    .orElse(1);                                            // 최초 버전은 1
+                    .findTopByDocument_IdOrderByVersionNumDesc(documentId)
+                    .map(v -> v.getVersionNum() + 1)
+                    .orElse(1);
             versionNum = next;
-        } else {
-            boolean exists = documentVersionRepository
-                    .existsByDocument_IdAndVersionNum(documentId, versionNum);
-            if (exists) throw new BadRequestException("이미 존재하는 버전 번호입니다: " + versionNum);
+        } else if (documentVersionRepository.existsByDocument_IdAndVersionNum(documentId, versionNum)) {
+            throw new BadRequestException("이미 존재하는 버전 번호입니다: " + versionNum);
         }
 
-        // 엔티티 조립(연관은 ID만 세팅)
         DocumentVersion v = new DocumentVersion();
         v.setDocument(doc);
         v.setFile(file);
         v.setAuthor(new User()); v.getAuthor().setId(authorId);
         v.setVersionNum(versionNum);
 
-        return documentVersionRepository.save(v);
+        try {
+            DocumentVersion saved = documentVersionRepository.save(v);
+            enforceRetention(documentId);                                  // [ADD]
+            return saved;
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new BadRequestException("버전 번호 중복 또는 무결성 위반입니다.");
+        }
+    }
+
+    // =========================
+    // 버전 조회/롤백/삭제
+    // =========================
+
+    @Override @Transactional(readOnly = true)
+    public Page<DocumentVersion> listVersions(Long documentId, Pageable pageable) {
+        return documentVersionRepository.findByDocument_Id(documentId, pageable);
+    }
+
+    @Override @Transactional(readOnly = true)
+    public DocumentVersion getVersion(Long documentId, Integer versionNum) {
+        return documentVersionRepository
+                .findByDocument_IdAndVersionNum(documentId, versionNum)
+                .orElseThrow(() -> new NotFoundException("Version not found: v" + versionNum));
+    }
+
+    @Override @Transactional(readOnly = true)
+    public DocumentVersion getLatestVersion(Long documentId) {
+        return documentVersionRepository
+                .findTopByDocument_IdOrderByVersionNumDesc(documentId)
+                .orElseThrow(() -> new NotFoundException("No versions for document: " + documentId));
+    }
+
+    /**
+     * [MOD] 롤백:
+     *  - 복제 유틸 제거, 기존 파일(fileId) 재사용해서 새 버전으로 추가
+     *  - 저장 후 보존 정책 자동 적용됨(addVersion 내부)
+     */
+    @Override
+    public DocumentVersion rollback(Long documentId, Integer toVersion, Long actorId) {
+        if (actorId == null) throw new BadRequestException("actorId는 필수입니다.");
+        DocumentVersion base = getVersion(documentId, toVersion);
+        if (base.getFile() == null) throw new BadRequestException("대상 버전에 파일이 없습니다.");
+        return addVersion(documentId, base.getFile().getId(), actorId, null);     // [MOD]
+    }
+
+    /** 버전 삭제(마지막 1개 보호) */
+    @Override
+    public void deleteVersion(Long documentId, Integer versionNum) {
+        long total = documentVersionRepository.countByDocument_Id(documentId);
+        if (total <= 1) throw new BadRequestException("마지막 버전은 삭제할 수 없습니다.");
+
+        DocumentVersion v = getVersion(documentId, versionNum);
+        documentVersionRepository.delete(v);
+
+        // [NOTE] 고아 FileObject 정리는 보수적으로 생략
+        // (필요 시 repo 메서드 추가: existsByFile_Id(fileId) 로 참조 없을 때 삭제)
+    }
+
+    // =========================
+    // [ADD] 최근 N개 보존 로직
+    // =========================
+    /**
+     * 최근 retainVersions 개만 남기고 나머지(더 오래된) 버전들은 삭제한다.
+     * - repo의 findByDocument_IdOrderByVersionNumDesc(...)만 사용하여 추가 쿼리 없이 처리
+     * - 고아 FileObject 삭제는 안전을 위해 기본 비활성 (필요 시 별도 배치/메서드에서 처리)
+     */
+    private void enforceRetention(Long documentId) {
+        if (retainVersions <= 0) return; // 0 이하이면 무제한 보존
+
+        List<DocumentVersion> all = documentVersionRepository
+                .findByDocument_IdOrderByVersionNumDesc(documentId);
+        if (all.size() <= retainVersions) return;
+
+        List<DocumentVersion> toDelete = all.subList(retainVersions, all.size());
+        documentVersionRepository.deleteAll(toDelete);
+        // [NOTE] 필요하면 여기서 고아 FileObject 정리 로직을 추가
     }
 }

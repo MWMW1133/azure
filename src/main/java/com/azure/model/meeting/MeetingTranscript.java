@@ -20,7 +20,7 @@ public class MeetingTranscript {
     private String lang;
 
     // 전사 본문(대용량 텍스트)
-    @Lob @Column(name = "content")
+    @Column(name = "content")
     private String content;
 }
 
