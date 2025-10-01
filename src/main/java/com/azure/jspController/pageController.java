@@ -1,0 +1,135 @@
+package com.azure.jspController;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+
+@Controller
+public class pageController {
+
+//    @GetMapping("/home")
+//    public String home(Model model) {
+//        model.addAttribute("body", "home.jsp");
+//        return "mainbar"; // /WEB-INF/views/.jsp
+//    }
+
+    @GetMapping("/profile")
+    public String viewProfile(Model model) {
+        model.addAttribute("body", "viewProfile.jsp");
+        return "mainbar";
+    }
+
+    @GetMapping({"/", "/sidebar"})
+    public String sidebar() {
+        return "sidebar"; // -> /WEB-INF/views/sidebar.jsp
+    }
+
+    @GetMapping("/topbar")
+    public String topbar(){
+        return "topbar"; // -> /WEB-INF/views/topbar.jsp
+    }
+
+    @GetMapping("/mainbar")
+    public String mainbar(){
+        return "mainbar"; // -> /WEB-INF/views/mainbar.jsp
+    }
+
+    @GetMapping("/meeting")
+    public String meeting() {
+        return "meeting"; // /WEB-INF/views/meeting.jsp
+    }
+
+    // 로그인 페이지
+    @GetMapping("/login")
+    public String login() {
+        return "login";
+    }
+
+    // 회원가입 페이지
+    @GetMapping("/signup")
+    public String signup() {
+        return "signup";
+    }
+
+
+    @GetMapping("/calendar")
+    public String calendar() {
+        return "my-calendar"; // /WEB-INF/views/my-calendar.jsp
+    }
+
+    @GetMapping("/tasks")
+    public String tasks() {
+        return "my-tasks"; // /WEB-INF/views/my-tasks.jsp
+    }
+
+    @Controller
+    public class ModalController {
+        @GetMapping("/event-modal")
+        public String eventModal() {
+            return "my-calendar-modal"; // /WEB-INF/views/my-calendar-modal.jsp
+        }
+
+        @GetMapping("/plan")
+        public String plan() {
+            return "project-plan"; // /WEB-INF/views/project-plan.jsp
+        }
+    }
+}
+
+
+//=========================================
+// 나중에 이 버전으로하고 위에거 삭제
+// TODO: 나중에 서비스 붙이면 아래 버전으로 교체
+//=========================================
+//package com.azure.jspController;
+//
+//import com.azure.dto.UserDTO;
+//import com.azure.dto.OrganizationDTO;
+//import com.azure.service.UserService;
+//import com.azure.service.OrganizationService;
+//import org.springframework.stereotype.Controller;
+//import org.springframework.ui.Model;
+//import org.springframework.web.bind.annotation.GetMapping;
+//
+//@Controller
+//public class PageController {
+//
+//    private final UserService userService;
+//    private final OrganizationService orgService;
+//
+//    // 💡 생성자 주입
+//    public PageController(UserService userService, OrganizationService orgService) {
+//        this.userService = userService;
+//        this.orgService = orgService;
+//    }
+//
+//    /**
+//     * 홈 화면 라우팅
+//     * 단순히 home.jsp만 body에 include
+//     */
+//    @GetMapping("/home")
+//    public String home(Model model) {
+//        model.addAttribute("body", "home.jsp");
+//        return "mainbar"; // /WEB-INF/views/mainbar.jsp
+//    }
+//
+//    /**
+//     * 프로필 화면 라우팅
+//     * UserService → DB 조회 → JSP에 user/org DTO 전달
+//     */
+//    @GetMapping("/profile")
+//    public String viewProfile(Model model) {
+//        // TODO: 로그인 세션에서 userId 가져오기 (임시로 1번 사용자)
+//        Long userId = 1L;
+//
+//        UserDTO user = userService.findById(userId);
+//        OrganizationDTO org = orgService.findById(user.getOrganizationId());
+//
+//        // JSP에서 접근 가능하도록 모델에 추가
+//        model.addAttribute("user", user);
+//        model.addAttribute("org", org);
+//
+//        model.addAttribute("body", "viewProfile.jsp");
+//        return "mainbar";
+//    }
+//}

@@ -28,11 +28,17 @@
             height: 28px;
             width: auto;
         }
+
         .topbar .right {
             display: flex;
             align-items: center;
-            gap: 18px;
+            gap: 1rem;  /* 아이콘 간격 */
         }
+
+        .topbar .right i {
+            cursor: pointer;
+        }
+
         .topbar .profile {
             width: 32px;
             height: 32px;
@@ -107,226 +113,62 @@
             border-radius: 6px;
         }
 
-        /* 채팅*/
-        /* 모달 배경 */
-        .modal-overlay {
-            display: none; /* 기본적으로 숨김 */
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 2000;
+        /* 검색 관련 */
+        .search-modal { border-radius: 1rem; }
+        #searchTabContent { max-height: 48vh; overflow: auto; }
+        .notif-panel, .todo-panel { width: 380px; }
+
+
+        /* 프로필 클릭 시 */
+        /* 프로필 드롭다운 전체 */
+        .dropdown-menu.profile-menu {
+            min-width: 240px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            padding: 12px;
         }
 
-        /* 모달 박스 */
-        .modal-content {
-            background: #fff;
-            width: 1000px;
-            height: 600px;
-            margin: 80px auto;
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* 헤더 */
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        /* 닫기 버튼을 모달 오른쪽 위에 고정 */
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 20px;
-            color: #666;
-            cursor: pointer;
+        /* 상단 프로필 영역 */
+        .profile-header {
             display: flex;
             align-items: center;
-            justify-content: center;
+            padding: 8px 0;
         }
 
-        .close-btn:hover {
-            color: #000;
+        .profile-header img {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            margin-right: 10px;
         }
 
-
-
-        .modal-body {
-            flex: 1;
-            overflow-y: auto;
+        .profile-header .name {
+            font-weight: 600;
+            font-size: 15px;
         }
 
-        /* 모달 내부 2분할 */
-        .chat-layout {
+        /* 메뉴 아이템 */
+        .profile-menu .dropdown-item {
             display: flex;
-            flex: 1;
-            height: 100%;
-        }
-
-        /* 사이드바 */
-        .chat-sidebar {
-            width: 220px;
-            border-right: 1px solid #ddd;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-room-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .chat-room-list li {
+            align-items: center;
+            gap: 8px;
             padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        .chat-room-list li:hover {
-            background: #f1f1f1;
-        }
-
-        .chat-room-list li.active {
-            background: #e9f5ff;
-            font-weight: bold;
-        }
-
-        /* 채팅창 */
-        .chat-window {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* 채팅 헤더 (공용) */
-        .chat-header {
-            padding: 6px 12px;
-            border-bottom: 1px solid #ddd;
-            background: #fafafa;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 50px;
-        }
-
-        .chat-header .left {
-            font-weight: bold;
             font-size: 14px;
         }
 
-        .chat-header .right {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            gap: 10px;
+        .profile-menu .dropdown-item i {
+            font-size: 16px;
         }
 
-        .chat-header .right select {
-            width: auto;          /* select 크기 자동 조절 */
-            display: inline-block; /* 줄바꿈 방지 */
-            padding-right: 24px;
-            min-width: 80px;
+        /* 로그아웃은 빨간색 */
+        .profile-menu .dropdown-item.logout {
+            color: #d93025;
+            font-weight: 500;
         }
-
-
-        .chat-header .btn,
-        .chat-header select {
-            font-size: 12px;
-            padding: 2px 6px;
-            height: 28px;           /* 버튼 높이를 자동으로 */
-            line-height: 1.4;       /* 세로 균형 맞춤 */
+        .profile-menu .dropdown-item.logout:hover {
+            background-color: #fce8e6;
+            color: #b31412;
         }
-
-        .chat-messages {
-            flex: 1;
-            padding: 15px;
-            overflow-y: auto;
-            background: #fff;
-        }
-
-        .message {
-            margin-bottom: 10px;
-            padding: 8px 12px;
-            border-radius: 12px;
-            max-width: 70%;
-        }
-
-        .message.left {
-            background: #f1f1f1;
-            align-self: flex-start;
-        }
-
-        .message.right {
-            background: #d1e7ff;
-            align-self: flex-end;
-        }
-
-        /* 입력창 */
-        .chat-input {
-            display: flex;
-            align-items: center;
-            border-top: 1px solid #ddd;
-            padding: 10px;
-            gap: 8px;
-        }
-
-        .chat-input .file-attach {
-            cursor: pointer;
-            font-size: 18px;
-            color: #555;
-        }
-
-        .chat-input .file-attach:hover {
-            color: #000;
-        }
-
-        .chat-input input[type="text"] {
-            flex: 1;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            padding: 8px;
-        }
-
-        .chat-header .form-switch {
-            margin: 0;
-            padding: 0;
-            display: flex;
-            align-items: center;
-        }
-
-        .chat-header .form-check-input {
-            cursor: pointer;
-        }
-
-
-        /* 번역 토글 */
-        .translate-toggle {
-            display: flex;
-            align-items: center;
-            gap: 6px;            /* 글자와 토글 사이 간격 */
-        }
-
-        .translate-toggle label {
-            font-size: 13px;     /* 글자 조금 작게 */
-            margin: 0;
-            cursor: pointer;     /* 클릭 가능하게 */
-        }
-
-        .translate-toggle .form-check-input {
-            width: 32px;         /* 토글 크기 살짝 키움 */
-            height: 18px;
-            cursor: pointer;
-        }
-
-
-
     </style>
 </head>
 <body>
@@ -337,7 +179,8 @@
             <img src="${pageContext.request.contextPath}/images/logo/azure2.png" alt="Logo" class="logo">
             <span class="fw-bold">Azura</span>
         </div>
-        <div class="right">
+
+        <div class="right d-flex align-items-center gap-3">
 
             <!-- To-do -->
             <div class="dropdown">
@@ -378,82 +221,246 @@
             <!-- 채팅 아이콘 -->
             <div class="nav-item">
                 <a href="javascript:void(0)" class="nav-link" onclick="openChatModal()">
-                    <i class="bi bi-chat-dots"></i>
+                    <i class="bi bi-chat-dots fs-5"></i>
                 </a>
             </div>
 
-            <!-- 메인 채팅 모달 -->
-            <div id="chatModal" class="modal-overlay">
-                <div class="modal-content">
 
-                    <div class="modal-body chat-layout">
-                        <!-- 사이드바 -->
-                        <div class="chat-sidebar">
-                            <button class="btn btn-success w-100 mb-3">+ 그룹 채팅방 생성</button>
-                            <div class="fw-bold mb-2">목록</div>
-                            <ul class="chat-room-list">
-                                <li class="active">프로젝트 1</li>
-                                <li>프로젝트 2</li>
-                                <li>프로젝트 3</li>
-                            </ul>
+            <!-- 검색 아이콘 -->
+            <a href="javascript:void(0)"
+               id="openSearchIcon"
+               data-bs-toggle="modal"
+               data-bs-target="#globalSearchModal"
+               class="ms-2">
+                <i class="bi bi-search fs-5 text-dark" role="button" aria-label="검색"></i>
+            </a>
+
+            <!-- 프로필 드롭다운 --> <!-- 더미 데이터라서 나중에 변경 -->
+            <div class="dropdown">
+                <img src="${pageContext.request.contextPath}/images/my-cat.png"
+                     alt="Profile" class="profile dropdown-toggle" id="profileDropdown"
+                     data-bs-toggle="dropdown" aria-expanded="false">
+<%--                <img src="$src="${user.avatarUrl}"--%>
+<%--                     alt="Profile" class="profile dropdown-toggle" id="profileDropdown"--%>
+<%--                     data-bs-toggle="dropdown" aria-expanded="false">--%>
+
+                <ul class="dropdown-menu dropdown-menu-end profile-menu" aria-labelledby="profileDropdown">
+                    <!-- 프로필 헤더 --> <!-- 더미 데이터라서 나중에 변경 -->
+                    <li class="profile-header">
+                        <img src="${pageContext.request.contextPath}/images/my-cat.png" alt="Profile">
+<%--                        <img src="${user.avatarUrl}" alt="Profile">--%>
+                        <div class="name">박소현</div>
+<%--                        <div class="name">${user.name}</div>--%>
+                    </li>
+                    <hr class="my-2">
+
+                    <!-- 메뉴 아이템 -->
+                    <li><a class="dropdown-item" href="${pageContext.request.contextPath}/profile"><i class="bi bi-person"></i>View profile</a></li>
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-gear"></i>Settings</a></li>
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-people"></i>Invite colleagues</a></li>
+                    <li><a class="dropdown-item logout" href="#"><i class="bi bi-box-arrow-right"></i>Log out</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- 메인 채팅 모달 -->
+    <div id="chatModal" class="modal-overlay">
+        <div class="modal-content">
+
+            <div class="modal-body chat-layout">
+                <!-- 사이드바 -->
+                <div class="chat-sidebar">
+                    <button class="btn btn-success w-100 mb-3" onclick="openCreateChatModal()">
+                        + 그룹 채팅방 생성
+                    </button>
+
+                    <!-- 그룹 채팅 -->
+                    <div class="fw-bold mt-3">
+                        <i class="bi bi-people-fill me-1"></i> 그룹 채팅
+                    </div>
+                    <!-- TODO: JS에서 프로젝트 목록(li) 주입 -->
+                    <ul id="groupChatList" class="chat-room-list"></ul>
+
+                    <!-- DM 섹션 -->
+                    <div class="section-header d-flex justify-content-between align-items-center"
+                         onclick="toggleDMList()">
+                    <span>
+                        <i class="bi bi-person-fill me-1"></i> DM
+                    </span>
+                        <i id="dmToggleIcon" class="bi bi-caret-down-fill"></i>
+                    </div>
+
+                    <!-- DM 검색창 -->
+                    <div id="dmSearchBox" class="mt-2" style="display:none;">
+                        <input type="text" class="form-control form-control-sm"
+                               placeholder="사용자 검색..." onkeyup="filterDM(this.value)">
+                    </div>
+
+                    <!-- TODO: JS에서 DM 목록(li) 주입 -->
+                    <ul id="dmList" class="chat-room-list mt-2">
+                        <%-- <li>홍길동</li><li>김철수</li> --%>
+                    </ul>
+                </div>
+
+                <!-- 채팅창 -->
+                <div class="chat-window">
+                    <!-- 공용 헤더 -->
+                    <div class="chat-header">
+                        <!-- 사이드바 목록에서 선택한거 헤더에 그대로 들고오기 -->
+                        <div class="left" id="chatHeaderTitle"></div><!--  여기에 반영 -->
+
+                        <!-- 가운데 번역 영역 -->
+                        <div class="center">
+                            <div class="translate-toggle">
+                                <label for="translateToggle">번역</label>
+                                <input class="form-check-input" type="checkbox" id="translateToggle">
+                            </div>
+                            <select class="form-select form-select-sm">
+                                <option>한국어</option>
+                                <option>영어</option>
+                                <option>중국어</option>
+                                <option>일본어</option>
+                            </select>
                         </div>
 
-                        <!-- 채팅창 -->
-                        <div class="chat-window">
-                            <!-- 공용 헤더 -->
-                            <div class="chat-header">
-                                <div class="left">프로젝트 1</div>
-                                <div class="right">
-<%--                                    <div class="form-check form-switch">--%>
-<%--                                        <input class="form-check-input" type="checkbox" id="translateToggle">--%>
-<%--                                        <label class="form-check-label" for="translateToggle">번역</label>--%>
-<%--                                    </div>--%>
-
-                                    <div class="translate-toggle">
-                                        <label for="translateToggle">번역</label>
-                                        <input class="form-check-input" type="checkbox" id="translateToggle">
-                                    </div>
-                                    <select class="form-select form-select-sm">
-                                        <option>한국어</option>
-                                        <option>영어</option>
-                                        <option>중국어</option>
-                                        <option>일본어</option>
-                                    </select>
-                                    <button class="btn btn-primary btn-sm">요약</button>
-
-                                    <!-- 닫기 버튼-->
-                                    <button type="button" class="close-btn" onclick="closeChatModal()">
-                                        <i class="bi bi-x"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- 메시지 영역 -->
-                            <div class="chat-messages">
-                                <div class="message left">안녕하세요 👋</div>
-                                <div class="message right">네 반가워요!</div>
-                            </div>
-
-                            <!-- 입력창 -->
-                            <div class="chat-input">
-                                <!-- 파일 첨부 아이콘 -->
-                                <label for="fileInput" class="file-attach">
-                                    <i class="bi bi-paperclip"></i>
-                                </label>
-                                <input type="file" id="fileInput" style="display: none;" />
-
-                                <input type="text" placeholder="메시지를 입력하세요..." />
-                                <button class="btn btn-primary">전송</button>
-                            </div>
+                        <div class="right">
+                            <button class="btn btn-primary btn-sm">요약</button>
+                            <button type="button" class="close-btn" onclick="closeChatModal()">
+                                <i class="bi bi-x"></i>
+                            </button>
                         </div>
                     </div>
 
+                    <!-- 메시지 영역 -->
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- TODO: JS에서 메시지 렌더링 -->
+                    </div>
+
+                    <!-- 입력창 -->
+                    <div class="chat-input">
+                        <label for="fileInput" class="file-attach">
+                            <i class="bi bi-paperclip"></i>
+                        </label>
+                        <input type="file" id="fileInput" style="display: none;" />
+
+                        <input type="text" id="chatInput" placeholder="메시지를 입력하세요..." />
+                        <button class="btn btn-primary" onclick="sendMessage()">전송</button>
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
 
+    <!-- 검색 모달 -->
+    <div class="modal fade" id="globalSearchModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content search-modal">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-semibold">통합 검색</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+                </div>
 
-            <i class="bi bi-search" role="button"></i>
-            <img src="${pageContext.request.contextPath}/images/my-cat.png" alt="Profile" class="profile">
+                <div class="modal-body pt-2">
+                    <!-- 검색 인풋 -->
+                    <div class="input-group mb-3">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input id="searchInput" type="text" class="form-control" placeholder="프로젝트, 태스크, 파일, 구성원 검색">
+                        <button id="searchClear" class="btn btn-outline-secondary" type="button" title="지우기">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <!-- 탭 -->
+                    <ul class="nav nav-tabs small" id="searchTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="tab-all" data-bs-toggle="tab" data-bs-target="#pane-all" type="button" role="tab">모두</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tab-project" data-bs-toggle="tab" data-bs-target="#pane-project" type="button" role="tab">프로젝트</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tab-task" data-bs-toggle="tab" data-bs-target="#pane-task" type="button" role="tab">태스크</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tab-file" data-bs-toggle="tab" data-bs-target="#pane-file" type="button" role="tab">파일</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tab-member" data-bs-toggle="tab" data-bs-target="#pane-member" type="button" role="tab">구성원</button>
+                        </li>
+                    </ul>
+
+                    <!-- 본문: 좌 결과 / 우 필터 -->
+                    <div class="row mt-3">
+                        <!-- 좌측: 결과 -->
+                        <div class="col-12 col-lg-8">
+                            <div class="tab-content" id="searchTabContent" style="min-height:320px;">
+                                <!-- 탭: 모두 -->
+                                <div class="tab-pane fade show active" id="pane-all" role="tabpanel" aria-labelledby="tab-all">
+                                    <ul id="result-all" class="list-group list-group-flush small">
+                                        <!-- 더미: UI 확인용 -->
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div class="fw-semibold"></div>
+                                                <div class="text-muted"></div>
+                                            </div>
+                                            <div class="text-muted"></div>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <!-- 탭: 프로젝트 -->
+                                <div class="tab-pane fade" id="pane-project" role="tabpanel" aria-labelledby="tab-project">
+                                    <ul id="result-project" class="list-group list-group-flush small"></ul>
+                                </div>
+
+                                <!-- 탭: 태스크 -->
+                                <div class="tab-pane fade" id="pane-task" role="tabpanel" aria-labelledby="tab-task">
+                                    <ul id="result-task" class="list-group list-group-flush small"></ul>
+                                </div>
+
+                                <!-- 탭: 파일 -->
+                                <div class="tab-pane fade" id="pane-file" role="tabpanel" aria-labelledby="tab-file">
+                                    <ul id="result-file" class="list-group list-group-flush small"></ul>
+                                </div>
+
+                                <!-- 탭: 구성원 -->
+                                <div class="tab-pane fade" id="pane-member" role="tabpanel" aria-labelledby="tab-member">
+                                    <ul id="result-member" class="list-group list-group-flush small"></ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 우측: 검색 기준(필터) -->
+                        <div class="col-12 col-lg-4 mt-4 mt-lg-0">
+                            <div class="border rounded p-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="fw-semibold">검색 기준</div>
+                                </div>
+                                <hr class="my-2">
+                                <div class="small text-muted mb-1">검색 결과를 선택한 옵션 기준으로 필터링합니다.</div>
+                                <div class="list-group list-group-flush mb-2 small">
+                                    <button class="list-group-item list-group-item-action">대시보드 상태</button>
+                                    <button class="list-group-item list-group-item-action">우선순위</button>
+                                    <button class="list-group-item list-group-item-action">작성자 또는 담당자</button>
+                                </div>
+                                <div class="mb-3">
+                                <label for="sortSelect" class="small text-muted mb-1">정렬</label>
+                                <select id="sortSelect" class="form-select form-select-sm">
+                                    <option value="deadline">마감일 임박순</option>
+                                    <option value="recent">최근 수정일</option>
+                                    <option value="name">이름순</option>
+                                </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                    <button id="searchRun" type="button" class="btn btn-primary">검색</button>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -1,0 +1,98 @@
+/* --- CSS 변수 선언 --- */
+:root {
+  --body-bg: #f8f9fd;
+  --content-bg: #ffffff;
+  --border-color: #e9ecef;
+  --text-primary: #212529;
+  --text-secondary: #6c757d;
+  --primary-color: #4353ff;
+}
+
+/* --- 기본 & 전체 레이아웃 --- */
+* {
+  box-sizing: border-box;
+}
+
+.wrapper-right-top {
+  flex-grow: 1;
+  padding: 2rem 2.5rem;
+}
+.wrapper-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+/*  태스크 섹션  */
+.active-task-container,
+.archived-task-container {
+  background-color: var(--content-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+.container-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+}
+
+/*  태스크 목록   */
+.task-list-header {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.875rem;
+}
+.task-list-header {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+/* 컬럼 너비 */
+.task-cell {
+  padding: 0 0.75rem;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  flex-shrink: 0;
+}
+.task-actions-cell {
+  width: 5%;
+  padding-left: 0;
+}
+.task-title-cell {
+  flex-grow: 1;
+  min-width: 0;
+  font-weight: 500;
+}
+.assignee-cell {
+  width: 8%;
+}
+.duedate-cell {
+  width: 10%;
+}
+.status-cell {
+  width: 10%;
+}
+.started-at-cell {
+  width: 10%;
+}
+.priority-cell {
+  width: 10%;
+}
+.progress-cell {
+  width: 12%;
+}
+.file-cell {
+  width: 6%;
+  justify-content: center;
+}
+.updated-at-cell {
+  width: 10%;
+}
