@@ -41,6 +41,10 @@ public class PersonalCalendar {
     @Column(name = "location", length = 200)
     private String location;
 
+    /** 색상 컬럼 추가 (DB color VARCHAR) */
+    @Column(name = "color", length = 50)
+    private String color;
+
     /** 완료 여부 (DB TINYINT(1) 기본 false). */
     @Column(name = "is_done", nullable = false)
     private Boolean isDone = false;

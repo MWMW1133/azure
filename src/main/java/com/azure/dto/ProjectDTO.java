@@ -9,9 +9,9 @@ public class ProjectDTO {
     private String name;
     private String description;
     private Long ownerId;
-    private Long departmentId;
     private LocalDate startDate;
     private LocalDate dueDate;
     private LocalDateTime createdAt;
+    private Long proposalId;
     private Long organizationId;
 }

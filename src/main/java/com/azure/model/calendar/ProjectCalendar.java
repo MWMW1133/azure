@@ -39,6 +39,10 @@ public class ProjectCalendar {
     @Column(name = "location", length = 200)
     private String location;
 
+    /** 색상 컬럼 추가 (DB color VARCHAR) */
+    @Column(name = "color", length = 50)
+    private String color;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "related_task_id")
     private Task relatedTask;

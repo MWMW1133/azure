@@ -1,6 +1,9 @@
 package com.azure.repository;
 
 import com.azure.model.project.ProjectProposal;
+
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,4 +17,7 @@ public interface ProjectProposalRepository extends JpaRepository<ProjectProposal
 
     @Query("select p.organization.id from ProjectProposal p where p.id = :proposalId")
     Long getOrganizationId(Long proposalId);
+    Page<ProjectProposal> findByStatus(ProjectProposal.Status status, Pageable pageable);
+    List<ProjectProposal> findByOrganizationIdAndStatus(Long organizationId, ProjectProposal.Status status);
+
 }

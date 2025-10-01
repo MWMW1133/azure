@@ -24,11 +24,12 @@ public class Project {
     @JoinColumn(name = "owner_id")
     private User owner;
 
-    @Column(name = "department_id")
-    private Long departmentId;
-
     @Column(name = "start_date")
     private LocalDate startDate;
+
+    /** 프로젝트 승인된 제안 (project_proposals.id FK) */
+    @Column(name = "proposal_id")
+    private Long proposalId;
 
     @Column(name = "due_date")
     private LocalDate dueDate;

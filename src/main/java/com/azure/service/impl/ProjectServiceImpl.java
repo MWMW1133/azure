@@ -1,5 +1,6 @@
 package com.azure.service.impl;
 
+import com.azure.dto.UserRole;
 import com.azure.event.ProjectMemberAddedEvent;
 import com.azure.event.ProjectMemberRemovedEvent;
 import com.azure.model.Organization;
@@ -121,7 +122,7 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public ProjectMember addMember(Long projectId, Long userId, String role) {
+    public ProjectMember addMember(Long projectId, Long userId, UserRole role) {
         Project project = get(projectId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));

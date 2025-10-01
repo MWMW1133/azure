@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface TaskAttachmentRepository extends JpaRepository<TaskAttachment, TaskAttachmentId> {
     List<TaskAttachment> findById_TaskId(Long taskId);
+
+    List<TaskAttachment> findById_FileId(Long fileId);
 }

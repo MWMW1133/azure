@@ -13,6 +13,7 @@ public class ProjectCalendarDTO {
     private Boolean allDay;
     private String rrule;
     private String location;
+    private String color;
     private Long relatedTaskId;
     private Long createdBy;
     private LocalDateTime createdAt;
