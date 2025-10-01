@@ -34,18 +34,18 @@ public class UserServiceImpl implements UserService {
         return userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("User not found: " + id));
     }
-
+    // 전체 사용자 목록 조회(페이징)
     @Override @Transactional(readOnly = true)
     public Page<User> list(Pageable pageable) {
         return userRepository.findAll(pageable);
     }
- 
+    // 특정 조직에 속한 사용자 목록 조회(휴면/퇴사자 제외)
     @Override @Transactional(readOnly = true) 
     public List<User> listByOrganization(Long organizationId) {
         // 장기휴가, 연차, 반차자는 제외
         return userRepository.findByOrganizationIdAndWorkStatus(organizationId, User.WorkStatus.WORKING);
     }
-
+    // 사용자 생성
     @Override
     public User create(Long organizationId, String loginId, String passwordHash, String name, String avatarUrl, User.WorkStatus workStatus) {
         // 로그인 ID 중복 체크
@@ -65,7 +65,7 @@ public class UserServiceImpl implements UserService {
         u.setOrganization(org);
         return userRepository.save(u);
     }
-
+    // 로그인된 사용자 정보 수정 (비밀번호, 이름, 아바타, 근무 상태)
     @Override
     public User update(String passwordHash, String name, String avatarUrl, User.WorkStatus workStatus) {
         Long currentUserId = com.azure.security.SecurityUtil.getCurrentUserId();
@@ -81,7 +81,7 @@ public class UserServiceImpl implements UserService {
 
         return userRepository.save(u);
     }
-
+    // 사용자 삭제 (물리 삭제)
     @Override
     public void delete(Long userId) {
         User u = get(userId);

@@ -32,7 +32,7 @@ public class ReminderScheduler {
     private final ProjectCalendarRepository projectCalendarRepository;
     private final PersonalCalendarRepository personalCalendarRepository;
     private final NotificationService notificationService;
-
+    // 리마인더 조회 시점부터 몇 초 이내에 시작하는 일정들을 찾을지
     private static final int WINDOW_SEC = 60;
 
     // 간단한 중복 방지: reminderId -> lastSentEpochMillis

@@ -81,7 +81,7 @@ public class TranscriptServiceImpl implements TranscriptService {
             throw new RuntimeException("Transcript save failed", e);
         }
     }
-    
+    // 회의록 본문 조회(없으면 빈 문자열)
     @Override
     @Transactional(readOnly = true)
     public String getTranscriptContent(Long meetingId) {

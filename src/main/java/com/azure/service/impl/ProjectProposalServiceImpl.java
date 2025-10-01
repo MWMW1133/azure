@@ -34,20 +34,20 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
     private final OrganizationRepository organizationRepository;
     private final ApplicationEventPublisher publisher; // 📢 이벤트 퍼블리셔 추가
 
-
+    // 제안 단건 조회
     @Override
     @Transactional(readOnly = true)
     public ProjectProposal get(Long id) {
         return proposalRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Proposal not found: " + id));
     }
-
+    // 조직별 제안 목록 조회
     @Override
     @Transactional(readOnly = true)
     public Page<ProjectProposal> listByOrganization(Long organizationId, Pageable pageable) {
         return proposalRepository.findByOrganizationId(organizationId, pageable);
     }
-
+    // 제안 생성
     @Override
     public ProjectProposal create(Long proposerId, Long organizationId, String name, String description,
                                   LocalDate startDate, LocalDate dueDate) {
@@ -72,7 +72,7 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
 
         return saved;
     }
-
+    // 제안 승인
     @Override
     public Project approve(Long proposalId, Long approverId) {
         ProjectProposal proposal = get(proposalId);
@@ -103,7 +103,7 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
 
         return savedProject;
     }
-
+    // 제안 거절
     @Override
     public ProjectProposal reject(Long proposalId, Long approverId) {
         ProjectProposal proposal = get(proposalId);
@@ -120,13 +120,13 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
 
         return saved;
     }
-    //
+    // 조직과 상태로 제안 목록 조회
     @Override
     @Transactional(readOnly = true)
     public Page<ProjectProposal> listByOrganizationAndStatus(Long organizationId, ProjectProposal.Status status, Pageable pageable) {
         return proposalRepository.findByOrganizationIdAndStatus(organizationId, status, pageable);
     }
-
+    // 제안자 ID로 제안 목록 조회
     @Override
     @Transactional(readOnly = true)
     public List<ProjectProposal> findByProposerId(Long proposerId) {
