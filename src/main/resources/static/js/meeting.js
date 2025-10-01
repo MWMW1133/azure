@@ -85,11 +85,47 @@
 
 /* 로비 */
 .room-wrap{ position:relative; display:flex; flex-direction:column; min-height:calc(100vh - 180px); }
-#lobby-view{ position:absolute; inset:0; display:grid; place-items:center; background:rgba(17,24,39,.08); backdrop-filter:blur(1.5px) saturate(120%); z-index:100; }
-#lobby-view .lobby-card{ width:420px; max-width:86vw; padding:28px; background:#fff; border:1px solid var(--border); border-radius:16px; box-shadow:0 10px 30px rgba(28,39,71,.08); }
-.lobby-title{ font-size:18px; font-weight:700; margin-bottom:8px; color:var(--ink2); }
-.lobby-desc{ color:var(--muted); margin-bottom:16px; }
-.lobby-actions{ display:flex; gap:10px; justify-content:center; }
+
+#lobby-view{
+  position:absolute; inset:0;
+  display:grid; place-items:center;
+  background:rgba(15,23,42,.35);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(140%);
+  z-index:100;
+}
+
+/* 카드: 은은한 유리 느낌 + 깊은 그림자 */
+#lobby-view .lobby-card{
+  width:440px; max-width:90vw;
+  padding:26px 24px 20px;
+  border-radius:20px;
+  border:1px solid rgba(15,23,42,.08);
+  background:linear-gradient(180deg, rgba(255,255,255,.94), rgba(250,251,255,.88));
+  box-shadow:
+    0 24px 60px rgba(6,12,31,.25),
+    0 1px 0 rgba(255,255,255,.75) inset;
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+#lobby-view .lobby-card:hover{
+  transform:translateY(-1px);
+  box-shadow:
+    0 28px 70px rgba(6,12,31,.28),
+    0 1px 0 rgba(255,255,255,.78) inset;
+}
+
+.lobby-title{
+  font-size:20px; font-weight:800; letter-spacing:-.01em;
+  color:#0f172a;
+  margin:4px 0 10px;
+}
+.lobby-desc{
+  color:#5b6b83;
+  margin-bottom:18px;
+}
+
+/* 버튼 영역 */
+.lobby-actions{ display:flex; gap:10px; justify-content:center; padding-top:6px; }
 
 /* 회의 종료 토스트 */
 .end-toast{
@@ -115,10 +151,11 @@
 }
 .room-stage:hover .stage-hud, .stage-hud:hover{ opacity:1; transform:translate(-50%,0); pointer-events:auto; }
 .hud-bar{
-  display:flex; align-items:center; gap:12px;
-  background:rgba(15,23,42,.78); color:#fff;
-  border:1px solid rgba(255,255,255,.08); border-radius:14px;
-  padding:10px 12px; box-shadow:0 10px 26px rgba(2,8,23,.35); backdrop-filter:blur(6px) saturate(125%);
+    display:flex; align-items:center; gap:12px;
+    /* 더 진한 블랙 + 살짝 그라데이션 */
+    background:linear-gradient(180deg,#0b0f14 0%, #090d12 100%); color:#fff;
+    border:1px solid rgba(255,255,255,.10); border-radius:14px;
+    padding:10px 12px; box-shadow:0 12px 28px rgba(2,8,23,.40); backdrop-filter:blur(6px) saturate(125%);
 }
 .hud-left,.hud-center,.hud-right{ display:flex; align-items:center; gap:10px; }
 .hud-left{ padding-right:8px; border-right:1px solid rgba(255,255,255,.10); }
@@ -144,6 +181,84 @@
 }
 .hud-btn.notes.show{
   width:auto; padding:0 18px; margin-left:8px; opacity:1;
+}
+
+/* 수락: 블루 그라데이션 + 입체감 */
+#btn-join{
+  background:linear-gradient(90deg,#4f8cff,#2f6bff);
+  color:#fff;
+  border:0;
+  padding:12px 20px;
+  border-radius:12px;
+  box-shadow:
+    0 10px 22px rgba(47,107,255,.28),
+    inset 0 1px 0 rgba(255,255,255,.28);
+  transition:filter .15s ease, box-shadow .15s ease, transform .05s ease;
+}
+#btn-join:hover{
+  filter:saturate(112%);
+  box-shadow:
+    0 16px 28px rgba(47,107,255,.36),
+    inset 0 1px 0 rgba(255,255,255,.30);
+  transform:translateY(-1px);
+}
+#btn-join:active{ transform:translateY(0); }
+
+/* 거절: 밝은 고스트 톤 */
+#btn-decline{
+  background:linear-gradient(180deg,#f8fafc,#eef2f7);
+  color:#0f172a;
+  border:1px solid rgba(15,23,42,.12);
+  padding:12px 20px;
+  border-radius:12px;
+  transition:filter .15s ease, box-shadow .15s ease, transform .05s ease;
+}
+#btn-decline:hover{
+  filter:saturate(106%);
+  box-shadow:0 8px 18px rgba(2,8,23,.12);
+  transform:translateY(-1px);
+}
+#btn-decline:active{ transform:translateY(0); }
+
+/* 접근성 포커스 링 */
+#btn-join:focus-visible, #btn-decline:focus-visible{
+  outline:none;
+  box-shadow:
+    0 0 0 3px rgba(59,130,246,.35),
+    0 0 0 6px rgba(255,255,255,.9);
+}
+
+/* === 거절 시 빈 화면 안내 (polish) === */
+.cancel-state{
+  display:grid; place-items:center;
+  min-height:calc(100dvh - 150px);
+}
+
+.cancel-card{
+  display:flex; align-items:center; gap:12px;
+  padding:18px 22px;
+  background:#fff;
+  border:1px solid #e6ebf3;
+  border-radius:16px;
+  box-shadow:0 12px 28px rgba(28,39,71,.10);
+  color:#334155; font-weight:600; letter-spacing:.2px;
+  animation:cc-in .22s ease-out both;
+}
+
+/* 아이콘은 CSS로만(마크업 추가 없음) */
+.cancel-card::before{
+  content:"⛔";
+  display:grid; place-items:center;
+  width:40px; height:40px; border-radius:999px;
+  background:linear-gradient(180deg,#fca5a5,#ef4444);
+  color:#fff; font-size:18px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.35);
+}
+
+/* 살짝 뜨는 입장 애니메이션 */
+@keyframes cc-in{
+  from{ transform:translateY(6px); opacity:0; }
+  to{   transform:translateY(0);   opacity:1; }
 }
 `;
     document.head.appendChild(st);
@@ -313,15 +428,22 @@
     });
 
     // 로비 수락/거절
-    const lobby = root.querySelector('#lobby-view');
-    root.querySelector('#btn-join')?.addEventListener('click', () => {
-      lobby?.remove();
-      startBtn?.focus();
-    });
-    root.querySelector('#btn-decline')?.addEventListener('click', () => {
-      const mount = root.parentElement || document.body;
-      mount.innerHTML = '<section class="cancel-state"><div class="cancel-card">참가 요청이 취소되었습니다.</div></section>';
-    });
+const lobby = root.querySelector('#lobby-view');
+root.querySelector('#btn-join')?.addEventListener('click', () => {
+  lobby?.remove();
+  // 포커스는 네가 원하던 버튼으로 이동
+  root.querySelector('#hud-notes-start')?.focus();
+});
+
+// ▼ 거절: 컨테이너 내용을 '취소 화면'으로 교체
+root.querySelector('#btn-decline')?.addEventListener('click', () => {
+  const mount = root.parentElement || document.body;
+  mount.innerHTML = `
+    <section class="cancel-state">
+      <div class="cancel-card">참가 요청이 취소되었습니다.</div>
+    </section>
+  `;
+});
 
     // 마이크 목록(가능하면 채우기)
     try{
