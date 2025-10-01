@@ -5,6 +5,7 @@
   data-id="${projectPlan.id}"
   data-title="${projectPlan.title}"
   data-proposer="${projectPlan.proposer}"
+  data-proposer-avatarUrl="${projectPlan.proposerAvatarUrl}"
   data-created-at="${projectPlan.createdAt}"
   data-status="${projectPlan.status}"
   data-start="${projectPlan.startDate}"
@@ -12,7 +13,22 @@
   data-description="${fn:escapeXml(projectPlan.description)}"
 >
   <div class="pplan-cell pplan-title-cell">${projectPlan.title}</div>
-  <div class="pplan-cell pplan-proposer-cell">${projectPlan.proposer}</div>
+  <div class="pplan-cell pplan-proposer-cell">
+    <div class="avatar" tabindex="0" aria-label="${projectPlan.proposer}">
+      <c:choose>
+        <c:when test="${not empty projectPlan.proposerAvatarUrl}">
+          <img src="${projectPlan.proposerAvatarUrl}" alt="${projectPlan.proposer}" title="${projectPlan.proposer}" />
+        </c:when>
+        <c:otherwise>
+          <!-- 아바타가 없으면 이니셜 한 글자 -->
+          <span class="initials">
+            <c:out value="${fn:substring(projectPlan.proposer, 0, 1)}"/>
+          </span>
+        </c:otherwise>
+      </c:choose>
+      <span class="tooltip">${projectPlan.proposer}</span>
+    </div>
+  </div>
   <div class="pplan-cell pplan-created-at-cell">${projectPlan.createdAt}</div>
   <div class="pplan-cell pplan-status-cell">
     <c:choose>

@@ -62,6 +62,11 @@ public class pageController {
         return "my-tasks"; // /WEB-INF/views/my-tasks.jsp
     }
 
+ @GetMapping("/projects")
+    public String projects() {
+        return "project-tab"; // /WEB-INF/views/my-tasks.jsp
+    }
+
     @Controller
     public class ModalController {
         @GetMapping("/event-modal")
