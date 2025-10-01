@@ -24,4 +24,8 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     
     /** 특정 담당자에 속한 모든 태스크 (개인 + 프로젝트) */
     Page<Task> findByAssigneeId(Long assigneeId, Pageable pageable);
+    
+    /** 특정 프로젝트 + 특정 워크플로우 단계에 속한 태스크 수 */
+    long countByProjectIdAndWorkflow_Id(Long projectId, Long workflowId);
+
 }

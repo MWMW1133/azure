@@ -1,5 +1,7 @@
 package com.azure.service;
 
+import java.util.List;
+
 import com.azure.model.session.SessionStatus;
 
 public interface SessionStatusService {
@@ -11,4 +13,8 @@ public interface SessionStatusService {
 
     /** 로그아웃 처리 → OFFLINE 전환 */
     void logout(Long userId);
+    
+    /** 온라인 상태인 사용자 ID 목록 조회 */
+    List<Long> listOnlineUsers();
+
 }

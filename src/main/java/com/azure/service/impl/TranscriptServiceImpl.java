@@ -81,4 +81,13 @@ public class TranscriptServiceImpl implements TranscriptService {
             throw new RuntimeException("Transcript save failed", e);
         }
     }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public String getTranscriptContent(Long meetingId) {
+        return meetingTranscriptRepository.findByMeetingId(meetingId)
+                .map(MeetingTranscript::getContent)
+                .orElse("");
+    }
+
 }

@@ -157,4 +157,16 @@ public class ProjectServiceImpl implements ProjectService {
         publisher.publishEvent(new ProjectMemberRemovedEvent(projectId, userId, get(projectId).getOwner().getId()));
         
     }   
+    
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsMember(Long projectId, Long userId) {
+        return projectMemberRepository.existsById_ProjectIdAndId_UserId(projectId, userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProjectMember> listMembers(Long projectId, Pageable pageable) {
+        return projectMemberRepository.findById_ProjectId(projectId, pageable);
+    }
 }

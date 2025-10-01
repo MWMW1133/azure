@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 사용자 도메인 서비스 구현.
@@ -86,5 +87,17 @@ public class UserServiceImpl implements UserService {
         User u = get(userId);
         // 삭제 대신 "휴면/퇴사 상태"로 처리할 수 있음 → 여기서는 물리 삭제
         userRepository.delete(u);
+    }
+    // 로그인 ID 중복 여부 확인
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsByLoginId(String loginId) {
+        return userRepository.existsByLoginId(loginId);
+    }   
+    // 로그인 ID로 사용자 조회(없으면 Optional.empty())
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<User> findByLoginId(String loginId) {
+        return userRepository.findByLoginId(loginId);
     }
 }

@@ -16,4 +16,7 @@ public interface WorkflowRepository extends JpaRepository<Workflow, Long> {
     List<Workflow> findByProjectIdAndIsTerminalTrue(Long projectId);
     // 특정 프로젝트에 속한 기본 워크플로우 조회
     Optional<Workflow> findByProjectIdAndIsDefaultTrue(Long projectId);
+    // 프로젝트 내 워크플로우를 sortOrder 순서로 모두 조회
+    List<Workflow> findByProjectIdOrderBySortOrderAsc(Long projectId);
+
 }

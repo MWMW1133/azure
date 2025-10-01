@@ -7,6 +7,10 @@ import com.azure.repository.WorkflowRepository;
 import com.azure.service.WorkflowService;
 import com.azure.service.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -64,4 +68,17 @@ public class WorkflowServiceImpl implements WorkflowService {
     public void delete(Long workflowId) {
         workflowRepository.deleteById(workflowId);
     }
+    /** 프로젝트 내 모든 워크플로우를 sortOrder 순서로 조회 */
+    @Override
+    @Transactional(readOnly = true)
+    public List<Workflow> listByProjectOrdered(Long projectId) {
+        return workflowRepository.findByProjectIdOrderBySortOrderAsc(projectId);
+    }
+    /** 기본 워크플로우 조회 (is_default = true) */
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Workflow> findDefaultWorkflow(Long projectId) {
+        return workflowRepository.findByProjectIdAndIsDefaultTrue(projectId);
+    }
+
 }

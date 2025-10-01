@@ -4,6 +4,7 @@ import com.azure.model.user.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 사용자 관련 도메인 기능을 제공한다.
@@ -39,4 +40,10 @@ public interface UserService {
 
     /** 물리 삭제. 소프트 삭제가 필요하면 workStatus = LEAVE 등으로 대체 가능. */
     void delete(Long userId);
+
+    /** 로그인 ID로 사용자 조회(없으면 Optional.empty()). */
+    Optional<User> findByLoginId(String loginId);
+    
+    /** 로그인 ID 중복 여부 확인 */
+    boolean existsByLoginId(String loginId);
 }

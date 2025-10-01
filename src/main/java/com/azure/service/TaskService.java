@@ -62,4 +62,10 @@ public interface TaskService {
     /** 첨부파일 추가/제거. */
     void addAttachment(Long taskId, Long fileId);
     void removeAttachment(Long taskId, Long fileId);
+
+    /** 특정 담당자의 모든 태스크 목록(페이징) */
+    Page<Task> listByAssignee(Long assigneeId, Pageable pageable);
+    /** 특정 프로젝트 + 워크플로우에 속한 태스크 수 */
+    long countByProjectAndWorkflow(Long projectId, Long workflowId);
+
 }

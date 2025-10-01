@@ -30,4 +30,8 @@ public interface ProjectService {
 
     /** 멤버 제거(존재하지 않으면 무시). */
     void removeMember(Long projectId, Long userId, Long removedByUserId);
+    /** 특정 사용자가 특정 프로젝트의 멤버인지 여부 확인 */
+    boolean existsMember(Long projectId, Long userId); 
+    /** 특정 프로젝트의 멤버 목록 조회(페이징) */
+    Page<ProjectMember> listMembers(Long projectId, Pageable pageable);
 }
