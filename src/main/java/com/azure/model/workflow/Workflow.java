@@ -36,4 +36,9 @@ public class Workflow {
 
     @Column(name = "color")
     private String color;
+
+    @PrePersist
+    protected void onCreate() {
+    this.createdAt = LocalDateTime.now();
+    }
 }

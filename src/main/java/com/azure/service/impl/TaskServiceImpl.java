@@ -338,4 +338,17 @@ public class TaskServiceImpl implements TaskService {
         id.setFileId(fileId);
         taskAttachmentRepository.deleteById(id);
     }
+    // 특정 담당자의 모든 태스크 목록(페이징)
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Task> listByAssignee(Long assigneeId, Pageable pageable) {
+        return taskRepository.findByAssigneeId(assigneeId, pageable);
+    }
+    // 특정 프로젝트 + 워크플로우에 속한 태스크 수
+    @Override
+    @Transactional(readOnly = true)
+    public long countByProjectAndWorkflow(Long projectId, Long workflowId) {
+        return taskRepository.countByProjectIdAndWorkflow_Id(projectId, workflowId);
+    }
+
 }

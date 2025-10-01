@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @Transactional
@@ -119,4 +120,17 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
 
         return saved;
     }
+    //
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProjectProposal> listByOrganizationAndStatus(Long organizationId, ProjectProposal.Status status, Pageable pageable) {
+        return proposalRepository.findByOrganizationIdAndStatus(organizationId, status, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProjectProposal> findByProposerId(Long proposerId) {
+        return proposalRepository.findByProposerId(proposerId);
+    }
+
 }

@@ -18,4 +18,6 @@ public interface TranscriptService {
      * @return 생성된 FileObject (file_objects 레코드)
      */
     FileObject saveFinalTranscript(Long meetingId, Long uploaderId, String lang, String content);
+    /* 특정 회의의 전사 텍스트 조회 */
+    String getTranscriptContent(Long meetingId);
 }

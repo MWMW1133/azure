@@ -1,5 +1,6 @@
 package com.azure.controller;
 
+import com.azure.dto.UserRole;
 import com.azure.model.project.Project;
 import com.azure.model.project.ProjectMember;
 import com.azure.service.ProjectService;
@@ -48,7 +49,7 @@ public class ProjectController {
     @PostMapping("/{projectId}/members")
     public ProjectMember addMember(@PathVariable Long projectId,
                                    @RequestParam Long userId,
-                                   @RequestParam String role) {
+                                   @RequestParam UserRole role) {
         return projectService.addMember(projectId, userId, role);
     }
 

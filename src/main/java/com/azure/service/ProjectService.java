@@ -1,5 +1,6 @@
 package com.azure.service;
 
+import com.azure.dto.UserRole;
 import com.azure.model.project.Project;
 import com.azure.model.project.ProjectMember;
 import org.springframework.data.domain.Page;
@@ -25,8 +26,12 @@ public interface ProjectService {
     void delete(Long projectId);
 
     /** 멤버 추가(역할 라벨: 예 "OWNER", "MEMBER"). */
-    ProjectMember addMember(Long projectId, Long userId, String role);
+    ProjectMember addMember(Long projectId, Long userId, UserRole role);
 
     /** 멤버 제거(존재하지 않으면 무시). */
     void removeMember(Long projectId, Long userId, Long removedByUserId);
+    /** 특정 사용자가 특정 프로젝트의 멤버인지 여부 확인 */
+    boolean existsMember(Long projectId, Long userId); 
+    /** 특정 프로젝트의 멤버 목록 조회(페이징) */
+    Page<ProjectMember> listMembers(Long projectId, Pageable pageable);
 }

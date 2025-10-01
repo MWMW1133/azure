@@ -2,6 +2,9 @@ package com.azure.service;
 
 import com.azure.model.project.ProjectProposal;
 import com.azure.model.project.Project;
+
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -22,4 +25,9 @@ public interface ProjectProposalService {
 
     /** 제안 거절 */
     ProjectProposal reject(Long proposalId, Long approverId);
+    /** 조직 + 상태별 제안 목록 조회 */
+    Page<ProjectProposal> listByOrganizationAndStatus(Long organizationId, ProjectProposal.Status status, Pageable pageable);
+    
+    /** 제안자별 제안 목록 조회 */
+    List<ProjectProposal> findByProposerId(Long proposerId);
 }

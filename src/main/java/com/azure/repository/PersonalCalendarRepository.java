@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * PersonalCalendar 전용 리포지토리
@@ -33,4 +34,9 @@ public interface PersonalCalendarRepository extends JpaRepository<PersonalCalend
 
     /** 완료/미완료 개수 집계(대시보드 등) */
     long countByCreatedBy_IdAndIsDone(Long userId, Boolean isDone);
+
+    // 오늘 일정 조회
+    List<PersonalCalendar> findByCreatedBy_IdAndStartAtBetween(Long userId, LocalDateTime start, LocalDateTime end);
+
+
 }
