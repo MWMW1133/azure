@@ -171,6 +171,11 @@ public class ChatServiceImpl implements ChatService {
             if (!msg.getChannel().getId().equals(channelId)) {
                 throw new BadRequestException("다른 채널 메시지를 읽음 위치로 설정할 수 없습니다.");
             }
+            // markRead(...) 안쪽에, mr.setLastReadMessageId(lastReadMessageId) 하기 전에:
+            Long prev = mr.getLastReadMessageId();
+            if (prev == null || lastReadMessageId > prev) {
+                mr.setLastReadMessageId(lastReadMessageId);
+            }
             mr.setLastReadMessageId(lastReadMessageId);
         }
 

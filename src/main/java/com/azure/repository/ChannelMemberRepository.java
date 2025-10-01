@@ -3,15 +3,15 @@ package com.azure.repository;
 import com.azure.model.chat.ChannelMember;
 import com.azure.model.chat.ChannelMemberId;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
 public interface ChannelMemberRepository extends JpaRepository<ChannelMember, ChannelMemberId> {
 
-    @Query("select cm.user.id from ChannelMember cm where cm.channel.id = :channelId")
-    List<ChannelMember> findById_ChannelId(Long channelId);
+    // ChatServiceImpl.isMember(...)에서 사용
+    boolean existsById_ChannelIdAndId_UserId(Long channelId, Long userId);
 
-    // ★ 멤버십 O(1) 체크용 (빠름)
-    boolean existsById_ChannelIdAndId_UserId(Long channelId, Long userId); // ★
+    // 멤버 전체 / 내 멤버십 (다른 서비스에서 사용)
+    List<ChannelMember> findByChannel_Id(Long channelId);
+    List<ChannelMember> findByUser_Id(Long userId);
 }
