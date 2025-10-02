@@ -46,12 +46,13 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     @Transactional(readOnly = true)
     public Page<Project> listByUser(Long userId, Pageable pageable) {
-        Organization org = organizationRepository.findByUserId(userId);
-        if (org == null) {
-            return Page.empty(pageable); // 사용자가 어떤 회사에도 속하지 않은 경우 빈 페이지 반환
-        }
-        return projectRepository.findByOrganizationId(org.getId(), pageable); // 하나의 조직에 속한 프로젝트들 페이징 조회
+        var orgs = organizationRepository.findAllByUserId(userId);
+        if (orgs.isEmpty()) return Page.empty(pageable);
+
+        var orgIds = orgs.stream().map(Organization::getId).toList();
+        return projectRepository.findByOrganizationIdIn(orgIds, pageable);
     }
+
 
     @Override
     public Project create(Long organizationId, Long ownerId, String name, String description) {

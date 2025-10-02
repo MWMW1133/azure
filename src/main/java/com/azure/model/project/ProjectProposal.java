@@ -33,7 +33,7 @@ public class ProjectProposal {
 
     /** 승인 후 연결된 프로젝트 (projects.id FK) */
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id")
+    @JoinColumn(name = "project_id", unique = true)
     private Project project;
 
     @Column(nullable = false, length = 255)
@@ -44,8 +44,7 @@ public class ProjectProposal {
 
     /** 제안 상태 */
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Status status = Status.PENDING;
+    private Status status; // APPROVED/PENDING/REJECTED
 
     /** 예상 시작일 */
     @Column(name = "start_date")

@@ -1,23 +1,26 @@
 package com.azure.model.task;
 
-import jakarta.persistence.*;
-import lombok.Data;
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import com.azure.model.project.Project;
 import com.azure.model.user.User;
 import com.azure.model.workflow.Workflow;
+import jakarta.persistence.*;
+import lombok.Data;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @Entity
 @Table(name = "tasks")
 public class Task {
+
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY) 
-    @JoinColumn(name = "project_id", nullable = false)
+    /** 개인 태스크를 허용하므로 nullable = true (기본값) */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id")
     private Project project;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -30,7 +33,8 @@ public class Task {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assignee_id")
     private User assignee;
-    
+
+    /** DB컬럼은 workflows_id 이지만 프로퍼티명은 workflow 임에 주의 */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "workflows_id")
     private Workflow workflow;
