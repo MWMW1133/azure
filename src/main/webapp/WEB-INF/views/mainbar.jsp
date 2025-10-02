@@ -3,9 +3,6 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<!DOCTYPE html>
-<html lang="ko">
-  <head>
     <meta charset="utf-8" />
     <title>Mainbar</title>
 
@@ -31,28 +28,18 @@
         <!-- 탑바 -->
 <%--        <div style="background:cyan; padding:5px;">[DEBUG] topbar include 시작</div>--%>
         <jsp:include page="topbar.jsp"/>
-<%--        <div style="background:cyan; padding:5px;"> body 속성 = <c:out value="${body}" default="(없음)" /></div>--%>
+        <div style="background:cyan; padding:5px;"> body 속성 = <c:out value="${body}" default="(없음)" /></div>
 
         <!-- body -->
         <div class="page-body">
 <%--            <div style="background:pink; padding:5px;">BODY 값 = <c:out value="${body}" /></div>--%>
            <jsp:include page="${body}" />
 <%--            <c:import url="/WEB-INF/views/${body}"/>--%>
-            
-<%--            <div style="background:pink; padding:5px;">[DEBUG] body include 끝</div>--%>
+
+            <c:import url="${body}" />
         </div>
     </main>
 
-
-<!-- sb -->
-<%--  <body>--%>
-<%--    <div class="app">--%>
-<%--      <jsp:include page="sidebar.jsp" />--%>
-<%--      <main class="main-content">--%>
-<%--        <jsp:include page="topbar.jsp" />--%>
-<%--        <div class="page-body" style="height: 815px"></div>--%>
-<%--      </main>--%>
-<%--    </div>--%>
 
     <!-- JS -->
     <script src="${pageContext.request.contextPath}/js/sidebar.js"></script>
@@ -72,6 +59,7 @@
     <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
     <script src="${pageContext.request.contextPath}/js/search.js"></script>
     <script src="${pageContext.request.contextPath}/js/meeting.js"></script>
+<%--    <script src="${pageContext.request.contextPath}/js/profile.js"></script>--%>
     <%--<jsp:include page="/WEB-INF/views/chat/createModal.jsp"/>--%>
     <jsp:include page="chat/createModal.jsp"/>
     <!-- ★ -->

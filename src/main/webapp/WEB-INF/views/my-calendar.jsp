@@ -32,7 +32,7 @@
       </div>
 
       <!-- 종일 -->
-      <div class="form-row">
+      <div class="form-row form-row-opts">
         <div class="form-group-inline">
           <label for="event-all-day">종일</label>
           <input type="checkbox" id="event-all-day" />
@@ -93,5 +93,13 @@
         <button type="submit" class="btn-save" id="btn-save">완료</button>
       </div>
     </form>
+  </div>
+</div>
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 2000">
+  <div id="planToast" class="toast clean-toast" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex align-items-center">
+      <div class="toast-icon me-2" aria-hidden="true"></div>
+      <div class="toast-body">메시지</div>
+    </div>
   </div>
 </div>

@@ -1078,5 +1078,3 @@ document.addEventListener('click', (e) => {
   if (!declineBtn) return;
   showCancelCard?.('참가 요청이 취소되었습니다.');
 });
-
-  
