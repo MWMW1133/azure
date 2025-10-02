@@ -1,5 +1,6 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!doctype html>
 <html lang="ko">
 <head>
@@ -290,38 +291,70 @@
             <span>프로젝트</span>
           </div>
 
-          <!-- ▼▼▼ [백엔드 연결 지점] /api/projects 호출 후 아래 목록을 교체 렌더하세요 -->
-          <div class="proj-list">
-            <a class="proj-row ${activePage eq 'project1' ? 'active' : ''}"
-                href="${pageContext.request.contextPath}/projects/1/tasks">
-              <span class="ic elbow">
-                <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
-                  <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>
-                </svg>
-              </span>
-              <span>프로젝트 1</span>
-            </a>
+            <div class="proj-list">
+                <c:forEach var="proj" items="${projects}">
+                    <c:set var="projKey" value="project${proj.id}"/>
+                    <a class="proj-row ${activePage eq projKey ? 'active' : ''}"
+                    href="${pageContext.request.contextPath}/projects/${proj.id}/tasks">
+                        <span class="ic elbow">
+                        <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
+                            <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>
+                        </svg>
+                        </span>
+                        <span>${proj.name}</span>
+                    </a>
+                </c:forEach>
+            </div>
 
-            <a class="proj-row ${activePage eq 'project2' ? 'active' : ''}"
-               href="${pageContext.request.contextPath}/projects/2/tasks">
-              <span class="ic elbow">
-                <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
-                  <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>
-                </svg>
-              </span>
-              <span>프로젝트 2</span>
-            </a>
 
-            <a class="proj-row ${activePage eq 'project3' ? 'active' : ''}"
-                href="${pageContext.request.contextPath}/projects/3/tasks">
-              <span class="ic elbow">
-                <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
-                  <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>
-                </svg>
-              </span>
-              <span>프로젝트 3</span>
-            </a>
-          </div>
+        <%--           <div class="proj-list">--%>
+<%--               <c:if test="${not empty projects}">--%>
+<%--               <c:forEach var="proj" items="${projects}">--%>
+<%--                    <a class="proj-row ${activePage eq ('project' + proj.id) ? 'active' : ''}"--%>
+<%--                       href="${pageContext.request.contextPath}/projects/${proj.id}/tasks">--%>
+<%--                        <span class="ic elbow">--%>
+<%--                            <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">--%>
+<%--                            <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>--%>
+<%--                        </svg>--%>
+<%--                        </span>--%>
+<%--                        <span>${proj.name}</span>--%>
+<%--                    </a>--%>
+<%--                </c:forEach>--%>
+<%--               </c:if>--%>
+<%--            </div>--%>
+
+            <!-- ▼▼▼ [백엔드 연결 지점] /api/projects 호출 후 아래 목록을 교체 렌더하세요 -->
+<%--          <div class="proj-list">--%>
+<%--            <a class="proj-row ${activePage eq 'project1' ? 'active' : ''}"--%>
+<%--                href="${pageContext.request.contextPath}/projects/1/tasks">--%>
+<%--              <span class="ic elbow">--%>
+<%--                <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">--%>
+<%--                  <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>--%>
+<%--                </svg>--%>
+<%--              </span>--%>
+<%--              <span>프로젝트 1</span>--%>
+<%--            </a>--%>
+
+<%--            <a class="proj-row ${activePage eq 'project2' ? 'active' : ''}"--%>
+<%--               href="${pageContext.request.contextPath}/projects/2/tasks">--%>
+<%--              <span class="ic elbow">--%>
+<%--                <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">--%>
+<%--                  <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>--%>
+<%--                </svg>--%>
+<%--              </span>--%>
+<%--              <span>프로젝트 2</span>--%>
+<%--            </a>--%>
+
+<%--            <a class="proj-row ${activePage eq 'project3' ? 'active' : ''}"--%>
+<%--                href="${pageContext.request.contextPath}/projects/3/tasks">--%>
+<%--              <span class="ic elbow">--%>
+<%--                <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">--%>
+<%--                  <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>--%>
+<%--                </svg>--%>
+<%--              </span>--%>
+<%--              <span>프로젝트 3</span>--%>
+<%--            </a>--%>
+<%--          </div>--%>
           <!-- ▲▲▲ [백엔드 연결 지점 끝] -->
 
 <%--          <button class="proj-row proj-plan">--%>
@@ -333,6 +366,9 @@
 <%--            </span>--%>
 <%--            <span>프로젝트 계획</span>--%>
 <%--          </button>--%>
+
+
+
           <a class="proj-row proj-plan ${activePage eq 'plan' ? 'active' : ''}"
              href="${pageContext.request.contextPath}/project-plan">
             <span class="ic">
