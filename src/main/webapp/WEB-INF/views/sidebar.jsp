@@ -235,13 +235,11 @@
     <aside class="sidebar" role="navigation" aria-label="Sidebar">
       <div class="sidebar-inner">
         <!-- 고정 3개 -->
-<%--        <a class="nav-fixed">--%>
         <nav class="nav-fixed">
 <%--          <a class="nav-item<c:if test='${activePage eq "home"}'> active</c:if>'"--%>
 <%--             href="${pageContext.request.contextPath}/home">--%>
           <a class="nav-item ${activePage eq 'home' ? 'active' : ''}"
             href="${pageContext.request.contextPath}/home">
-<%--          <button class="nav-item">--%>
             <span class="ic">
               <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
                 <path d="M3 10.5L12 4l9 6.5"></path>
@@ -250,8 +248,7 @@
             </span>
             <span>홈</span>
           </a>
-<%--          </button>--%>
-<%--          <button class="nav-item">--%>
+
           <div style="background:pink;">DEBUG: activePage = ${activePage}</div>
 <%--          <a class="nav-item<c:if test='${activePage eq "tasks"}'> active</c:if>'"--%>
 <%--             href="${pageContext.request.contextPath}/tasks">--%>
@@ -267,8 +264,7 @@
             </span>
             <span>내 작업</span>
         </a>
-<%--          </button>--%>
-<%--          <button class="nav-item">--%>
+
           <a class="nav-item ${activePage eq 'calendar' ? 'active' : ''}"
              href="${pageContext.request.contextPath}/calendar">
             <span class="ic">
@@ -280,7 +276,6 @@
             </span>
             <span>내 캘린더</span>
           </a>
-<%--          </button>--%>
         </nav>
 
         <div class="label">워크 스페이스</div>
@@ -297,30 +292,35 @@
 
           <!-- ▼▼▼ [백엔드 연결 지점] /api/projects 호출 후 아래 목록을 교체 렌더하세요 -->
           <div class="proj-list">
-            <button class="proj-row">
+            <a class="proj-row ${activePage eq 'project1' ? 'active' : ''}"
+                href="${pageContext.request.contextPath}/projects/1/tasks">
               <span class="ic elbow">
                 <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
                   <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>
                 </svg>
               </span>
               <span>프로젝트 1</span>
-            </button>
-            <button class="proj-row">
+            </a>
+
+            <a class="proj-row ${activePage eq 'project2' ? 'active' : ''}"
+               href="${pageContext.request.contextPath}/projects/2/tasks">
               <span class="ic elbow">
                 <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
                   <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>
                 </svg>
               </span>
               <span>프로젝트 2</span>
-            </button>
-            <button class="proj-row">
+            </a>
+
+            <a class="proj-row ${activePage eq 'project3' ? 'active' : ''}"
+                href="${pageContext.request.contextPath}/projects/3/tasks">
               <span class="ic elbow">
                 <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
                   <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>
                 </svg>
               </span>
               <span>프로젝트 3</span>
-            </button>
+            </a>
           </div>
           <!-- ▲▲▲ [백엔드 연결 지점 끝] -->
 
