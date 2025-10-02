@@ -1,0 +1,360 @@
+#calendar-container {
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 0 1rem;
+}
+
+/* ==============================
+   📌 팝업 (Custom Modal Style)
+   ============================== */
+/* 팝업 레이아웃 */
+.event-popup {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 9999;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+}
+.popup-content {
+  background: #fff;
+  width: 520px;
+  max-width: 90%;
+  margin: 80px auto;
+  padding: 28px 24px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  position: relative;
+  animation: popupFade 0.25s ease;
+  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+}
+@keyframes popupFade {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 닫기 버튼 */
+.popup-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 22px;
+  border: none;
+  background: none;
+  color: #6b7280;
+  cursor: pointer;
+}
+.popup-close:hover {
+  color: #111;
+}
+
+/* 제목 */
+.popup-content h5 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.popup-content h5::before {
+  content: '📝';
+  font-size: 20px;
+}
+
+/* 폼 공통 */
+.form-group {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+}
+.form-group-inline {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.form-row {
+  display: flex;
+  gap: 14px;
+}
+.form-row .form-group {
+  flex: 1;
+}
+
+/* 입력창 */
+#event-form input,
+#event-form textarea,
+#event-form select {
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}
+#event-form input:focus,
+#event-form textarea:focus,
+#event-form select:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  outline: none;
+}
+#event-form textarea {
+  resize: none;
+}
+
+#event-form label {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+}
+
+/* 요일 선택 */
+.day-selector-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.day-btn {
+  border: 1px solid #6366f1;
+  background: #fff;
+  color: #6366f1;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.day-btn:hover {
+  background: #eef2ff;
+}
+.day-btn.active {
+  background: #6366f1;
+  color: #fff;
+}
+
+/* 버튼 영역 */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+.btn-delete {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+.btn-delete:hover {
+  background: #b91c1c;
+}
+.btn-save {
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+.btn-save:hover {
+  background: #4338ca;
+}
+
+.form-actions .btn-save,
+.form-actions .btn-delete {
+  height: 40px;
+  min-width: 88px;
+  padding: 8px 18px;
+  font-size: 0.95rem;
+}
+
+/* ==============================
+   📌 FullCalendar 꾸미기
+   ============================== */
+:root {
+  --fc-border-color: #e9ecef;
+  --fc-today-bg-color: #eef2ff;
+  --primary-color: #4353ff;
+}
+
+#calendar {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.fc .fc-button {
+  background-color: #f8f9fa;
+  color: #333;
+  border: 1px solid var(--fc-border-color);
+  box-shadow: none;
+  text-transform: capitalize;
+}
+.fc .fc-button-primary:not(:disabled):active,
+.fc .fc-button-primary:not(:disabled).fc-button-active {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+}
+
+.fc .fc-toolbar-title {
+  font-size: 1.5em;
+  font-weight: 600;
+}
+.fc .fc-col-header-cell {
+  background-color: #fdfdfd;
+  border-width: 1px 0;
+  font-weight: 500;
+  color: #6c757d;
+}
+.fc .fc-daygrid-day {
+  border-color: var(--fc-border-color);
+}
+.fc .fc-day-today {
+  background-color: var(--fc-today-bg-color) !important;
+}
+.fc .fc-day-today .fc-daygrid-day-number {
+  font-weight: 700;
+}
+.fc-direction-ltr .fc-daygrid-event.fc-event-start,
+.fc-direction-rtl .fc-daygrid-event.fc-event-end {
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-weight: 500;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.fc a {
+  text-decoration: none;
+  color: inherit;
+}
+.fc a:hover {
+  text-decoration: none;
+}
+.fc .fc-day-sun .fc-daygrid-day-number,
+.fc .fc-day-sun .fc-col-header-cell-cushion {
+  color: #d9534f;
+}
+.fc .fc-day-sat .fc-daygrid-day-number,
+.fc .fc-day-sat .fc-col-header-cell-cushion {
+  color: #428bca;
+}
+
+.form-row {
+  gap: 22px;
+}
+
+.form-group-inline {
+  column-gap: 16px;
+  margin-right: 14px;
+}
+
+.day-selector-group {
+  gap: 10px;
+}
+
+#event-form input,
+#event-form select,
+#event-form textarea {
+  padding: 10px 14px;
+}
+
+.popup-content {
+  width: 560px;
+}
+
+@media (max-width: 560px) {
+  .form-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}
+
+/* ===== Minimal Toast ===== */
+.clean-toast {
+  min-width: 320px;
+  background: #fff;
+  color: #111827;
+  border: 1px solid #e5e7eb; /* 연한 테두리 */
+  border-left-width: 4px; /* 유형별 컬러 포인트 */
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  transform: translateY(-6px);
+  opacity: 0;
+}
+.clean-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* 아이콘은 작고 심플하게 */
+.clean-toast .toast-icon {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  line-height: 1;
+  color: #6b7280; /* 기본은 중간 회색 */
+}
+
+/* 타입별 포인트 컬러 (왼쪽 보더 + 아이콘 색) */
+.clean-toast.toast-success {
+  border-left-color: #16a34a;
+}
+.clean-toast.toast-success .toast-icon {
+  color: #16a34a;
+}
+
+.clean-toast.toast-error {
+  border-left-color: #dc2626;
+}
+.clean-toast.toast-error .toast-icon {
+  color: #dc2626;
+}
+
+.clean-toast.toast-warning {
+  border-left-color: #f59e0b;
+}
+.clean-toast.toast-warning .toast-icon {
+  color: #f59e0b;
+}
+
+.clean-toast.toast-info {
+  border-left-color: #3b82f6;
+}
+.clean-toast.toast-info .toast-icon {
+  color: #3b82f6;
+}
+
+/* 작은 화면 대응 */
+@media (max-width: 480px) {
+  .clean-toast {
+    min-width: 260px;
+  }
+}
+
+.form-row-opts {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+}
+
+.form-row-opts .form-group-inline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
