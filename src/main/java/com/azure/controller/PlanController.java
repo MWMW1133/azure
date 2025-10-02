@@ -34,8 +34,9 @@ public class PlanController {
         model.addAttribute("approvedPlans", approvedPlans);
         model.addAttribute("rejectedPlans", rejectedPlans);
 
-        // 보여줄 JSP 파일의 이름을 반환합니다.
-        // 파일명이 project-plan.jsp라면 "project-plan"으로 반환
-        return "project-plan";
+        // 수정
+        model.addAttribute("body", "project-plan.jsp");
+        model.addAttribute("activePage", "plan");   // sidebar에서 비교용 key
+        return "mainbar";
     }
 }

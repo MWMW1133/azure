@@ -1,4 +1,5 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <!doctype html>
 <html lang="ko">
 <head>
@@ -74,9 +75,12 @@
     display:flex; align-items:center; gap:12px;
     padding:12px 14px; border-radius:999px; border:1px solid transparent;
     background:transparent; cursor:pointer; text-align:left;
+    text-decoration: none;
+    color: inherit;
   }
   .nav-item:hover{ background:var(--hover); }
   .nav-item.active{ background:#eaf1ff; border-color:#eaf1ff; box-shadow:var(--shadow-pill); }
+
 
   /* 아이콘 공통 */
   .ic{ width:22px; height:22px; display:inline-grid; place-items:center; }
@@ -218,16 +222,26 @@
     font-size:15px !important; font-weight:var(--sb-pres-fw) !important; letter-spacing:0; color:#6b7280;
   }
 
-</style>
+  </style>
+
   <!-- ▲ CSS 끝 -->
 </head>
 <body>
+<div style="background:yellow;">
+  [DEBUG sidebar] activePage = ${activePage}
+</div>
+
   <div class="app">
     <aside class="sidebar" role="navigation" aria-label="Sidebar">
       <div class="sidebar-inner">
         <!-- 고정 3개 -->
+<%--        <a class="nav-fixed">--%>
         <nav class="nav-fixed">
-          <button class="nav-item">
+<%--          <a class="nav-item<c:if test='${activePage eq "home"}'> active</c:if>'"--%>
+<%--             href="${pageContext.request.contextPath}/home">--%>
+          <a class="nav-item ${activePage eq 'home' ? 'active' : ''}"
+            href="${pageContext.request.contextPath}/home">
+<%--          <button class="nav-item">--%>
             <span class="ic">
               <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
                 <path d="M3 10.5L12 4l9 6.5"></path>
@@ -235,8 +249,14 @@
               </svg>
             </span>
             <span>홈</span>
-          </button>
-          <button class="nav-item">
+          </a>
+<%--          </button>--%>
+<%--          <button class="nav-item">--%>
+          <div style="background:pink;">DEBUG: activePage = ${activePage}</div>
+<%--          <a class="nav-item<c:if test='${activePage eq "tasks"}'> active</c:if>'"--%>
+<%--             href="${pageContext.request.contextPath}/tasks">--%>
+          <a class="nav-item ${activePage eq 'tasks' ? 'active' : ''}"
+            href="${pageContext.request.contextPath}/tasks/my">
             <span class="ic">
               <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
                 <path d="M3 7h18"></path>
@@ -246,8 +266,11 @@
               </svg>
             </span>
             <span>내 작업</span>
-          </button>
-          <button class="nav-item">
+        </a>
+<%--          </button>--%>
+<%--          <button class="nav-item">--%>
+          <a class="nav-item ${activePage eq 'calendar' ? 'active' : ''}"
+             href="${pageContext.request.contextPath}/calendar">
             <span class="ic">
               <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
                 <rect x="3" y="5" width="18" height="16" rx="3"></rect>
@@ -256,7 +279,8 @@
               </svg>
             </span>
             <span>내 캘린더</span>
-          </button>
+          </a>
+<%--          </button>--%>
         </nav>
 
         <div class="label">워크 스페이스</div>
@@ -300,15 +324,25 @@
           </div>
           <!-- ▲▲▲ [백엔드 연결 지점 끝] -->
 
-          <button class="proj-row proj-plan">
+<%--          <button class="proj-row proj-plan">--%>
+<%--            <span class="ic">--%>
+<%--              <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">--%>
+<%--                <path d="M12 20h9"></path>--%>
+<%--                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5z"></path>--%>
+<%--              </svg>--%>
+<%--            </span>--%>
+<%--            <span>프로젝트 계획</span>--%>
+<%--          </button>--%>
+          <a class="proj-row proj-plan ${activePage eq 'plan' ? 'active' : ''}"
+             href="${pageContext.request.contextPath}/project-plan">
             <span class="ic">
-              <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5z"></path>
-              </svg>
+               <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
+                 <path d="M12 20h9"></path>
+                 <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5z"></path>
+               </svg>
             </span>
             <span>프로젝트 계획</span>
-          </button>
+          </a>
         </div>
 
         <div class="room-section">

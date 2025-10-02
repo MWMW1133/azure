@@ -4,9 +4,6 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<!DOCTYPE html>
-<html lang="ko">
-  <head>
     <meta charset="utf-8" />
     <title>Mainbar</title>
 
@@ -32,7 +29,7 @@
         <!-- 탑바 -->
 <%--        <div style="background:cyan; padding:5px;">[DEBUG] topbar include 시작</div>--%>
         <jsp:include page="topbar.jsp"/>
-<%--        <div style="background:cyan; padding:5px;"> body 속성 = <c:out value="${body}" default="(없음)" /></div>--%>
+        <div style="background:cyan; padding:5px;"> body 속성 = <c:out value="${body}" default="(없음)" /></div>
 
         <!-- body -->
         <div class="page-body">
@@ -40,7 +37,7 @@
 <%--            <jsp:include page="${body}" />--%>
 <%--            <c:import url="/WEB-INF/views/${body}"/>--%>
             <c:import url="${body}" />
-<%--            <div style="background:pink; padding:5px;">[DEBUG] body include 끝</div>--%>
+            <div style="background:pink; padding:5px;">[DEBUG] body include 끝</div>
         </div>
     </main>
 

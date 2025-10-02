@@ -50,67 +50,52 @@
 
  //  const main = document.querySelector('.main');
   const main = document.querySelector('.page-body'); // 수정
-
-  // Ajax/fetch로 JSP나 HTML fragment를 불러와서 .page-body에 넣는 방식으로 바꾸기
-  // 더미데이터 삭제
-  const Router = {
-    go(name, params = {}) {
-      switch (name) {
-// <<<<<<< HEAD
-//         case 'home':      render(''); break;
-//         case 'tasks':     render(''); break;
-//         case 'calendar':  render(''); break;
-//         case 'plan':      render(''); break;
-//         case 'room':      render(''); break;
-//         case 'project':      render(''); break;
-//         // case 'project':   render('' + params.name + '</h1><p>프로젝트 ID: ' + params.id + '</p>'); break;
-//         default:          render('<h1>Not Found</h1>');
-//       }
-//     }
-//   };
-//
-//   function render(html) { if (main) main.innerHTML = html; }
-// =======
-        case "home":
-          fetch("/home", { cache: "no-cache" })
-            .then((res) => res.text())
-            .then((html) => render(html));
-          break;
-        case "tasks":
-          fetch("/tasks/my", { cache: "no-cache" })
-            .then((res) => res.text())
-            .then((html) => render(html));
-          break;
-        case "calendar":
-          fetch("/calendar")
-            .then((res) => res.text())
-            .then((html) => render(html));
-          break;
-        case "plan":
-          fetch("/project-plan")
-            .then((res) => res.text())
-            .then((html) => render(html));
-          break;
-        case "room":
-          render("");
-          break;
-        case "project":
-          render("");
-          break;
-        // case 'project':   render('' + params.name + '</h1><p>프로젝트 ID: ' + params.id + '</p>'); break;
-        default:
-          render("<h1>Not Found</h1>");
-      }
-    },
-  };
-
-  function render(html) {
-    if (main) main.innerHTML = html;
-    if (document.getElementById("calendar")) {
-      //캘린더 생성
-      window.initCalendar();
-    }
-  }
+  //
+  // // Ajax/fetch로 JSP나 HTML fragment를 불러와서 .page-body에 넣는 방식으로 바꾸기
+  // // 더미데이터 삭제
+  // const Router = {
+  //   go(name, params = {}) {
+  //     switch (name) {
+  //       case "home":
+  //         fetch("/home", { cache: "no-cache" })
+  //           .then((res) => res.text())
+  //           .then((html) => render(html));
+  //         break;
+  //       case "tasks":
+  //         fetch("/tasks/my", { cache: "no-cache" })
+  //           .then((res) => res.text())
+  //           .then((html) => render(html));
+  //         break;
+  //       case "calendar":
+  //         fetch("/calendar")
+  //           .then((res) => res.text())
+  //           .then((html) => render(html));
+  //         break;
+  //       case "plan":
+  //         fetch("/project-plan")
+  //           .then((res) => res.text())
+  //           .then((html) => render(html));
+  //         break;
+  //       case "room":
+  //         render("");
+  //         break;
+  //       case "project":
+  //         render("");
+  //         break;
+  //       // case 'project':   render('' + params.name + '</h1><p>프로젝트 ID: ' + params.id + '</p>'); break;
+  //       default:
+  //         render("<h1>Not Found</h1>");
+  //     }
+  //   },
+  // };
+  //
+  // function render(html) {
+  //   if (main) main.innerHTML = html;
+  //   if (document.getElementById("calendar")) {
+  //     //캘린더 생성
+  //     window.initCalendar();
+  //   }
+  // }
 
 
   // 글씨 bold처리 문제 ========================================
@@ -192,8 +177,14 @@
     });
 
   // 초기 active: 홈 버튼
-  const firstNav = document.querySelector(".nav-fixed .nav-item");
-  if (firstNav) setActiveNav(firstNav);
+  // const firstNav = document.querySelector(".nav-fixed .nav-item");
+  // if (firstNav) setActiveNav(firstNav);
+
+  const currentActive = document.querySelector(".nav-fixed .nav-item.active");
+  if (currentActive) {
+    setActiveNav(currentActive); // 서버가 붙인 active 유지
+  }
+
 
   // ===== Presence Status (상태 선택 팝오버) =====
   const PRESENCE = {
@@ -405,6 +396,14 @@
     }, true);
   }
 })();
+
+// body에 calendar 컨테이너가 있으면 초기화
+//   document.addEventListener("DOMContentLoaded", () => {
+//     if (document.getElementById("calendar")) {
+//       window.initCalendar();
+//     }
+//   });
+
 
   /* ========= [백엔드 연결 예시 – 이 주석만 보고 교체] =========
   // 1) 유저 정보 로드

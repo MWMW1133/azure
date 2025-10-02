@@ -204,3 +204,9 @@ window.initCalendar = function () {
     }
   });
 };
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (document.getElementById("calendar")) {
+    window.initCalendar();
+  }
+});

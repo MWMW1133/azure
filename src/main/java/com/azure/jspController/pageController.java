@@ -7,36 +7,23 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class pageController {
 
-//    @GetMapping("/home")
-//    public String home(Model model) {
-//        model.addAttribute("body", "home.jsp");
-//        return "mainbar"; // /WEB-INF/views/.jsp
-//    }
-
     @GetMapping("/profile")
     public String viewProfile(Model model) {
         model.addAttribute("body", "viewProfile.jsp");
         return "mainbar";
     }
 
-    @GetMapping({"/", "/sidebar"})
-    public String sidebar() {
-        return "sidebar"; // -> /WEB-INF/views/sidebar.jsp
+    @GetMapping("/noInvite")
+    public String noInvite(Model model) {
+        model.addAttribute("body", "noInvite.jsp");
+        return "mainbar";
     }
 
-    @GetMapping("/topbar")
-    public String topbar(){
-        return "topbar"; // -> /WEB-INF/views/topbar.jsp
-    }
-
-    @GetMapping("/mainbar")
-    public String mainbar(){
-        return "mainbar"; // -> /WEB-INF/views/mainbar.jsp
-    }
 
     @GetMapping("/meeting")
-    public String meeting() {
-        return "meeting"; // /WEB-INF/views/meeting.jsp
+    public String meeting(Model model) {
+        model.addAttribute("body", "meeting.jsp");
+        return "mainbar";
     }
 
     // 로그인 페이지
@@ -53,17 +40,24 @@ public class pageController {
 
 
     @GetMapping("/calendar")
-    public String calendar() {
-        return "my-calendar"; // /WEB-INF/views/my-calendar.jsp
+    public String calendar(Model model) {
+        model.addAttribute("body", "my-calendar.jsp");
+        model.addAttribute("activePage", "calendar");
+        return "mainbar";
     }
 
-    @GetMapping("/tasks")
-    public String tasks() {
-        return "my-tasks"; // /WEB-INF/views/my-tasks.jsp
-    }
+//    @GetMapping("/tasks")
+//    public String tasks(Model model) {
+//        model.addAttribute("body", "my-tasks.jsp");
+//        model.addAttribute("activePage", "tasks");
+//        return "mainbar";
+//    }
+
+
 
     @Controller
     public class ModalController {
+        // 직접 접근인가? 아니면 include해서 해결 안되나?
         @GetMapping("/event-modal")
         public String eventModal() {
             return "my-calendar-modal"; // /WEB-INF/views/my-calendar-modal.jsp
@@ -73,6 +67,18 @@ public class pageController {
         public String plan() {
             return "project-plan"; // /WEB-INF/views/project-plan.jsp
         }
+
+//        @GetMapping("/event-modal")
+//        public String eventModal(Model model) {
+//            model.addAttribute("body", "my-calendar-modal.jsp");
+//            return "mainbar";
+//        }
+//
+//        @GetMapping("/plan")
+//        public String plan(Model model) {
+//            model.addAttribute("body", "project-plan.jsp");
+//            return "mainbar";
+//        }
     }
 }
 
@@ -97,7 +103,7 @@ public class pageController {
 //    private final UserService userService;
 //    private final OrganizationService orgService;
 //
-//    // 💡 생성자 주입
+//    //  생성자 주입
 //    public PageController(UserService userService, OrganizationService orgService) {
 //        this.userService = userService;
 //        this.orgService = orgService;
@@ -119,8 +125,8 @@ public class pageController {
 //     */
 //    @GetMapping("/profile")
 //    public String viewProfile(Model model) {
-//        // TODO: 로그인 세션에서 userId 가져오기 (임시로 1번 사용자)
-//        Long userId = 1L;
+//        // TODO: 로그인 세션에서 userId 가져오기
+//        Long userId = userId;
 //
 //        UserDTO user = userService.findById(userId);
 //        OrganizationDTO org = orgService.findById(user.getOrganizationId());

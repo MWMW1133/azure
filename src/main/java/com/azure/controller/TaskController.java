@@ -13,6 +13,12 @@ import com.azure.dto.Task;
 @RequestMapping("/tasks")
 public class TaskController {
 
+    // 진입점 추가
+    @GetMapping
+    public String redirectTasks() {
+        return "redirect:/tasks/my";
+    }
+
     @GetMapping("/my")
     public String getMyTasks(Model model) {
 
@@ -57,6 +63,11 @@ public class TaskController {
         // List<Task> archivedTasks = taskService.findArchivedTasks();
         // =====================
 
-        return "my-tasks"; // => /WEB-INF/views/my-tasks.jsp
+        // ===== 수정 return "my-tasks"; // => /WEB-INF/views/my-tasks.jsp
+
+        model.addAttribute("body", "my-tasks.jsp");
+        model.addAttribute("activePage", "tasks");
+
+        return "mainbar";
     }
 }

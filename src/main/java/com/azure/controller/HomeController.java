@@ -42,6 +42,11 @@ public class HomeController {
         doneTasks.add(new Task(4L, "UX 디자인 및 리뷰", "최담당", "profile4.png", "25/09/25","25/09/28", "completed", "normal", 100, true,"25/09/25"));
         model.addAttribute("doneTasks", doneTasks);
 
-        return "home";
+        // ==== 수정 return "home";
+        // 현재 페이지 식별용
+        model.addAttribute("body", "home.jsp");
+        model.addAttribute("activePage", "home");
+
+        return "mainbar"; // ★ 포인트
     }
 }
