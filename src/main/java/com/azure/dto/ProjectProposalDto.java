@@ -17,6 +17,7 @@ public class ProjectProposalDto {
     private Long projectId;
     private String title; 
     private String proposer; 
+    private String proposerAvatarUrl;
     private String description;
     private String status;
     private LocalDate createdAt;

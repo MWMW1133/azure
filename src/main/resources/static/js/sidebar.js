@@ -8,12 +8,15 @@
      아래 숫자만 바꾸면 전체가 바로 적용된다. (JSP의 <style id="sb-typo-vars">가 있으면 그대로 두고,
      이 주입은 '최후 보정' 역할이라 중복되어도 문제 없음) */
   const TYPO = {
-    sbFs: 17,   // 기본 크기(px)
-    sbFw: 430,  // 기본 굵기(얇게: 380~440)
-    labelFs: 24, labelFw: 720,
-    titleFw: 520, userFw: 560, presFw: 520
+    sbFs: 17, // 기본 크기(px)
+    sbFw: 430, // 기본 굵기(얇게: 380~440)
+    labelFs: 24,
+    labelFw: 720,
+    titleFw: 520,
+    userFw: 560,
+    presFw: 520,
   };
-  (function injectTypography(){
+  (function injectTypography() {
     if (document.getElementById('sb-typo-runtime')) return;
     const css = `
       :root{
@@ -48,63 +51,15 @@
   })();
   /* ─────────────────────────────────────────────────────────────────── */
 
- //  const main = document.querySelector('.main');
+  //  const main = document.querySelector('.main');
   const main = document.querySelector('.page-body'); // 수정
-  //
-  // // Ajax/fetch로 JSP나 HTML fragment를 불러와서 .page-body에 넣는 방식으로 바꾸기
-  // // 더미데이터 삭제
-  // const Router = {
-  //   go(name, params = {}) {
-  //     switch (name) {
-  //       case "home":
-  //         fetch("/home", { cache: "no-cache" })
-  //           .then((res) => res.text())
-  //           .then((html) => render(html));
-  //         break;
-  //       case "tasks":
-  //         fetch("/tasks/my", { cache: "no-cache" })
-  //           .then((res) => res.text())
-  //           .then((html) => render(html));
-  //         break;
-  //       case "calendar":
-  //         fetch("/calendar")
-  //           .then((res) => res.text())
-  //           .then((html) => render(html));
-  //         break;
-  //       case "plan":
-  //         fetch("/project-plan")
-  //           .then((res) => res.text())
-  //           .then((html) => render(html));
-  //         break;
-  //       case "room":
-  //         render("");
-  //         break;
-  //       case "project":
-  //         render("");
-  //         break;
-  //       // case 'project':   render('' + params.name + '</h1><p>프로젝트 ID: ' + params.id + '</p>'); break;
-  //       default:
-  //         render("<h1>Not Found</h1>");
-  //     }
-  //   },
-  // };
-  //
-  // function render(html) {
-  //   if (main) main.innerHTML = html;
-  //   if (document.getElementById("calendar")) {
-  //     //캘린더 생성
-  //     window.initCalendar();
-  //   }
-  // }
-
 
   // 글씨 bold처리 문제 ========================================
   // active 토글 전용 함수
   function setActiveNav(target) {
-    document.querySelectorAll('.nav-item, .proj-row').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-item, .proj-row').forEach((el) => el.classList.remove('active'));
     target.classList.add('active');
   }
-
 
   // 상단 고정 3개
   (function bindFixed() {
@@ -112,36 +67,31 @@
     // if (fixed[0]) fixed[0].addEventListener('click', () => Router.go('home'));
     // if (fixed[1]) fixed[1].addEventListener('click', () => Router.go('tasks'));
     // if (fixed[2]) fixed[2].addEventListener('click', () => Router.go('calendar'));
-    if (fixed[0]) fixed[0].addEventListener('click', (e) => {
-      Router.go('home');
-      setActiveNav(e.currentTarget);
-    });
-    if (fixed[1]) fixed[1].addEventListener('click', (e) => {
-      Router.go('tasks');
-      setActiveNav(e.currentTarget);
-    });
-    if (fixed[2]) fixed[2].addEventListener('click', (e) => {
-      Router.go('calendar');
-      setActiveNav(e.currentTarget);
-    });
+    if (fixed[0])
+      fixed[0].addEventListener('click', (e) => {
+        Router.go('home');
+        setActiveNav(e.currentTarget);
+      });
+    if (fixed[1])
+      fixed[1].addEventListener('click', (e) => {
+        Router.go('tasks');
+        setActiveNav(e.currentTarget);
+      });
+    if (fixed[2])
+      fixed[2].addEventListener('click', (e) => {
+        Router.go('calendar');
+        setActiveNav(e.currentTarget);
+      });
   })();
-
-  // // 프로젝트 목록 버튼
-  // document.querySelectorAll('.proj-list .proj-row:not(.room)').forEach((btn, i) => {
-  //   const name = btn.querySelector('span:last-child')?.textContent?.trim() || ('프로젝트 ' + (i + 1));
-  //   const id = 11 + i; // 더미 ID
-  //   // btn.addEventListener('click', () => Router.go('project', { id, name }));
-  //   btn.addEventListener('click', (e) => {
-  //     Router.go('project', { id, name });
 
 
   // 프로젝트 목록 버튼
-  document.querySelectorAll(".proj-list .proj-row").forEach((btn, i) => {
-    const name = btn.querySelector("span:last-child")?.textContent?.trim() || "프로젝트 " + (i + 1);
+  document.querySelectorAll('.proj-list .proj-row').forEach((btn, i) => {
+    const name = btn.querySelector('span:last-child')?.textContent?.trim() || '프로젝트 ' + (i + 1);
     const id = 11 + i; // 더미 ID
     // btn.addEventListener('click', () => Router.go('project', { id, name }));
-    btn.addEventListener("click", (e) => {
-      Router.go("project", { id, name });
+    btn.addEventListener('click', (e) => {
+      Router.go('project', { id, name });
       setActiveNav(e.currentTarget);
     });
   });
@@ -149,30 +99,19 @@
   // 프로젝트 계획
   const planBtn = document.querySelector('.proj-row.proj-plan');
   // if (planBtn) planBtn.addEventListener('click', () => Router.go('plan'));
-  if (planBtn) planBtn.addEventListener('click', (e) => {
-    Router.go('plan');
-    setActiveNav(e.currentTarget);
-  });
-
-// <<<<<<< HEAD
-//   // 회의실
-//   const roomBtn = document.querySelector('.proj-row.room');
-//   // if (roomBtn) roomBtn.addEventListener('click', () => Router.go('room'));
-//   if (roomBtn) roomBtn.addEventListener('click', (e) => {
-//     Router.go('room');
-//     setActiveNav(e.currentTarget);
-//   });
-
-  // 초기 화면 (js가 dom 날려서 주석처리)
-  // Router.go('home');
+  if (planBtn)
+    planBtn.addEventListener('click', (e) => {
+      Router.go('plan');
+      setActiveNav(e.currentTarget);
+    });
 
 
   // 회의실
-  const roomBtn = document.querySelector(".proj-row.room");
+  const roomBtn = document.querySelector('.proj-row.room');
   // if (roomBtn) roomBtn.addEventListener('click', () => Router.go('room'));
   if (roomBtn)
-    roomBtn.addEventListener("click", (e) => {
-      Router.go("room");
+    roomBtn.addEventListener('click', (e) => {
+      Router.go('room');
       setActiveNav(e.currentTarget);
     });
 
@@ -188,17 +127,17 @@
 
   // ===== Presence Status (상태 선택 팝오버) =====
   const PRESENCE = {
-    online:  { label: '접속중',     color: '#22c55e' }, // green
-    busy:    { label: '다른 용무중', color: '#f59e0b' }, // amber
-    away:    { label: '자리 비움',   color: '#ef4444' }, // red
-    offline: { label: '오프라인',    color: '#9ca3af' }  // gray
+    online: { label: '접속중', color: '#22c55e' }, // green
+    busy: { label: '다른 용무중', color: '#f59e0b' }, // amber
+    away: { label: '자리 비움', color: '#ef4444' }, // red
+    offline: { label: '오프라인', color: '#9ca3af' }, // gray
   };
 
-  const presenceEl  = document.querySelector('.presence');
+  const presenceEl = document.querySelector('.presence');
   const presenceDot = presenceEl?.querySelector('.dot');
 
   // 팝오버 스타일(팝오버 전용) — 부족하면 자동 주입
-  function ensurePresenceStyles(){
+  function ensurePresenceStyles() {
     if (document.getElementById('presence-style')) return;
 
     const css = `
@@ -226,7 +165,7 @@
 
   // 팝오버 생성(메인 영역에 뜨게 body에 부착)
   let pop;
-  function ensurePopover(){
+  function ensurePopover() {
     if (pop) return pop;
     ensurePresenceStyles();
 
@@ -235,16 +174,20 @@
     pop.setAttribute('role', 'menu');
     pop.style.display = 'none';
     pop.innerHTML = [
-      { key:'online',  ...PRESENCE.online  },
-      { key:'busy',    ...PRESENCE.busy    },
-      { key:'away',    ...PRESENCE.away    },
-      { key:'offline', ...PRESENCE.offline }
-    ].map(s => `
+      { key: 'online', ...PRESENCE.online },
+      { key: 'busy', ...PRESENCE.busy },
+      { key: 'away', ...PRESENCE.away },
+      { key: 'offline', ...PRESENCE.offline },
+    ]
+      .map(
+        (s) => `
       <div class="status-item" role="menuitem" tabindex="0" data-key="${s.key}">
         <span class="status-dot" style="background:${s.color}"></span>
         <span>${s.label}</span>
       </div>
-    `).join('');
+    `
+      )
+      .join('');
 
     pop.addEventListener('click', (e) => {
       const item = e.target.closest('.status-item');
@@ -253,9 +196,9 @@
       hidePopover();
     });
 
-    pop.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        const item = document.activeElement.closest(".status-item");
+    pop.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        const item = document.activeElement.closest('.status-item');
         if (item) {
           setPresence(item.dataset.key);
           hidePopover();
@@ -270,10 +213,10 @@
   // 오른쪽(사이드바 경계 기준) 위치
   function showPopover() {
     const p = ensurePopover();
-    p.style.display = "block";
+    p.style.display = 'block';
 
     const hostRect = presenceEl.getBoundingClientRect();
-    const sideRect = document.querySelector(".sidebar").getBoundingClientRect();
+    const sideRect = document.querySelector('.sidebar').getBoundingClientRect();
     const pRect = p.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
@@ -291,12 +234,12 @@
     p.style.left = `${left}px`;
     p.style.top = `${top}px`;
 
-    setTimeout(() => document.addEventListener("mousedown", onDocDown));
+    setTimeout(() => document.addEventListener('mousedown', onDocDown));
   }
 
   function hidePopover() {
-    if (pop) pop.style.display = "none";
-    document.removeEventListener("mousedown", onDocDown);
+    if (pop) pop.style.display = 'none';
+    document.removeEventListener('mousedown', onDocDown);
   }
 
   function onDocDown(e) {
@@ -305,19 +248,18 @@
     hidePopover();
   }
 
-
   function setPresence(key) {
     const conf = PRESENCE[key] || PRESENCE.online;
     if (presenceDot) presenceDot.style.background = conf.color;
     if (presenceEl) {
-      presenceEl.setAttribute("data-status", key);
+      presenceEl.setAttribute('data-status', key);
       presenceEl.childNodes.forEach((n) => {
         if (n.nodeType === 3) n.remove();
       });
-      presenceEl.appendChild(document.createTextNode(" " + conf.label));
+      presenceEl.appendChild(document.createTextNode(' ' + conf.label));
     }
     try {
-      localStorage.setItem("presence", key);
+      localStorage.setItem('presence', key);
     } catch (e) {}
     /* [백엔드 연결 지점]
        fetch('/api/me/status', {
@@ -328,10 +270,17 @@
   }
 
   // 초기 상태 복원 + 토글 바인딩
-  (function initPresence(){
+  (function initPresence() {
     if (!presenceEl) return;
-    const saved = (() => { try { return localStorage.getItem('presence'); } catch(e){ return null; } })();
-    if (saved && PRESENCE[saved]) setPresence(saved); else setPresence('online');
+    const saved = (() => {
+      try {
+        return localStorage.getItem('presence');
+      } catch (e) {
+        return null;
+      }
+    })();
+    if (saved && PRESENCE[saved]) setPresence(saved);
+    else setPresence('online');
 
     presenceEl.style.cursor = 'pointer';
     presenceEl.setAttribute('title', '상태 변경');
@@ -350,52 +299,59 @@
     });
   })();
 
-
   // === Meeting SPA mount ===
-(function bindMeetingNav(){
-  function mountMeeting() {
-    const mountTarget = document.querySelector('.page-body');
-    if (!mountTarget) return;
+  (function bindMeetingNav() {
+    function mountMeeting() {
+      const mountTarget = document.querySelector('.page-body');
+      if (!mountTarget) return;
 
-    // 본문에 회의실 UI 렌더
-    if (window.Meeting && typeof window.Meeting.mount === 'function') {
-      window.Meeting.mount(mountTarget);
-    } else {
-      // meeting.js가 아직 안 들어왔을 때 대비(거의 필요 없지만 안전핀)
-      const s = document.createElement('script');
-      s.src = (window.APP_CTX || '') + '/js/meeting.js?v=spa_mount';
-      s.onload = () => window.Meeting?.mount(mountTarget);
-      document.body.appendChild(s);
+      // 본문에 회의실 UI 렌더
+      if (window.Meeting && typeof window.Meeting.mount === 'function') {
+        window.Meeting.mount(mountTarget);
+      } else {
+        // meeting.js가 아직 안 들어왔을 때 대비(거의 필요 없지만 안전핀)
+        const s = document.createElement('script');
+        s.src = (window.APP_CTX || '') + '/js/meeting.js?v=spa_mount';
+        s.onload = () => window.Meeting?.mount(mountTarget);
+        document.body.appendChild(s);
+      }
+
+      // 사이드바 active 표시
+      document.querySelectorAll('.nav-item, .proj-row').forEach((el) => el.classList.remove('active'));
+      const link = document.querySelector('.proj-row.room');
+      if (link) link.classList.add('active');
     }
 
-    // 사이드바 active 표시
-    document.querySelectorAll('.nav-item, .proj-row').forEach(el => el.classList.remove('active'));
-    const link = document.querySelector('.proj-row.room');
-    if (link) link.classList.add('active');
-  }
+    // 사이드바 전체에 이벤트 위임 (캡처 단계에서 가장 먼저 가로채기)
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+      sidebar.addEventListener(
+        'click',
+        function (e) {
+          const a = e.target.closest('.proj-row.room');
+          if (!a) return;
+          e.preventDefault();
+          e.stopPropagation();
+          mountMeeting();
+        },
+        true
+      );
+    }
 
-  // 사이드바 전체에 이벤트 위임 (캡처 단계에서 가장 먼저 가로채기)
-  const sidebar = document.querySelector('.sidebar');
-  if (sidebar) {
-    sidebar.addEventListener('click', function(e){
-      const a = e.target.closest('.proj-row.room');
-      if (!a) return;
-      e.preventDefault();
-      e.stopPropagation();
-      mountMeeting();
-    }, true);
-  }
-
-  // 혹시 위임이 적용되기 전 클릭을 잡아주기 위한 2중 안전핀
-  const roomLink = document.querySelector('.proj-row.room');
-  if (roomLink) {
-    roomLink.addEventListener('click', function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      mountMeeting();
-    }, true);
-  }
-})();
+    // 혹시 위임이 적용되기 전 클릭을 잡아주기 위한 2중 안전핀
+    const roomLink = document.querySelector('.proj-row.room');
+    if (roomLink) {
+      roomLink.addEventListener(
+        'click',
+        function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          mountMeeting();
+        },
+        true
+      );
+    }
+  })();
 
 // body에 calendar 컨테이너가 있으면 초기화
 //   document.addEventListener("DOMContentLoaded", () => {

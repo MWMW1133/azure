@@ -42,3 +42,11 @@
 </div>
 <jsp:include page="/WEB-INF/views/plans/planForm.jsp" />
 <jsp:include page="/WEB-INF/views/plans/planViewer.jsp" />
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 2000">
+  <div id="planToast" class="toast clean-toast" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex align-items-center">
+      <div class="toast-icon me-2" aria-hidden="true"></div>
+      <div class="toast-body">메시지</div>
+      </div>
+  </div>
+</div>

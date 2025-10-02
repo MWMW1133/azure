@@ -55,6 +55,11 @@ public class pageController {
 
 
 
+ @GetMapping("/projects")
+    public String projects() {
+        return "project-tab"; // /WEB-INF/views/my-tasks.jsp
+    }
+
     @Controller
     public class ModalController {
         // 직접 접근인가? 아니면 include해서 해결 안되나?
