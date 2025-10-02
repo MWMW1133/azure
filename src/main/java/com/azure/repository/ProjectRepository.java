@@ -3,6 +3,7 @@ package com.azure.repository;
 
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -16,5 +17,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     Page<Project> findByOrganizationIdAndNameContaining(Long organizationId, String keyword, Pageable pageable);
     // 조직 내에서 프로젝트 이름 중복 체크
     Optional<Project> findByNameAndOrganizationId(String name, Long organizationId);
+
+    Page<Project> findByOrganizationIdIn(List<Long> organizationIds, Pageable pageable);
 
 }

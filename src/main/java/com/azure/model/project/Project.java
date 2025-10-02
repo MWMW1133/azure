@@ -27,10 +27,6 @@ public class Project {
     @Column(name = "start_date")
     private LocalDate startDate;
 
-    /** 프로젝트 승인된 제안 (project_proposals.id FK) */
-    @Column(name = "proposal_id")
-    private Long proposalId;
-
     @Column(name = "due_date")
     private LocalDate dueDate;
 

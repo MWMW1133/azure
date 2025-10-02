@@ -34,26 +34,26 @@ public class ProjectServiceImpl implements ProjectService {
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
     private final WorkflowRepository workflowRepository; // ✅ 추가
-    private final ApplicationEventPublisher publisher; // 📢 이벤트 퍼블리셔 추가
+        private final ApplicationEventPublisher publisher; // 📢 이벤트 퍼블리셔 추가
 
-    // 프로젝트 단건 조회
     @Override
     @Transactional(readOnly = true)
     public Project get(Long id) {
         return projectRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Project not found: " + id));
     }
-    // 사용자가 속한 조직의 프로젝트 목록 조회
+
     @Override
     @Transactional(readOnly = true)
     public Page<Project> listByUser(Long userId, Pageable pageable) {
-        Organization org = organizationRepository.findByUserId(userId);
-        if (org == null) {
-            return Page.empty(pageable); // 사용자가 어떤 회사에도 속하지 않은 경우 빈 페이지 반환
-        }
-        return projectRepository.findByOrganizationId(org.getId(), pageable); // 하나의 조직에 속한 프로젝트들 페이징 조회
+        var orgs = organizationRepository.findAllByUserId(userId);
+        if (orgs.isEmpty()) return Page.empty(pageable);
+
+        var orgIds = orgs.stream().map(Organization::getId).toList();
+        return projectRepository.findByOrganizationIdIn(orgIds, pageable);
     }
-    //  프로젝트 생성
+
+
     @Override
     public Project create(Long organizationId, Long ownerId, String name, String description) {
         Organization org = organizationRepository.findById(organizationId)
@@ -108,7 +108,7 @@ public class ProjectServiceImpl implements ProjectService {
 
         return saved;
     }
-    // 프로젝트 정보 수정
+
     @Override
     public Project update(Long projectId, String name, String description) {
         Project p = get(projectId);
@@ -116,12 +116,12 @@ public class ProjectServiceImpl implements ProjectService {
         if (description != null) p.setDescription(description);
         return projectRepository.save(p);
     }
-    // 프로젝트 삭제
+
     @Override
     public void delete(Long projectId) {
         projectRepository.delete(get(projectId));
     }
-    // 특정 프로젝트에 특정 멤버 추가
+
     @Override
     public ProjectMember addMember(Long projectId, Long userId, UserRole role) {
         Project project = get(projectId);
@@ -147,7 +147,7 @@ public class ProjectServiceImpl implements ProjectService {
 
         return saved;
     }
-    // 특정 프로젝트에서 특정 멤버 제거
+
     @Override
     public void removeMember(Long projectId, Long userId, Long removedByUserId) {
         ProjectMemberId id = new ProjectMemberId();
@@ -158,13 +158,13 @@ public class ProjectServiceImpl implements ProjectService {
         publisher.publishEvent(new ProjectMemberRemovedEvent(projectId, userId, get(projectId).getOwner().getId()));
         
     }   
-    // 특정 사용자가 특정 프로젝트의 멤버인지 확인
+    
     @Override
     @Transactional(readOnly = true)
     public boolean existsMember(Long projectId, Long userId) {
         return projectMemberRepository.existsById_ProjectIdAndId_UserId(projectId, userId);
     }
-    // 프로젝트 멤버 목록 조회
+
     @Override
     @Transactional(readOnly = true)
     public Page<ProjectMember> listMembers(Long projectId, Pageable pageable) {

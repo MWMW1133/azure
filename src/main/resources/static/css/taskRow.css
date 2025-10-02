@@ -1,0 +1,233 @@
+:root {
+  --border-color: #e9ecef;
+  --text-primary: #212529;
+  --primary-color: #4353ff;
+}
+
+.task-row {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 0.875rem;
+  transition: background-color 0.2s;
+}
+.task-row:hover {
+  background-color: #f8f9fa;
+}
+.task-list-body > div:last-child > .task-row,
+.sub-task-container > div:last-child > .task-row {
+  border-bottom: none;
+}
+
+/* 컬럼 너비 */
+.task-cell {
+  padding: 0 0.75rem;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  flex-shrink: 0;
+}
+.task-actions-cell {
+  width: 5%;
+  padding-left: 0;
+}
+.task-title-cell {
+  flex-grow: 1;
+  min-width: 0;
+  font-weight: 500;
+}
+.assignee-cell {
+  width: 8%;
+}
+.duedate-cell {
+  width: 10%;
+}
+.status-cell {
+  width: 10%;
+}
+.started-at-cell {
+  width: 10%;
+}
+.priority-cell {
+  width: 10%;
+}
+.progress-cell {
+  width: 12%;
+}
+.file-cell {
+  width: 6%;
+  justify-content: center;
+}
+.updated-at-cell {
+  width: 10%;
+}
+
+/* 내부 요소  */
+.assignee-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+.toggle-icon {
+  cursor: pointer;
+  color: #adb5bd;
+  width: 16px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+.toggle-icon.open {
+  transform: rotate(90deg);
+}
+.file-icon {
+  color: #6c757d;
+  font-size: 1rem;
+}
+.icon-wrapper {
+  display: flex;
+  align-items: center;
+}
+.form-check-input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+/* 우선순위, 상태 태그 */
+.priority,
+.status {
+  width: 90%;
+  height: 90%;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.status.Assignments {
+  /*Assignments 태그*/
+  background-color: #e3e3e3;
+  color: #505050;
+}
+.status.in-progress {
+  /*in-progress 태그*/
+  background-color: #b5e6ff;
+  color: #ffffff;
+}
+.status.Reviewing {
+  /*Reviewing 태그*/
+  background-color: #87cbfb;
+  color: #ffffff;
+}
+.status.Completed {
+  /*Completed 태그*/
+  background-color: #3041ff;
+  color: #ffffff;
+}
+.priority.highest {
+  /*매우 높음 태그*/
+  background-color: #ff4870;
+  color: #ffffff;
+}
+.priority.high {
+  /*높음 태그*/
+  background-color: #ff9e78;
+  color: #ffffff;
+}
+.priority.normal {
+  /*보통 태그*/
+  background-color: #fff67c;
+  color: #5a616b;
+}
+.priority.low {
+  /*낮음 태그*/
+  background-color: #beff7c;
+  color: #5a616b;
+}
+.priority.lowwest {
+  /*매우 낮음 태그*/
+  background-color: #a2ceff;
+  color: #5a616b;
+}
+
+/* --- 진행률 바 --- */
+.progress-cell-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.progress-value {
+  font-size: 14px;
+  font-weight: 500;
+  width: 40px;
+  flex-shrink: 0;
+}
+.task-progress-container {
+  background-color: #e9ecef;
+  border-radius: 8px;
+  height: 8px;
+  flex-grow: 1;
+  overflow: hidden;
+}
+.task-progress-bar {
+  width: 0%;
+  height: 100%;
+  background-color: #0184ff;
+  border-radius: 8px;
+  transition: width 0.5s ease-in-out;
+}
+
+/* --- 하위 태스크 관련 스타일 --- */
+.sub-task-container.hidden {
+  display: none;
+}
+.sub-task-container {
+  padding-left: 70px;
+  background-color: #fafbfd;
+
+  margin: 0 -1.5rem;
+  padding-right: 1.5rem;
+  padding-bottom: 0.5rem;
+}
+.sub-task-header {
+  background-color: #f8f9fa;
+  margin-bottom: 0.5rem;
+  border-top: 1px solid #e9ecef;
+  border-bottom: 1px solid #e9ecef;
+}
+.sub-task-header .task-cell {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.sub-task-form-row {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+.form-input {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+}
+.btn-save,
+.btn-cancel {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+}
+.btn-save {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+.btn-cancel {
+  background-color: #f8f9fa;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}

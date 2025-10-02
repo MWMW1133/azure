@@ -43,7 +43,7 @@ public interface UserService {
 
     /** 로그인 ID로 사용자 조회(없으면 Optional.empty()). */
     Optional<User> findByLoginId(String loginId);
-    
+
     /** 로그인 ID 중복 여부 확인 */
     boolean existsByLoginId(String loginId);
 }

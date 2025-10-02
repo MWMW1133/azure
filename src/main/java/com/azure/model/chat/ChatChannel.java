@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import com.azure.model.enums.ChannelType;
 import com.azure.model.project.Project;
 import com.azure.model.user.User;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @Entity
@@ -30,4 +32,8 @@ public class ChatChannel {
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @OneToMany(mappedBy = "channel", fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ChannelMember> members = new HashSet<>();
 }

@@ -1,10 +1,13 @@
 package com.azure.repository;
 
 import com.azure.model.session.SessionStatus;
+import org.springframework.stereotype.Repository;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
 
+@Repository  // ★ 이 한 줄만 추가하면 빈으로 등록됨
 public class SessionStatusRepository {
 
     private static final Map<Long, SessionStatus> statusMap = new ConcurrentHashMap<>();

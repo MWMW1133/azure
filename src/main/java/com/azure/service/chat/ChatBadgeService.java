@@ -11,7 +11,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-/**
+/*
  * 채널의 미읽음 메시지 개수를 계산하는 서비스.
  *
  * <p><b>알고리즘</b>

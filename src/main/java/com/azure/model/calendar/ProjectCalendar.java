@@ -1,10 +1,10 @@
 package com.azure.model.calendar;
 
+import com.azure.model.task.Task;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
 import com.azure.model.project.Project;
-import com.azure.model.task.Task;
 import com.azure.model.user.User;
 
 @Data

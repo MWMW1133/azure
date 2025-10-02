@@ -27,7 +27,7 @@ public interface ProjectProposalService {
     ProjectProposal reject(Long proposalId, Long approverId);
     /** 조직 + 상태별 제안 목록 조회 */
     Page<ProjectProposal> listByOrganizationAndStatus(Long organizationId, ProjectProposal.Status status, Pageable pageable);
-    
+
     /** 제안자별 제안 목록 조회 */
     List<ProjectProposal> findByProposerId(Long proposerId);
 }

@@ -12,6 +12,5 @@ public class ProjectDTO {
     private LocalDate startDate;
     private LocalDate dueDate;
     private LocalDateTime createdAt;
-    private Long proposalId;
     private Long organizationId;
 }

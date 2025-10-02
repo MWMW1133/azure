@@ -9,15 +9,13 @@ import com.azure.dto.UserRole;
 @Data
 @Entity
 @Table(name = "organizations")
-@IdClass(OrganizationId.class) // 복합키 매핑
 public class Organization {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "organization_id")
+    @Column(name = "id")
     private Long id;
 
-    @Id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
