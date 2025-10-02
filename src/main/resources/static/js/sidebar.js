@@ -181,16 +181,6 @@
   // 초기 화면 (js가 dom 날려서 주석처리)
   // Router.go('home');
 
-
-  // 회의실
-  const roomBtn = document.querySelector(".proj-row.room");
-  // if (roomBtn) roomBtn.addEventListener('click', () => Router.go('room'));
-  if (roomBtn)
-    roomBtn.addEventListener("click", (e) => {
-      Router.go("room");
-      setActiveNav(e.currentTarget);
-    });
-
   // 초기 active: 홈 버튼
   const firstNav = document.querySelector(".nav-fixed .nav-item");
   if (firstNav) setActiveNav(firstNav);
@@ -362,19 +352,25 @@
 
   // === Meeting SPA mount ===
 (function bindMeetingNav(){
-  function mountMeeting() {
+  const MAINBAR = (window.APP_CTX || '') + '/mainbar';
+
+  function mountMeeting(withReset = true) {
     const mountTarget = document.querySelector('.page-body');
     if (!mountTarget) return;
-
-    // 본문에 회의실 UI 렌더
+    if (window.resetStubStore) window.resetStubStore();
+    // 회의실 UI 렌더
     if (window.Meeting && typeof window.Meeting.mount === 'function') {
       window.Meeting.mount(mountTarget);
     } else {
-      // meeting.js가 아직 안 들어왔을 때 대비(거의 필요 없지만 안전핀)
       const s = document.createElement('script');
       s.src = (window.APP_CTX || '') + '/js/meeting.js?v=spa_mount';
       s.onload = () => window.Meeting?.mount(mountTarget);
       document.body.appendChild(s);
+    }
+
+    // mount 직후 다음 프레임에 '첫 화면'으로 리셋
+    if (withReset && typeof window.resetMeetingUI === 'function') {
+      requestAnimationFrame(() => window.resetMeetingUI(mountTarget));
     }
 
     // 사이드바 active 표시
@@ -383,27 +379,33 @@
     if (link) link.classList.add('active');
   }
 
-  // 사이드바 전체에 이벤트 위임 (캡처 단계에서 가장 먼저 가로채기)
-  const sidebar = document.querySelector('.sidebar');
-  if (sidebar) {
-    sidebar.addEventListener('click', function(e){
-      const a = e.target.closest('.proj-row.room');
-      if (!a) return;
-      e.preventDefault();
-      e.stopPropagation();
-      mountMeeting();
-    }, true);
+  // ❌ (삭제) 사이드바 캡처 리스너는 제거하세요 — 쿼리 제거 로직이 막힙니다.
+  // if (sidebar) { sidebar.addEventListener('click', ... , true) }
+
+  // === [UPDATE] 회의실 클릭시: 회의실 mount → 입장 모달
+  document.addEventListener('click', (e) => {
+  const el = e.target.closest('#nav-room, .proj-row.room');
+  if (!el) return;
+  e.preventDefault();
+
+  // URL을 /mainbar 로 고정(project 파라미터 제거)
+  const base = (window.APP_CTX || '') + '/mainbar';
+  history.pushState({}, '', base);
+
+  // 회의실 UI 마운트
+  const mountTarget = document.querySelector('.page-body') || document.body;
+  if (window.Meeting?.mount) {
+    window.Meeting.mount(mountTarget);
   }
 
-  // 혹시 위임이 적용되기 전 클릭을 잡아주기 위한 2중 안전핀
-  const roomLink = document.querySelector('.proj-row.room');
-  if (roomLink) {
-    roomLink.addEventListener('click', function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      mountMeeting();
-    }, true);
+  // ▶ 회의실 입장 모달 표시
+  const root = document.querySelector('.room-wrap') || document;
+  if (window.confirmJoinMeeting) {
+    // 모달은 중복 방지 플래그(root.__entryShown)로 한 번만 뜸
+    window.confirmJoinMeeting(root);
   }
+});
+
 })();
 
   /* ========= [백엔드 연결 예시 – 이 주석만 보고 교체] =========

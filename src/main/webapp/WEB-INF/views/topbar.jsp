@@ -256,9 +256,9 @@
 
                     <!-- 메뉴 아이템 -->
                     <li><a class="dropdown-item" href="${pageContext.request.contextPath}/profile"><i class="bi bi-person"></i>View profile</a></li>
-                    <li><a class="dropdown-item" href="#"><i class="bi bi-gear"></i>Settings</a></li>
-                    <li><a class="dropdown-item" href="#"><i class="bi bi-people"></i>Invite colleagues</a></li>
-                    <li><a class="dropdown-item logout" href="#"><i class="bi bi-box-arrow-right"></i>Log out</a></li>
+                    <li><a class="dropdown-item"><i class="bi bi-gear"></i>Settings</a></li>
+                    <li><a class="dropdown-item"><i class="bi bi-people"></i>Invite colleagues</a></li>
+                    <li><a class="dropdown-item logout"><i class="bi bi-box-arrow-right"></i>Log out</a></li>
                 </ul>
             </div>
         </div>

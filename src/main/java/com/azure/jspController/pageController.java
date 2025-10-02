@@ -30,7 +30,8 @@ public class pageController {
     }
 
     @GetMapping("/mainbar")
-    public String mainbar(){
+    public String mainbar(Model model){
+        model.addAttribute("body", "viewProfile.jsp");
         return "mainbar"; // -> /WEB-INF/views/mainbar.jsp
     }
 
@@ -74,6 +75,7 @@ public class pageController {
             return "project-plan"; // /WEB-INF/views/project-plan.jsp
         }
     }
+    
 }
 
 

@@ -68,6 +68,9 @@
     overflow:auto; border-radius:20px; padding:18px 16px 8px;
   }
 
+  .sidebar-footer .user-card > div{ display:flex; flex-direction:column; }
+  .sidebar-footer .user-card .presence{ margin-top: 6px; }
+
   /* 상단 고정 메뉴(텍스트 크기/굵기는 맨 아래 변수로 통일 제어) */
   .nav-fixed{ display:flex; flex-direction:column; gap:10px; margin:6px 0 45px; }
   .nav-item{
@@ -93,12 +96,17 @@
   /* 프로젝트/일반 항목 (회의실 포함) */
   .proj-list{ display:flex; flex-direction:column; gap:10px; padding-left:2px; }
   .proj-row{
+    position: relative;
     display:flex; align-items:center; gap:12px;
+    width:100%;                    /* ← 행 전체를 히트영역으로 */
+    box-sizing: border-box;        /* 패딩 포함 폭 계산 */
     padding:12px 14px; border-radius:12px;
     background:transparent; border:0; cursor:pointer; text-align:left;
     color:#273449;
+    text-decoration: none;         /* a.proj-row 밑줄 제거 */
     -webkit-appearance:none; appearance:none;
   }
+  .proj-row > span{ position:relative; z-index:1; }
   .proj-row:hover{ background:var(--hover); }
   .elbow{ width:22px; color:#273449; }
 
@@ -227,7 +235,8 @@
       <div class="sidebar-inner">
         <!-- 고정 3개 -->
         <nav class="nav-fixed">
-          <button class="nav-item">
+          <button id="nav-home" class="nav-item"
+          data-href="${pageContext.request.contextPath}/mainbar">
             <span class="ic">
               <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
                 <path d="M3 10.5L12 4l9 6.5"></path>
@@ -313,8 +322,8 @@
 
         <div class="room-section">
           <hr class="divider divider-room" />
-          <a class="proj-row room" href="#" data-route="room">
-
+          <button id="nav-room" class="proj-row room"
+          data-href="${pageContext.request.contextPath}/mainbar" data-route="room">
             <span class="ic">
               <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
                 <path d="M4 13a8 8 0 0 1 16 0"></path>
@@ -323,7 +332,7 @@
               </svg>
             </span>
             <span>회의실</span>
-          </a>
+          </button>
           <hr class="divider divider-room" />
         </div>
 
