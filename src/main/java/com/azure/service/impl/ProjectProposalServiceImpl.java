@@ -1,5 +1,6 @@
 package com.azure.service.impl;
 
+import com.azure.dto.ProjectProposalDTO;
 import com.azure.event.ProposalCreatedEvent;
 import com.azure.event.ProposalStatusChangedEvent;
 import com.azure.model.Organization;
@@ -13,7 +14,6 @@ import com.azure.repository.UserRepository;
 import com.azure.service.ProjectProposalService;
 import com.azure.service.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,7 +32,25 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
-    private final ApplicationEventPublisher publisher; // 📢 이벤트 퍼블리셔 추가
+    private final ApplicationEventPublisher publisher;
+
+    // 🔹 엔티티 → DTO 변환 메서드
+    private ProjectProposalDTO toDto(ProjectProposal entity) {
+        ProjectProposalDTO dto = new ProjectProposalDTO();
+        dto.setId(entity.getId());
+        dto.setProposerId(entity.getProposer().getId());
+        dto.setProposerName(entity.getProposer().getName());
+        dto.setProposerAvatarUrl(entity.getProposer().getAvatarUrl());
+        dto.setOrganizationId(entity.getOrganization().getId());
+        dto.setProjectId(entity.getProject() != null ? entity.getProject().getId() : null);
+        dto.setName(entity.getName());
+        dto.setDescription(entity.getDescription());
+        dto.setStatus(entity.getStatus().name());
+        dto.setStartDate(entity.getStartDate());
+        dto.setDueDate(entity.getDueDate());
+        dto.setCreatedAt(entity.getCreatedAt());
+        return dto;
+    }
 
     // 제안 단건 조회
     @Override
@@ -41,12 +59,14 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
         return proposalRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Proposal not found: " + id));
     }
-    // 조직별 제안 목록 조회
+
+    // 조직별 제안 목록 조회 (DTO 변환 없음 → 필요 시 컨트롤러에서 toDto)
     @Override
     @Transactional(readOnly = true)
     public Page<ProjectProposal> listByOrganization(Long organizationId, Pageable pageable) {
         return proposalRepository.findByOrganizationId(organizationId, pageable);
     }
+
     // 제안 생성
     @Override
     public ProjectProposal create(Long proposerId, Long organizationId, String name, String description,
@@ -67,11 +87,12 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
 
         ProjectProposal saved = proposalRepository.save(proposal);
 
-        // 📢 이벤트 발행 (관리자에게 새 제안 생성 알림)
+        // 📢 이벤트 발행
         publisher.publishEvent(new ProposalCreatedEvent(saved.getId()));
 
         return saved;
     }
+
     // 제안 승인
     @Override
     public Project approve(Long proposalId, Long approverId) {
@@ -87,22 +108,22 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
         Project project = new Project();
         project.setName(proposal.getName());
         project.setDescription(proposal.getDescription());
-        project.setOwner(proposal.getProposer()); // 제안자를 프로젝트 소유자로 설정
+        project.setOwner(proposal.getProposer());
         project.setOrganization(proposal.getOrganization());
         project.setStartDate(proposal.getStartDate());
         project.setDueDate(proposal.getDueDate());
 
         Project savedProject = projectRepository.save(project);
 
-        // proposal과 project 연결
         proposal.setProject(savedProject);
         proposalRepository.save(proposal);
-        
-        // 📢 이벤트 발행 (제안자에게 승인 알림)
+
+        // 📢 이벤트 발행
         publisher.publishEvent(new ProposalStatusChangedEvent(proposal.getId(), proposal.getStatus().name()));
 
         return savedProject;
     }
+
     // 제안 거절
     @Override
     public ProjectProposal reject(Long proposalId, Long approverId) {
@@ -111,26 +132,33 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
         if (proposal.getStatus() != ProjectProposal.Status.PENDING) {
             throw new IllegalStateException("Proposal is not in PENDING state");
         }
-        
+
         proposal.setStatus(ProjectProposal.Status.REJECTED);
         ProjectProposal saved = proposalRepository.save(proposal);
 
-        // 📢 이벤트 발행 (제안자에게 거절 알림)
+        // 📢 이벤트 발행
         publisher.publishEvent(new ProposalStatusChangedEvent(saved.getId(), saved.getStatus().name()));
 
         return saved;
     }
-    // 조직과 상태로 제안 목록 조회
+
+    // 조직 + 상태별 제안 목록 조회 → DTO 변환
     @Override
     @Transactional(readOnly = true)
-    public Page<ProjectProposal> listByOrganizationAndStatus(Long organizationId, ProjectProposal.Status status, Pageable pageable) {
-        return proposalRepository.findByOrganizationIdAndStatus(organizationId, status, pageable);
-    }
-    // 제안자 ID로 제안 목록 조회
-    @Override
-    @Transactional(readOnly = true)
-    public List<ProjectProposal> findByProposerId(Long proposerId) {
-        return proposalRepository.findByProposerId(proposerId);
+    public List<ProjectProposalDTO> listByOrganizationAndStatus(Long organizationId, ProjectProposal.Status status, Pageable pageable) {
+        return proposalRepository.findByOrganizationIdAndStatus(organizationId, status, pageable)
+                .stream()
+                .map(this::toDto)
+                .toList();
     }
 
+    // 제안자별 제안 목록 조회 → DTO 변환
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProjectProposalDTO> findByProposerId(Long proposerId) {
+        return proposalRepository.findByProposerId(proposerId)
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
 }
