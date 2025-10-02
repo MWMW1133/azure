@@ -169,6 +169,19 @@
             background-color: #fce8e6;
             color: #b31412;
         }
+
+        /* 설정 서브 드롭다운 */
+        .dropdown-submenu {
+            position: relative;
+        }
+
+        .dropdown-submenu > .dropdown-menu {
+            top: 0;
+            left: -100%;
+            margin-top: -0.25rem;
+            margin-left: .1rem;
+            margin-right: .1rem;
+        }
     </style>
 </head>
 <body>
@@ -256,7 +269,76 @@
 
                     <!-- 메뉴 아이템 -->
                     <li><a class="dropdown-item" href="${pageContext.request.contextPath}/profile"><i class="bi bi-person"></i>View profile</a></li>
-                    <li><a class="dropdown-item" href="#"><i class="bi bi-gear"></i>Settings</a></li>
+
+<%--                    <!-- 설정 서브메뉴 -->--%>
+<%--                    <li class="dropdown-submenu">--%>
+<%--                        <a class="dropdown-item" href="#">--%>
+<%--                            <i class="bi bi-gear"></i>Settings--%>
+<%--                        </a>--%>
+<%--                        <ul class="dropdown-menu">--%>
+<%--                            <li class="dropdown-header">--%>
+<%--                                <i class="bi bi-gear"></i> Settings--%>
+<%--                            </li>--%>
+<%--                            <li><hr class="dropdown-divider"></li>--%>
+
+<%--                            <!-- Account Settings -->--%>
+<%--                            <li class="dropdown-submenu">--%>
+<%--                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="#" data-bs-toggle="collapse" data-bs-target="#accountSettingsMenu">--%>
+<%--                                    <span><i class="bi bi-person"></i> Account Settings</span>--%>
+<%--                                    <i class="bi bi-chevron-down"></i>--%>
+<%--                                </a>--%>
+<%--                                <ul class="collapse list-unstyled ps-3" id="accountSettingsMenu">--%>
+<%--                                    <li>--%>
+<%--                                        <a class="dropdown-item change-password" href="#">--%>
+<%--                                            <i class="bi bi-key"></i> Change Password--%>
+<%--                                        </a>--%>
+<%--                                    </li>--%>
+<%--                                </ul>--%>
+<%--                            </li>--%>
+
+<%--                            <!-- Notification Settings -->--%>
+<%--                            <li class="dropdown-submenu">--%>
+<%--                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="#" data-bs-toggle="collapse" data-bs-target="#notificationSettingsMenu">--%>
+<%--                                    <span><i class="bi bi-bell"></i> Notification Settings</span>--%>
+<%--                                    <i class="bi bi-chevron-down"></i>--%>
+<%--                                </a>--%>
+<%--                                <ul class="collapse list-unstyled ps-3" id="notificationSettingsMenu">--%>
+<%--                                    <li>--%>
+<%--                                        <a class="dropdown-item" href="#">--%>
+<%--                                            <i class="bi bi-toggle-on"></i> Push Notifications--%>
+<%--                                        </a>--%>
+<%--                                    </li>--%>
+<%--                                </ul>--%>
+<%--                            </li>--%>
+<%--                        </ul>--%>
+                    <!-- Settings 서브메뉴 -->
+                    <li class="dropdown-submenu">
+                        <a class="dropdown-item" href="#">
+                            <i class="bi bi-gear"></i> Settings
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" data-bs-toggle="collapse" href="#accountSubmenu" role="button" aria-expanded="false" aria-controls="accountSubmenu">
+                                    <i class="bi bi-person"></i> Account Settings ▼
+                                </a>
+                                <div class="collapse" id="accountSubmenu">
+                                    <a class="dropdown-item change-password" href="#"><i class="bi bi-key"></i> Change Password</a>
+                                </div>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" data-bs-toggle="collapse" href="#notifSubmenu" role="button" aria-expanded="false" aria-controls="notifSubmenu">
+                                    <i class="bi bi-bell"></i> Notification Settings ▼
+                                </a>
+                                <div class="collapse" id="notifSubmenu">
+                                    <a class="dropdown-item" href="#"><i class="bi bi-toggle-on"></i> Push Notifications</a>
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+
+                    </li>
+
+
                     <li><a class="dropdown-item" href="#"><i class="bi bi-people"></i>Invite colleagues</a></li>
                     <li><a class="dropdown-item logout" href="#"><i class="bi bi-box-arrow-right"></i>Log out</a></li>
                 </ul>
@@ -470,6 +552,7 @@
 <script src="${pageContext.request.contextPath}/js/notification.js"></script>
 <script src="${pageContext.request.contextPath}/js/todo.js"></script>
 <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
+<script src="${pageContext.request.contextPath}/js/profile.js"></script>
 
 
 </body>
