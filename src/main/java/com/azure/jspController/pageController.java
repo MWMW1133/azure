@@ -71,6 +71,7 @@ public class pageController {
 
         @GetMapping("/plan")
         public String plan() {
+
             return "project-plan"; // /WEB-INF/views/project-plan.jsp
         }
 
