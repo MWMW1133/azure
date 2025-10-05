@@ -28,6 +28,7 @@ public class pageController {
     @GetMapping("/meeting")
     public String meeting(Model model) {
         model.addAttribute("body", "meeting.jsp");
+        model.addAttribute("activePage", "meeting");
         return "mainbar";
     }
 
@@ -145,6 +146,7 @@ public class pageController {
 
         @GetMapping("/plan")
         public String plan() {
+
             return "project-plan"; // /WEB-INF/views/project-plan.jsp
         }
 

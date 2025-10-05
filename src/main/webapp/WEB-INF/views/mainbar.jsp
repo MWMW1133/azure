@@ -70,6 +70,7 @@
     <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
     <script src="${pageContext.request.contextPath}/js/search.js"></script>
     <script src="${pageContext.request.contextPath}/js/meeting.js"></script>
+<%--    <script src="${pageContext.request.contextPath}/js/profile.js"></script>--%>
     <%--<jsp:include page="/WEB-INF/views/chat/createModal.jsp"/>--%>
     <jsp:include page="chat/createModal.jsp"/>
     <!-- ★ -->
