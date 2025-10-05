@@ -43,5 +43,30 @@ public class PlanRestController {
         dto.setCreatedAt(entity.getCreatedAt());
         return dto;
     }
+    @PutMapping("/{proposalId}/status")
+public ProjectProposalDTO updateStatus(
+        @PathVariable Long proposalId,
+        @RequestParam String status) {
+
+    ProjectProposal entity;
+    if ("APPROVED".equalsIgnoreCase(status)) {
+        proposalService.approve(proposalId, 1L);
+    } else if ("REJECTED".equalsIgnoreCase(status)) {
+        entity = proposalService.reject(proposalId, 1L);
+    } else {
+        throw new IllegalArgumentException("Unknown status: " + status);
+    }
+
+    // entity 최신화
+    entity = proposalService.get(proposalId);
+
+    // DTO 변환
+    ProjectProposalDTO dto = new ProjectProposalDTO();
+    dto.setId(entity.getId());
+    dto.setStatus(entity.getStatus().name());
+    dto.setName(entity.getName());
+    dto.setDescription(entity.getDescription());
+    return dto;
+}
 }
 

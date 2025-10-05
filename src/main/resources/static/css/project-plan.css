@@ -147,14 +147,14 @@
   text-align: center;
   color: #fff;
 }
-.pplan-status.new {
+.pplan-status.new, .pplan-status.PENDING{
   background: #e3e3e3;
   color: #505050;
 }
-.pplan-status.approved {
+.pplan-status.approved, .pplan-status.APPROVED {
   background: #16a34a;
 }
-.pplan-status.rejected {
+.pplan-status.rejected,  .pplan-status.REJECTED {
   background: #dc2626;
 }
 
