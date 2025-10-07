@@ -1,4 +1,4 @@
-    q<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/css/signup.css" />
 </head>
 <body>
-    <form action="/signup-process" method="post" class="signup-form" id="signup-form">
+    <form action="/signup" method="post" class="signup-form" id="signup-form">
         <img src="/images/azure2-1.png" alt="Azure Logo" class="logo" />
         <h1 class="title">Sign Up</h1>
         <p class="subtitle">경량화 스마트 플로우 PM 매니저</p>

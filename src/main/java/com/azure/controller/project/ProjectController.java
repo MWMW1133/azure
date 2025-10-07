@@ -9,6 +9,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
+import java.util.List;
+
 @Controller
 @RequiredArgsConstructor
 public class ProjectController {
@@ -25,6 +27,4 @@ public class ProjectController {
         model.addAttribute("activePage", "project" + id);
         return "mainbar";
     }
-
-
 }

@@ -64,9 +64,6 @@
   // 상단 고정 3개
   (function bindFixed() {
     const fixed = document.querySelectorAll('.nav-fixed .nav-item');
-    // if (fixed[0]) fixed[0].addEventListener('click', () => Router.go('home'));
-    // if (fixed[1]) fixed[1].addEventListener('click', () => Router.go('tasks'));
-    // if (fixed[2]) fixed[2].addEventListener('click', () => Router.go('calendar'));
     if (fixed[0])
       fixed[0].addEventListener('click', (e) => {
         Router.go('home');

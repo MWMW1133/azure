@@ -7,9 +7,7 @@
             margin: 0;
             font-family: Arial, sans-serif;
         }
-        /*.main {*/
-        /*    margin-left: 300px; !* 사이드바 만큼 밀기 *!*/
-        /*}*/
+        .main { margin-left: 0 !important; }
         .topbar {
             position: sticky;
             top: 0;
@@ -54,6 +52,7 @@
 
             <!-- 로그아웃 버튼 -->
             <form action="${pageContext.request.contextPath}/logout" method="post" style="display:inline;">
+                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
                 <button type="submit" class="btn btn-outline-danger btn-sm">
                     로그아웃
                 </button>

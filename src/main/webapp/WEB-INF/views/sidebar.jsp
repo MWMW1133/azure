@@ -229,7 +229,7 @@
 </head>
 <body>
 <div style="background:yellow;">
-  [DEBUG sidebar] activePage = ${activePage}
+<%--  [DEBUG sidebar] activePage = ${activePage}--%>
 </div>
 
   <div class="app">
@@ -237,8 +237,6 @@
       <div class="sidebar-inner">
         <!-- 고정 3개 -->
         <nav class="nav-fixed">
-<%--          <a class="nav-item<c:if test='${activePage eq "home"}'> active</c:if>'"--%>
-<%--             href="${pageContext.request.contextPath}/home">--%>
           <a class="nav-item ${activePage eq 'home' ? 'active' : ''}"
             href="${pageContext.request.contextPath}/home">
             <span class="ic">
@@ -251,8 +249,6 @@
           </a>
 
           <div style="background:pink;">DEBUG: activePage = ${activePage}</div>
-<%--          <a class="nav-item<c:if test='${activePage eq "tasks"}'> active</c:if>'"--%>
-<%--             href="${pageContext.request.contextPath}/tasks">--%>
           <a class="nav-item ${activePage eq 'tasks' ? 'active' : ''}"
             href="${pageContext.request.contextPath}/tasks/my">
             <span class="ic">
@@ -357,16 +353,6 @@
 <%--          </div>--%>
           <!-- ▲▲▲ [백엔드 연결 지점 끝] -->
 
-<%--          <button class="proj-row proj-plan">--%>
-<%--            <span class="ic">--%>
-<%--              <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">--%>
-<%--                <path d="M12 20h9"></path>--%>
-<%--                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5z"></path>--%>
-<%--              </svg>--%>
-<%--            </span>--%>
-<%--            <span>프로젝트 계획</span>--%>
-<%--          </button>--%>
-
 
 
           <a class="proj-row proj-plan ${activePage eq 'plan' ? 'active' : ''}"
@@ -383,7 +369,6 @@
 
         <div class="room-section">
           <hr class="divider divider-room" />
-<%--          <a class="proj-row room" href="#" data-route="room">--%>
             <a class="proj-row room ${activePage eq 'meeting' ? 'active' : ''}"
                href="${pageContext.request.contextPath}/meeting">
             <span class="ic">
@@ -401,9 +386,22 @@
         <div class="sidebar-footer">
           <div class="user-card">
             <!-- ▼▼▼ [백엔드 연결 지점] GET /api/me → {name} 받아서 아래 두 텍스트만 교체 -->
-            <div class="avatar">이</div>
+              <!-- 아바타: 이름 첫 글자 or 이미지 -->
+              <c:choose>
+                  <c:when test="${not empty user.avatarUrl}">
+                      <img src="${pageContext.request.contextPath}${user.avatarUrl}"
+                           alt="Profile"
+                           class="avatar-img rounded-circle"
+                           width="32" height="32">
+                  </c:when>
+                  <c:otherwise>
+                      <div class="avatar">
+                              ${fn:substring(user.name, 0, 1)}
+                      </div>
+                  </c:otherwise>
+              </c:choose>
             <div>
-              <div class="user-name">이재환</div>
+              <div class="user-name">${user.name}</div>
               <div class="presence"><span class="dot"></span> 접속중</div>
             </div>
             <!-- ▲▲▲ -->

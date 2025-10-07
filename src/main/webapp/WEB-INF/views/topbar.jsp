@@ -248,69 +248,22 @@
                 <i class="bi bi-search fs-5 text-dark" role="button" aria-label="검색"></i>
             </a>
 
-            <!-- 프로필 드롭다운 --> <!-- 더미 데이터라서 나중에 변경 -->
+            <!-- 프로필 드롭다운 -->
             <div class="dropdown">
-                <img src="${pageContext.request.contextPath}/images/my-cat.png"
+                <img src="${pageContext.request.contextPath}${user.avatarUrl}"
                      alt="Profile" class="profile dropdown-toggle" id="profileDropdown"
                      data-bs-toggle="dropdown" aria-expanded="false">
-<%--                <img src="$src="${user.avatarUrl}"--%>
-<%--                     alt="Profile" class="profile dropdown-toggle" id="profileDropdown"--%>
-<%--                     data-bs-toggle="dropdown" aria-expanded="false">--%>
 
                 <ul class="dropdown-menu dropdown-menu-end profile-menu" aria-labelledby="profileDropdown">
-                    <!-- 프로필 헤더 --> <!-- 더미 데이터라서 나중에 변경 -->
                     <li class="profile-header">
-                        <img src="${pageContext.request.contextPath}/images/my-cat.png" alt="Profile">
-<%--                        <img src="${user.avatarUrl}" alt="Profile">--%>
-                        <div class="name">박소현</div>
-<%--                        <div class="name">${user.name}</div>--%>
+                        <img src="${pageContext.request.contextPath}${user.avatarUrl}" alt="Profile">
+                        <div class="name">${user.name}</div>
                     </li>
                     <hr class="my-2">
 
                     <!-- 메뉴 아이템 -->
                     <li><a class="dropdown-item" href="${pageContext.request.contextPath}/profile"><i class="bi bi-person"></i>View profile</a></li>
 
-<%--                    <!-- 설정 서브메뉴 -->--%>
-<%--                    <li class="dropdown-submenu">--%>
-<%--                        <a class="dropdown-item" href="#">--%>
-<%--                            <i class="bi bi-gear"></i>Settings--%>
-<%--                        </a>--%>
-<%--                        <ul class="dropdown-menu">--%>
-<%--                            <li class="dropdown-header">--%>
-<%--                                <i class="bi bi-gear"></i> Settings--%>
-<%--                            </li>--%>
-<%--                            <li><hr class="dropdown-divider"></li>--%>
-
-<%--                            <!-- Account Settings -->--%>
-<%--                            <li class="dropdown-submenu">--%>
-<%--                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="#" data-bs-toggle="collapse" data-bs-target="#accountSettingsMenu">--%>
-<%--                                    <span><i class="bi bi-person"></i> Account Settings</span>--%>
-<%--                                    <i class="bi bi-chevron-down"></i>--%>
-<%--                                </a>--%>
-<%--                                <ul class="collapse list-unstyled ps-3" id="accountSettingsMenu">--%>
-<%--                                    <li>--%>
-<%--                                        <a class="dropdown-item change-password" href="#">--%>
-<%--                                            <i class="bi bi-key"></i> Change Password--%>
-<%--                                        </a>--%>
-<%--                                    </li>--%>
-<%--                                </ul>--%>
-<%--                            </li>--%>
-
-<%--                            <!-- Notification Settings -->--%>
-<%--                            <li class="dropdown-submenu">--%>
-<%--                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="#" data-bs-toggle="collapse" data-bs-target="#notificationSettingsMenu">--%>
-<%--                                    <span><i class="bi bi-bell"></i> Notification Settings</span>--%>
-<%--                                    <i class="bi bi-chevron-down"></i>--%>
-<%--                                </a>--%>
-<%--                                <ul class="collapse list-unstyled ps-3" id="notificationSettingsMenu">--%>
-<%--                                    <li>--%>
-<%--                                        <a class="dropdown-item" href="#">--%>
-<%--                                            <i class="bi bi-toggle-on"></i> Push Notifications--%>
-<%--                                        </a>--%>
-<%--                                    </li>--%>
-<%--                                </ul>--%>
-<%--                            </li>--%>
-<%--                        </ul>--%>
                     <!-- Settings 서브메뉴 -->
                     <li class="dropdown-submenu">
                         <a class="dropdown-item" href="#">
@@ -339,8 +292,21 @@
                     </li>
 
 
-                    <li><a class="dropdown-item" href="#"><i class="bi bi-people"></i>Invite colleagues</a></li>
-                    <li><a class="dropdown-item logout" href="#"><i class="bi bi-box-arrow-right"></i>Log out</a></li>
+<%--                    <li><a class="dropdown-item" href="#"><i class="bi bi-people"></i>Invite colleagues</a></li>--%>
+                    <li>
+                        <a class="dropdown-item" href="#" id="openInviteModal">
+                            <i class="bi bi-people"></i> Invite colleagues
+                        </a>
+                    </li>
+
+                    <li>
+                        <form action="${pageContext.request.contextPath}/logout" method="post" style="display:inline;">
+                            <button type="submit" class="dropdown-item logout"
+                                    style="border:none; background:none; width:100%; text-align:left;">
+                                <i class="bi bi-box-arrow-right"></i> Log out
+                            </button>
+                        </form>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -546,6 +512,12 @@
         </div>
     </div>
 
+    <!-- 전역 접근 경로 추가 -->
+    <script>
+        // 전역 컨텍스트 경로 (예: "/azure")
+        window.APP_CTX = '${pageContext.request.contextPath}';
+    </script>
+
 <!-- Bootstrap Icons & JS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <script src="${pageContext.request.contextPath}/js/bootstrap/bootstrap.bundle.js"></script>
@@ -553,6 +525,8 @@
 <script src="${pageContext.request.contextPath}/js/todo.js"></script>
 <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
 <script src="${pageContext.request.contextPath}/js/profile.js"></script>
+<script src="${pageContext.request.contextPath}/js/inviteColleagues.js"></script>
+
 
 
 </body>

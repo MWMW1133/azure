@@ -42,15 +42,6 @@
     </main>
 
 
-<!-- sb -->
-<%--  <body>--%>
-<%--    <div class="app">--%>
-<%--      <jsp:include page="sidebar.jsp" />--%>
-<%--      <main class="main-content">--%>
-<%--        <jsp:include page="topbar.jsp" />--%>
-<%--        <div class="page-body" style="height: 815px"></div>--%>
-<%--      </main>--%>
-<%--    </div>--%>
 
     <!-- JS -->
     <script src="${pageContext.request.contextPath}/js/sidebar.js"></script>
@@ -63,13 +54,13 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 
-    <script src="${pageContext.request.contextPath}/js/bootstrap/bootstrap.bundle.js"></script>
-    <script src="${pageContext.request.contextPath}/js/sidebar.js"></script>
-    <script src="${pageContext.request.contextPath}/js/notification.js"></script>
-    <script src="${pageContext.request.contextPath}/js/todo.js"></script>
-    <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
-    <script src="${pageContext.request.contextPath}/js/search.js"></script>
-    <script src="${pageContext.request.contextPath}/js/meeting.js"></script>
+<%--    <script src="${pageContext.request.contextPath}/js/bootstrap/bootstrap.bundle.js"></script>--%>
+<%--    <script src="${pageContext.request.contextPath}/js/sidebar.js"></script>--%>
+<%--    <script src="${pageContext.request.contextPath}/js/notification.js"></script>--%>
+<%--    <script src="${pageContext.request.contextPath}/js/todo.js"></script>--%>
+<%--    <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>--%>
+<%--    <script src="${pageContext.request.contextPath}/js/search.js"></script>--%>
+<%--    <script src="${pageContext.request.contextPath}/js/meeting.js"></script>--%>
 <%--    <script src="${pageContext.request.contextPath}/js/profile.js"></script>--%>
     <%--<jsp:include page="/WEB-INF/views/chat/createModal.jsp"/>--%>
     <jsp:include page="chat/createModal.jsp"/>
@@ -86,6 +77,14 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
     <script src="${pageContext.request.contextPath}/js/my-calendar.js"></script>
+
+    <script src="${pageContext.request.contextPath}/js/bootstrap/bootstrap.bundle.js"></script>
+    <script src="${pageContext.request.contextPath}/js/sidebar.js"></script>
+    <script src="${pageContext.request.contextPath}/js/notification.js"></script>
+    <script src="${pageContext.request.contextPath}/js/todo.js"></script>
+    <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
+    <script src="${pageContext.request.contextPath}/js/search.js"></script>
+    <script src="${pageContext.request.contextPath}/js/meeting.js"></script>
 
   </body>
 </html>
