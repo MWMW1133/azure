@@ -84,17 +84,34 @@
       });
   })();
 
-
   // 프로젝트 목록 버튼
-  document.querySelectorAll('.proj-list .proj-row').forEach((btn, i) => {
-    const name = btn.querySelector('span:last-child')?.textContent?.trim() || '프로젝트 ' + (i + 1);
-    const id = 11 + i; // 더미 ID
-    // btn.addEventListener('click', () => Router.go('project', { id, name }));
-    btn.addEventListener('click', (e) => {
-      Router.go('project', { id, name });
-      setActiveNav(e.currentTarget);
-    });
-  });
+  document.addEventListener('DOMContentLoaded', () => loadSidebarProjects());
+
+  async function loadSidebarProjects() {
+    const wrap = document.getElementById('sidebar-projects');
+    if (!wrap) return;
+    const ctx = (wrap.dataset.ctx || '').replace(/\/$/, '');
+    const activeId = wrap.dataset.activeProjectId;
+
+    const r = await fetch(`${ctx}/api/projects/list`, { cache: 'no-cache' });
+    if (!r.ok) throw new Error('myProjects ' + r.status);
+    const items = await r.json(); // [{id,name,...}]
+
+    wrap.innerHTML = '';
+    for (const p of items) {
+      const a = document.createElement('a');
+      a.className = 'proj-row' + (String(activeId) === String(p.id) ? ' active' : '');
+      a.href = `${ctx}/projects/${p.id}`;
+      a.innerHTML = `
+      <span class="ic elbow">
+        <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
+          <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>
+        </svg>
+      </span>
+      <span>${p.name ?? ''}</span>`;
+      wrap.appendChild(a);
+    }
+  }
 
   // 프로젝트 계획
   const planBtn = document.querySelector('.proj-row.proj-plan');
@@ -104,7 +121,6 @@
       Router.go('plan');
       setActiveNav(e.currentTarget);
     });
-
 
   // 회의실
   const roomBtn = document.querySelector('.proj-row.room');
@@ -119,11 +135,10 @@
   // const firstNav = document.querySelector(".nav-fixed .nav-item");
   // if (firstNav) setActiveNav(firstNav);
 
-  const currentActive = document.querySelector(".nav-fixed .nav-item.active");
+  const currentActive = document.querySelector('.nav-fixed .nav-item.active');
   if (currentActive) {
     setActiveNav(currentActive); // 서버가 붙인 active 유지
   }
-
 
   // ===== Presence Status (상태 선택 팝오버) =====
   const PRESENCE = {
@@ -353,13 +368,12 @@
   //   }
   // })();
 
-// body에 calendar 컨테이너가 있으면 초기화
-//   document.addEventListener("DOMContentLoaded", () => {
-//     if (document.getElementById("calendar")) {
-//       window.initCalendar();
-//     }
-//   });
-
+  // body에 calendar 컨테이너가 있으면 초기화
+  //   document.addEventListener("DOMContentLoaded", () => {
+  //     if (document.getElementById("calendar")) {
+  //       window.initCalendar();
+  //     }
+  //   });
 
   /* ========= [백엔드 연결 예시 – 이 주석만 보고 교체] =========
   // 1) 유저 정보 로드
