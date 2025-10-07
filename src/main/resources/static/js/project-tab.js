@@ -29,85 +29,83 @@
     ],
   };
 
-  // --- 더미 데이터를 사용하는 가짜 API ---
-  const api = {
-    // 각 함수는 실제 API처럼 비동기(async)로 작동하고 Promise를 반환하도록 만듭니다.
-    // 딜레이를 추가해 실제 네트워크 환경을 흉내 냅니다.
-    _delay: (ms = 200) => new Promise((res) => setTimeout(res, ms)),
-
-    async getProject() {
-      await this._delay();
-      return { id: PROJECT_ID, name: PROJECT_NAME };
-    },
-    async getTags() {
-      await this._delay();
-      return [...dummyDB.tags];
-    },
-    async addTag(name) {
-      await this._delay(300);
-      const newTag = { id: `tag-${Date.now()}`, name };
-      dummyDB.tags.push(newTag);
-      return newTag;
-    },
-    async removeTag(tagId) {
-      await this._delay(300);
-      dummyDB.tags = dummyDB.tags.filter((t) => t.id !== tagId);
-      return true;
-    },
-    async searchUsers(q = '') {
-      await this._delay();
-      const query = q.toLowerCase();
-      const results = q ? dummyDB.users.filter((u) => u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query)) : [...dummyDB.users];
-      return results;
-    },
-    async invite(userIds) {
-      await this._delay(500);
-      alert(`${userIds.length}명의 사용자를 초대했습니다 (ID: ${userIds.join(', ')})`);
-      return true;
-    },
-  };
-
-  // ------- API 래퍼 -------
+  // // --- 더미 데이터를 사용하는 가짜 API ---
   // const api = {
+  //   _delay: (ms = 200) => new Promise((res) => setTimeout(res, ms)),
+
   //   async getProject() {
-  //     const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}`), { cache: 'no-cache' });
-  //     if (!r.ok) throw new Error(`getProject ${r.status}`);
-  //     return r.json();
+  //     await this._delay();
+  //     return { id: PROJECT_ID, name: PROJECT_NAME };
   //   },
   //   async getTags() {
-  //     const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/tags`), { cache: 'no-cache' });
-  //     if (!r.ok) throw new Error(`getTags ${r.status}`);
-  //     return r.json();
+  //     await this._delay();
+  //     return [...dummyDB.tags];
   //   },
   //   async addTag(name) {
-  //     const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/tags`), {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({ name }),
-  //     });
-  //     if (!r.ok) throw new Error(`addTag ${r.status}`);
-  //     return r.json?.() ?? true;
+  //     await this._delay(300);
+  //     const newTag = { id: `tag-${Date.now()}`, name };
+  //     dummyDB.tags.push(newTag);
+  //     return newTag;
   //   },
   //   async removeTag(tagId) {
-  //     const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/tags/${encodeURIComponent(tagId)}`), { method: 'DELETE' });
-  //     if (!r.ok) throw new Error(`removeTag ${r.status}`);
+  //     await this._delay(300);
+  //     dummyDB.tags = dummyDB.tags.filter((t) => t.id !== tagId);
   //     return true;
   //   },
   //   async searchUsers(q = '') {
-  //     const r = await fetch(apiUrl(`/api/users?query=${encodeURIComponent(q)}`), { cache: 'no-cache' });
-  //     if (!r.ok) throw new Error(`searchUsers ${r.status}`);
-  //     return r.json();
+  //     await this._delay();
+  //     const query = q.toLowerCase();
+  //     const results = q ? dummyDB.users.filter((u) => u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query)) : [...dummyDB.users];
+  //     return results;
   //   },
   //   async invite(userIds) {
-  //     const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/invitations`), {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({ userIds }),
-  //     });
-  //     if (!r.ok) throw new Error(`invite ${r.status}`);
+  //     await this._delay(500);
+  //     alert(`${userIds.length}명의 사용자를 초대했습니다 (ID: ${userIds.join(', ')})`);
   //     return true;
   //   },
   // };
+
+  // ------- API 래퍼 -------
+  const api = {
+    async getProject() {
+      const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}`), { cache: 'no-cache' });
+      if (!r.ok) throw new Error(`getProject ${r.status}`);
+      return r.json();
+    },
+    async getTags() {
+      const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/tags`), { cache: 'no-cache' });
+      if (!r.ok) throw new Error(`getTags ${r.status}`);
+      return r.json();
+    },
+    async addTag(name) {
+      const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/tags`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (!r.ok) throw new Error(`addTag ${r.status}`);
+      return r.json?.() ?? true;
+    },
+    async removeTag(tagId) {
+      const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/tags/${encodeURIComponent(tagId)}`), { method: 'DELETE' });
+      if (!r.ok) throw new Error(`removeTag ${r.status}`);
+      return true;
+    },
+    async searchUsers(q = '') {
+      const r = await fetch(apiUrl(`/api/users?query=${encodeURIComponent(q)}`), { cache: 'no-cache' });
+      if (!r.ok) throw new Error(`searchUsers ${r.status}`);
+      return r.json();
+    },
+    async invite(userIds) {
+      const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/invitations`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds }),
+      });
+      if (!r.ok) throw new Error(`invite ${r.status}`);
+      return true;
+    },
+  };
 
   // ------- Router -------
   const Router = {

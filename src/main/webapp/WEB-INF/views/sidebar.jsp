@@ -291,37 +291,13 @@
           </div>
 
           <!-- ▼▼▼ [백엔드 연결 지점] /api/projects 호출 후 아래 목록을 교체 렌더하세요 -->
-          <div class="proj-list">
-            <a class="proj-row ${activePage eq 'project1' ? 'active' : ''}"
-                href="${pageContext.request.contextPath}/projects/1/tasks">
-              <span class="ic elbow">
-                <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
-                  <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>
-                </svg>
-              </span>
-              <span>프로젝트 1</span>
-            </a>
+          <div class="proj-list"
+              id="sidebar-projects"
+              data-ctx="${pageContext.request.contextPath}"
+              data-active-project-id="${activeProjectId}">
 
-            <a class="proj-row ${activePage eq 'project2' ? 'active' : ''}"
-               href="${pageContext.request.contextPath}/projects/2/tasks">
-              <span class="ic elbow">
-                <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
-                  <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>
-                </svg>
-              </span>
-              <span>프로젝트 2</span>
-            </a>
-
-            <a class="proj-row ${activePage eq 'project3' ? 'active' : ''}"
-                href="${pageContext.request.contextPath}/projects/3/tasks">
-              <span class="ic elbow">
-                <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
-                  <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>
-                </svg>
-              </span>
-              <span>프로젝트 3</span>
-            </a>
           </div>
+
           <!-- ▲▲▲ [백엔드 연결 지점 끝] -->
 
 <%--          <button class="proj-row proj-plan">--%>

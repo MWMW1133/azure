@@ -1,5 +1,22 @@
 document.addEventListener('DOMContentLoaded', function () {
-  const api = {};
+  const root = document.getElementById('project-tab-root');
+  const ctx = (root?.dataset.ctx || '').replace(/\/$/, '');
+  const projectId = root?.dataset.projectId;
+
+  const API = {
+    // 프로젝트 스코프
+    createTask: `${ctx}/api/projects/${projectId}/tasks`,
+    listTasks: `${ctx}/api/projects/${projectId}/tasks`,
+    bulkDelete: `${ctx}/api/projects/${projectId}/tasks/bulk-delete`,
+    workflows: `${ctx}/api/projects/${projectId}/workflows`,
+
+    // 태스크 단건 스코프 (assignee/workflow 변경 등)
+    assign: (taskId) => `${ctx}/api/tasks/${taskId}/assignee`,
+    setWorkflow: (taskId) => `${ctx}/api/tasks/${taskId}/workflow`,
+
+    // 담당자 검색
+    users: `${ctx}/api/users`,
+  };
 
   // ===== 상태 관리 변수 =====
   let currentOpenForm = null;

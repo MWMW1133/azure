@@ -12,7 +12,10 @@
       </div>
     </div>
   </div>
-  <div class="main-wrapper-body">
+  <div  class="main-wrapper-body"
+        id="project-tab-root"
+        data-project-id="${projectId}"
+        data-ctx="${pageContext.request.contextPath}">
     <div class="active-task-container">
         <div class="active-container-header">
             <div class="container-title">진행중인 태스크</div>
@@ -91,3 +94,11 @@
     </button>
 </div>
 </div>
+
+<script>
+  (function() {
+    const root = document.getElementById('project-tab-root');
+    window.ProjectTab?.mount?.(root);
+    window.AssigneePanel?.mount?.(root);
+  })();
+</script>

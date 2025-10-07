@@ -22,7 +22,7 @@ public class PlanController {
         Long organizationId = 1L; // TODO: 세션에서 가져오기
         var pageable = PageRequest.of(0, 50);
 
-        // ✅ ServiceImpl에서 DTO 변환 끝낸 데이터 가져오기
+        // ServiceImpl에서 DTO 변환 끝낸 데이터 가져오기
         List<ProjectProposalDTO> newPlans = proposalService.listByOrganizationAndStatus(organizationId, ProjectProposal.Status.PENDING, pageable);
         List<ProjectProposalDTO> approvedPlans = proposalService.listByOrganizationAndStatus(organizationId, ProjectProposal.Status.APPROVED, pageable);
         List<ProjectProposalDTO> rejectedPlans = proposalService.listByOrganizationAndStatus(organizationId, ProjectProposal.Status.REJECTED, pageable);
