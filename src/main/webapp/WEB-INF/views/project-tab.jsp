@@ -1,9 +1,15 @@
 <%@ page contentType="text/html; charset=UTF-8" %>
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
 <link href="/css/project-tab.css" rel="stylesheet">
+<link href="/css/projects/mainTable.css" rel="stylesheet">
+<link href="/css/taskRow.css" rel="stylesheet">
+<link href="/css/projects/taskForm.css" rel="stylesheet">
+
 <link href="${pageContext.request.contextPath}/css/bootstrap/bootstrap.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <script src="${pageContext.request.contextPath}/js/bootstrap/bootstrap.bundle.js"></script>
-<script src="/js/project-tab.js"></script>
 
 <div class="project-wrapper" 
      id="project-root"
@@ -72,3 +78,6 @@
   </div>
   <div class="project-body"></div>
 </div>
+<script src="/js/project-tab.js"></script>
+<script src="/js/projects/mainTable.js"></script>
+<script src="/js/projects/taskRow.js"></script>

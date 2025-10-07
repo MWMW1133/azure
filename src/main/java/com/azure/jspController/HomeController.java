@@ -1,4 +1,4 @@
-package com.azure.controller;
+package com.azure.jspController;
 
 import java.util.ArrayList;
 import java.util.List;

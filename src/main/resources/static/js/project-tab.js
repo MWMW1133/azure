@@ -11,49 +11,103 @@
   // ------- 프로젝트 컨텍스트 -------
   const PROJECT_ID = (rootEl?.dataset.projectId || window.PROJECT_ID || '').trim();
   const PROJECT_NAME = (rootEl?.dataset.projectName || window.PROJECT_NAME || '').trim();
-  if (!PROJECT_ID) console.warn('[project] PROJECT_ID is empty. Check JSP data-project-id or window.PROJECT_ID');
 
-  // ------- API 래퍼 -------
+  if (!PROJECT_ID) console.warn('[project] PROJECT_ID is empty.');
+
+  const dummyDB = {
+    tags: [
+      { id: 'tag-1', name: '기획' },
+      { id: 'tag-2', name: '디자인' },
+      { id: 'tag-3', name: '긴급' },
+    ],
+    users: [
+      { id: 'user-1', name: '김민준', email: 'mj.kim@example.com', avatarUrl: 'https://i.pravatar.cc/40?u=user-1' },
+      { id: 'user-2', name: '이서연', email: 'sy.lee@example.com', avatarUrl: 'https://i.pravatar.cc/40?u=user-2' },
+      { id: 'user-3', name: '박도윤', email: 'dy.park@example.com', avatarUrl: null },
+      { id: 'user-4', name: '최아린', email: 'ar.choi@example.com', avatarUrl: 'https://i.pravatar.cc/40?u=user-4' },
+      { id: 'user-5', name: '정시우', email: 'sw.jung@example.com', avatarUrl: 'https://i.pravatar.cc/40?u=user-5' },
+    ],
+  };
+
+  // --- 더미 데이터를 사용하는 가짜 API ---
   const api = {
+    // 각 함수는 실제 API처럼 비동기(async)로 작동하고 Promise를 반환하도록 만듭니다.
+    // 딜레이를 추가해 실제 네트워크 환경을 흉내 냅니다.
+    _delay: (ms = 200) => new Promise((res) => setTimeout(res, ms)),
+
     async getProject() {
-      const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}`), { cache: 'no-cache' });
-      if (!r.ok) throw new Error(`getProject ${r.status}`);
-      return r.json();
+      await this._delay();
+      return { id: PROJECT_ID, name: PROJECT_NAME };
     },
     async getTags() {
-      const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/tags`), { cache: 'no-cache' });
-      if (!r.ok) throw new Error(`getTags ${r.status}`);
-      return r.json();
+      await this._delay();
+      return [...dummyDB.tags];
     },
     async addTag(name) {
-      const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/tags`), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      });
-      if (!r.ok) throw new Error(`addTag ${r.status}`);
-      return r.json?.() ?? true;
+      await this._delay(300);
+      const newTag = { id: `tag-${Date.now()}`, name };
+      dummyDB.tags.push(newTag);
+      return newTag;
     },
     async removeTag(tagId) {
-      const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/tags/${encodeURIComponent(tagId)}`), { method: 'DELETE' });
-      if (!r.ok) throw new Error(`removeTag ${r.status}`);
+      await this._delay(300);
+      dummyDB.tags = dummyDB.tags.filter((t) => t.id !== tagId);
       return true;
     },
     async searchUsers(q = '') {
-      const r = await fetch(apiUrl(`/api/users?query=${encodeURIComponent(q)}`), { cache: 'no-cache' });
-      if (!r.ok) throw new Error(`searchUsers ${r.status}`);
-      return r.json();
+      await this._delay();
+      const query = q.toLowerCase();
+      const results = q ? dummyDB.users.filter((u) => u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query)) : [...dummyDB.users];
+      return results;
     },
     async invite(userIds) {
-      const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/invitations`), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds }),
-      });
-      if (!r.ok) throw new Error(`invite ${r.status}`);
+      await this._delay(500);
+      alert(`${userIds.length}명의 사용자를 초대했습니다 (ID: ${userIds.join(', ')})`);
       return true;
     },
   };
+
+  // ------- API 래퍼 -------
+  // const api = {
+  //   async getProject() {
+  //     const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}`), { cache: 'no-cache' });
+  //     if (!r.ok) throw new Error(`getProject ${r.status}`);
+  //     return r.json();
+  //   },
+  //   async getTags() {
+  //     const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/tags`), { cache: 'no-cache' });
+  //     if (!r.ok) throw new Error(`getTags ${r.status}`);
+  //     return r.json();
+  //   },
+  //   async addTag(name) {
+  //     const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/tags`), {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ name }),
+  //     });
+  //     if (!r.ok) throw new Error(`addTag ${r.status}`);
+  //     return r.json?.() ?? true;
+  //   },
+  //   async removeTag(tagId) {
+  //     const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/tags/${encodeURIComponent(tagId)}`), { method: 'DELETE' });
+  //     if (!r.ok) throw new Error(`removeTag ${r.status}`);
+  //     return true;
+  //   },
+  //   async searchUsers(q = '') {
+  //     const r = await fetch(apiUrl(`/api/users?query=${encodeURIComponent(q)}`), { cache: 'no-cache' });
+  //     if (!r.ok) throw new Error(`searchUsers ${r.status}`);
+  //     return r.json();
+  //   },
+  //   async invite(userIds) {
+  //     const r = await fetch(apiUrl(`/api/projects/${PROJECT_ID}/invitations`), {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ userIds }),
+  //     });
+  //     if (!r.ok) throw new Error(`invite ${r.status}`);
+  //     return true;
+  //   },
+  // };
 
   // ------- Router -------
   const Router = {
