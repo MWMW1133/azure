@@ -42,6 +42,8 @@
     </main>
 
 
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 
     <!-- JS -->
     <script src="${pageContext.request.contextPath}/js/sidebar.js"></script>
@@ -54,15 +56,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 
-<%--    <script src="${pageContext.request.contextPath}/js/bootstrap/bootstrap.bundle.js"></script>--%>
-<%--    <script src="${pageContext.request.contextPath}/js/sidebar.js"></script>--%>
-<%--    <script src="${pageContext.request.contextPath}/js/notification.js"></script>--%>
-<%--    <script src="${pageContext.request.contextPath}/js/todo.js"></script>--%>
-<%--    <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>--%>
-<%--    <script src="${pageContext.request.contextPath}/js/search.js"></script>--%>
-<%--    <script src="${pageContext.request.contextPath}/js/meeting.js"></script>--%>
-<%--    <script src="${pageContext.request.contextPath}/js/profile.js"></script>--%>
-    <%--<jsp:include page="/WEB-INF/views/chat/createModal.jsp"/>--%>
+
     <jsp:include page="chat/createModal.jsp"/>
     <!-- ★ -->
 

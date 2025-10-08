@@ -516,17 +516,25 @@
     <script>
         // 전역 컨텍스트 경로 (예: "/azure")
         window.APP_CTX = '${pageContext.request.contextPath}';
+        const userRole = "${org.role}";
+        const CURRENT_USER_ID = ${user.id};
+        document.addEventListener("DOMContentLoaded", () => {
+            connectNotificationSocket(CURRENT_USER_ID);
+        })
     </script>
 
-<!-- Bootstrap Icons & JS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-<script src="${pageContext.request.contextPath}/js/bootstrap/bootstrap.bundle.js"></script>
-<script src="${pageContext.request.contextPath}/js/notification.js"></script>
-<script src="${pageContext.request.contextPath}/js/todo.js"></script>
-<script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
-<script src="${pageContext.request.contextPath}/js/profile.js"></script>
-<script src="${pageContext.request.contextPath}/js/inviteColleagues.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<%--    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>--%>
 
+    <!-- 이게 최신 stomp 버전인가? -->
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
 
-
+    <!-- Bootstrap Icons & JS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <script src="${pageContext.request.contextPath}/js/bootstrap/bootstrap.bundle.js"></script>
+    <script src="${pageContext.request.contextPath}/js/notification.js"></script>
+    <script src="${pageContext.request.contextPath}/js/todo.js"></script>
+    <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
+    <script src="${pageContext.request.contextPath}/js/profile.js"></script>
+    <script src="${pageContext.request.contextPath}/js/inviteColleagues.js"></script>
 </body>

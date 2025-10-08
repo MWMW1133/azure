@@ -9,8 +9,12 @@ import com.azure.service.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 알림 서비스 구현.
@@ -24,7 +28,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final ProjectMemberRepository projectMemberRepository;
-
+    private final SimpMessagingTemplate messagingTemplate;
 
     // 채팅 메시지 도착 알림
     @Override
@@ -35,7 +39,20 @@ public class NotificationServiceImpl implements NotificationService {
         n.setType(type);
         n.setPayload(payload);
         n.setRead(false);                     // ← 엔티티 필드명이 read
-        return notificationRepository.save(n);
+//        return notificationRepository.save(n);
+
+        Notification saved = notificationRepository.save(n);
+
+        // WebSocket 실시간 전송
+        Map<String, Object> msg = new HashMap<>();
+        msg.put("id", saved.getId());
+        msg.put("type", saved.getType());
+        msg.put("payload", saved.getPayload());
+        msg.put("createdAt", saved.getCreatedAt());
+        System.out.println("[DEBUG] send STOMP → /topic/notifications/" + userId + " payload=" + msg);
+        messagingTemplate.convertAndSend("/topic/notifications/" + userId, msg);
+
+        return saved;
     }
 
     // 프로젝트 멤버로 추가됨 알림
