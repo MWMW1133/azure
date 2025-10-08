@@ -1,0 +1,48 @@
+### build outputs ###
+target/
+build/
+out/
+
+### IDE ###
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.sts4-cache
+.settings
+.project
+.classpath
+.factorypath
+
+### Maven wrapper ###
+.mvn/wrapper/maven-wrapper.jar
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### Spring/Secrets ###
+# .env 류
+.env
+*.env
+
+# keystore 등
+*.p12
+*.keystore
+
+# 🔐 비밀 설정 파일은 무조건 무시
+/src/main/resources/application-secret.yml
+/config/application-secret.yml
+
+# 📄 템플릿(예시)은 커밋 허용
+!/src/main/resources/application-secret.example.yml
+
+# ⚠️ 기본 설정 파일은 커밋 유지 (아래 두 줄은 넣지 마세요)
+# application.properties   <-- 제거
+# application.yml          <-- 제거
+src/main/resources/application-secret.yml
+src/main/resources/application-secret.yml
