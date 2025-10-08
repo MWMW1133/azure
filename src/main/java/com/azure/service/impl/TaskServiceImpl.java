@@ -3,15 +3,20 @@ package com.azure.service.impl;
 import com.azure.dto.GanttTaskDTO;
 import com.azure.event.TaskWorkflowChangedEvent;
 import com.azure.model.file.FileObject;
-import com.azure.model.task.*;
+import com.azure.model.task.Priority;
+import com.azure.model.task.Task;
 import com.azure.model.user.User;
 import com.azure.model.workflow.Workflow;
-import com.azure.repository.*;
-
+import com.azure.repository.FileObjectRepository;
+import com.azure.repository.PriorityRepository;
+import com.azure.repository.ProjectRepository;
+import com.azure.repository.TaskRepository;
+import com.azure.repository.UserRepository;
+import com.azure.repository.WorkflowRepository;
 import com.azure.service.TaskService;
 import com.azure.service.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
-
+import org.hibernate.Hibernate;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -35,9 +40,9 @@ public class TaskServiceImpl implements TaskService {
     private final WorkflowRepository workflowRepository;
     private final PriorityRepository priorityRepository;
     private final UserRepository userRepository;
-    private final TaskAttachmentRepository taskAttachmentRepository;
     private final FileObjectRepository fileObjectRepository;
     private final ApplicationEventPublisher publisher;
+    private final ProjectRepository projectRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -49,17 +54,42 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional(readOnly = true)
     public Page<Task> listByProject(Long projectId, Pageable pageable) {
-        List<Task> all = taskRepository.findByProjectId(projectId);
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), all.size());
-        List<Task> content = (start > end) ? List.of() : all.subList(start, end);
-        return new PageImpl<>(content, pageable, all.size());
+        // 1) id만 페이징
+        Page<Long> idPage = taskRepository.findIdsByProjectId(projectId, pageable);
+        List<Long> ids = idPage.getContent();
+        if (ids.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, idPage.getTotalElements());
+        }
+
+        // 2) To-One 연관만 패치해서 Task 엔티티 목록 조회
+        List<Task> tasks = taskRepository.findByIdInFetchToOne(ids);
+
+        // 3) 파일 개수 배치 조회 → 임시 필드에 주입
+        var countMap = taskRepository.countFilesByTaskIds(ids).stream()
+                .collect(Collectors.toMap(
+                        TaskRepository.FileCount::getTaskId,
+                        TaskRepository.FileCount::getCnt
+                ));
+        for (Task t : tasks) {
+            t.setFileCount(countMap.getOrDefault(t.getId(), 0L));
+        }
+
+        // 🔒 안전: 혹시라도 프록시가 남아 있으면 초기화
+        prefetchToOne(tasks);
+
+        // 4) 원래 순서대로 재정렬
+        var byId = tasks.stream().collect(Collectors.toMap(Task::getId, x -> x));
+        List<Task> ordered = ids.stream().map(byId::get).toList();
+
+        return new PageImpl<>(ordered, pageable, idPage.getTotalElements());
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<Task> listPersonalTasks(Long userId, Pageable pageable) {
-        return taskRepository.findByProjectIdIsNullAndAssigneeId(userId, pageable);
+        Page<Task> page = taskRepository.findByProjectIdIsNullAndAssigneeId(userId, pageable);
+        prefetchToOne(page.getContent());
+        return page;
     }
 
     @Override
@@ -75,13 +105,16 @@ public class TaskServiceImpl implements TaskService {
             return new PageImpl<>(List.of(), pageable, 0);
         }
 
-        // ★ 메서드명 수정
-        return taskRepository.findByProjectIdAndWorkflow_IdIn(projectId, terminalWorkflowIds, pageable);
+        // ✅ @EntityGraph가 붙은 레포 메서드 사용(전제) + 🔒보강 초기화
+        Page<Task> page = taskRepository.findByProjectIdAndWorkflow_IdIn(projectId, terminalWorkflowIds, pageable);
+        prefetchToOne(page.getContent());
+        return page;
     }
 
     @Override
     public Map<Long, List<Task>> listTasksByAssignee(Long projectId) {
         List<Task> tasks = taskRepository.findByProjectId(projectId);
+        prefetchToOne(tasks);
         return tasks.stream()
                 .filter(t -> t.getAssignee() != null)
                 .collect(Collectors.groupingBy(t -> t.getAssignee().getId()));
@@ -91,6 +124,7 @@ public class TaskServiceImpl implements TaskService {
     @Transactional(readOnly = true)
     public List<GanttTaskDTO> getProjectTasksForGantt(Long projectId) {
         List<Task> tasks = taskRepository.findByProjectId(projectId);
+        // DTO로 즉시 매핑하므로 Lazy 접근이 트랜잭션 안에서 끝남
         return tasks.stream()
                 .map(t -> new GanttTaskDTO(
                         t.getId(),
@@ -106,14 +140,13 @@ public class TaskServiceImpl implements TaskService {
     }
 
     /** 워크플로 단계 변경 */
-    @Transactional
+    @Override
     public Task changeWorkflow(Long taskId, String toStage, Long actorUserId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found: " + taskId));
 
         String fromStage = task.getWorkflow() != null ? task.getWorkflow().getName() : null;
 
-        // ★ 이름으로 단계 찾기 → 엔티티 교체
         Workflow toWorkflow = workflowRepository
                 .findByProjectIdAndName(task.getProject().getId(), toStage)
                 .orElseThrow(() -> new IllegalArgumentException("Workflow not found in project: " + toStage));
@@ -133,29 +166,49 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public Task create(Long projectId, Long assigneeId, String title, Long workflowId, Integer priorityId) {
-        Task t = new Task();
-        t.setTitle(title);
+    public Task createTask(Long projectId, Long assigneeId, String title,
+                       Long workflowsId, Integer priorityId,
+                       LocalDate startDate, LocalDate dueDate,
+                       Long parentTaskId) {
+        var project = projectRepository.findById(projectId)
+            .orElseThrow(() -> new NotFoundException("Project not found: " + projectId));
 
-        t.setProject(new com.azure.model.project.Project());
-        t.getProject().setId(projectId);
+        Task task = new Task();
+        task.setProject(project);
+        task.setTitle(title);
 
         if (assigneeId != null) {
-            User assignee = userRepository.findById(assigneeId)
-                    .orElseThrow(() -> new NotFoundException("User not found: " + assigneeId));
-            t.setAssignee(assignee);
+            var user = userRepository.findById(assigneeId)
+                .orElseThrow(() -> new NotFoundException("User not found: " + assigneeId));
+            task.setAssignee(user);
         }
-        if (workflowId != null) {
-            Workflow w = workflowRepository.findById(workflowId)
-                    .orElseThrow(() -> new NotFoundException("Workflow not found: " + workflowId));
-            t.setWorkflow(w);
+
+        if (workflowsId != null) {
+            var wf = workflowRepository.findById(workflowsId)
+                .orElseThrow(() -> new NotFoundException("Workflow not found: " + workflowsId));
+            task.setWorkflow(wf);
+        } else {
+            workflowRepository.findFirstByProject_IdOrderBySortOrderAsc(projectId)
+                .ifPresent(task::setWorkflow);
         }
+
         if (priorityId != null) {
-            Priority pr = priorityRepository.findById(priorityId)
-                    .orElseThrow(() -> new NotFoundException("Priority not found: " + priorityId));
-            t.setPriority(pr);
+            var pr = priorityRepository.findById(priorityId)
+                .orElseThrow(() -> new NotFoundException("Priority not found: " + priorityId));
+            task.setPriority(pr);
         }
-        return taskRepository.save(t);
+
+        task.setStartDate(startDate);
+        task.setDueDate(dueDate);
+
+        if (parentTaskId != null) {
+            var parent = taskRepository.findById(parentTaskId)
+                    .orElseThrow(() -> new NotFoundException("Parent task not found: " + parentTaskId));
+                task.setParentTask(parent);
+                task.setProject(parent.getProject()); // 부모와 동일 프로젝트 보장
+            }
+
+            return taskRepository.save(task);
     }
 
     @Override
@@ -210,6 +263,10 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public Task assign(Long taskId, Long assigneeId) {
         Task t = get(taskId);
+        if (assigneeId == null) { // 담당자 해제
+            t.setAssignee(null);
+            return taskRepository.save(t);
+        }
         User assignee = userRepository.findById(assigneeId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + assigneeId));
         t.setAssignee(assignee);
@@ -289,34 +346,101 @@ public class TaskServiceImpl implements TaskService {
         Task task = get(taskId);
         FileObject file = fileObjectRepository.findById(fileId)
                 .orElseThrow(() -> new NotFoundException("File not found: " + fileId));
-
-        TaskAttachment att = new TaskAttachment();
-        TaskAttachmentId id = new TaskAttachmentId();
-        id.setTaskId(task.getId());
-        id.setFileId(file.getId());
-        att.setId(id);
-        att.setTask(task);
-        att.setFile(file);
-        taskAttachmentRepository.save(att);
+        file.setTask(task);
+        fileObjectRepository.save(file);
     }
 
     @Override
     public void removeAttachment(Long taskId, Long fileId) {
-        TaskAttachmentId id = new TaskAttachmentId();
-        id.setTaskId(taskId);
-        id.setFileId(fileId);
-        taskAttachmentRepository.deleteById(id);
+        FileObject file = fileObjectRepository.findById(fileId)
+                .orElseThrow(() -> new NotFoundException("File not found: " + fileId));
+        if (file.getTask() != null && file.getTask().getId().equals(taskId)) {
+            file.setTask(null);
+            fileObjectRepository.save(file);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Task> getTasksForProject(Long projectId) {
+        List<Task> list = taskRepository.findByProjectIdOrderByIdAsc(projectId);
+        prefetchToOne(list);
+        return list;
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<Task> listByAssignee(Long assigneeId, Pageable pageable) {
-        return taskRepository.findByAssigneeId(assigneeId, pageable);
+        Page<Task> page = taskRepository.findByAssigneeId(assigneeId, pageable);
+        prefetchToOne(page.getContent());
+        return page;
     }
 
     @Override
     @Transactional(readOnly = true)
     public long countByProjectAndWorkflow(Long projectId, Long workflowId) {
         return taskRepository.countByProjectIdAndWorkflow_Id(projectId, workflowId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Task> listByProject(Long projectId) {
+        // 컨트롤러에서 JSP 렌더링 직전까지 사용되므로 초기화 필수
+        List<Task> list = taskRepository.findByProject_IdOrderByIdAsc(projectId);
+        prefetchToOne(list);
+        return list;
+    }
+
+    @Override
+    public Task createTask(Long projectId, Long assigneeId, String title, Long workflowsId, Integer priorityId) {
+        var project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new NotFoundException("Project not found: " + projectId));
+
+        Task task = new Task();
+        task.setProject(project);
+        task.setTitle(title);
+
+        // 담당자
+        if (assigneeId != null) {
+            var user = userRepository.findById(assigneeId)
+                    .orElseThrow(() -> new NotFoundException("User not found: " + assigneeId));
+            task.setAssignee(user);
+        }
+
+        // 워크플로우 (단계)
+        if (workflowsId != null) {
+            var wf = workflowRepository.findById(workflowsId)
+                    .orElseThrow(() -> new NotFoundException("Workflow not found: " + workflowsId));
+            task.setWorkflow(wf);
+        } else {
+            workflowRepository.findFirstByProject_IdOrderBySortOrderAsc(projectId)
+                    .ifPresent(task::setWorkflow);
+        }
+
+        // 우선순위
+        if (priorityId != null) {
+            var pr = priorityRepository.findById(priorityId)
+                    .orElseThrow(() -> new NotFoundException("Priority not found: " + priorityId));
+            task.setPriority(pr);
+        }
+
+        return taskRepository.save(task);
+    }
+
+    @Override
+    public void deleteTasks(List<Long> ids) {
+        taskRepository.deleteAllById(ids);
+    }
+
+    /** ------------------------- 내부 헬퍼 ------------------------- */
+    /** JSP에서 접근하는 To-One 연관을 트랜잭션 내에서 강제 초기화 */
+    private void prefetchToOne(List<Task> tasks) {
+        for (Task t : tasks) {
+            if (t.getAssignee() != null) Hibernate.initialize(t.getAssignee());
+            if (t.getWorkflow() != null) Hibernate.initialize(t.getWorkflow());
+            if (t.getPriority() != null) Hibernate.initialize(t.getPriority());
+            // 파일 리스트가 꼭 필요하면 아래를 해제
+            // if (t.getFiles() != null) Hibernate.initialize(t.getFiles());
+        }
     }
 }

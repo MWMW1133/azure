@@ -4,7 +4,7 @@
   const main = $('.project-body');
 
   // ------- 컨텍스트/경로 유틸 -------
-  const rootEl = document.getElementById('project-root');
+  const rootEl = document.getElementById('project-tab-root');
   const APP_CONTEXT = (rootEl?.dataset.contextPath || window.APP_CONTEXT || '').replace(/\/$/, '');
   const apiUrl = (p) => `${APP_CONTEXT}${p}`;
 
@@ -108,26 +108,35 @@
   };
 
   // ------- Router -------
-  const Router = {
-    go(name) {
-      const base = `/projects/${encodeURIComponent(PROJECT_ID)}`;
-      const map = {
-        table: apiUrl(`${base}/table`),
-        card: apiUrl(`${base}/card`),
-        gantt: apiUrl(`${base}/gantt`),
-        chart: apiUrl(`${base}/chart`),
-        calendar: apiUrl(`${base}/calendar`),
-        files: apiUrl(`${base}/files`),
-        members: apiUrl(`${base}/members`),
-      };
-      const url = map[name];
-      if (!url) return render('<h1>Not Found</h1>');
-      fetch(url, { cache: 'no-cache' })
-        .then((r) => r.text())
-        .then(render)
-        .catch(() => render('<h1>Load Error</h1>'));
-    },
-  };
+const Router = {
+  go(name) {
+    const projectId = PROJECT_ID;  // 이미 위쪽에서 설정되어 있음
+    const ctx = APP_CONTEXT;       // /azure 혹은 ''
+
+    const map = {
+      table: `${ctx}/projects/${projectId}/table`,   // ✅ 수정
+      card: `${ctx}/projects/${projectId}/card`,
+      gantt: `${ctx}/projects/${projectId}/gantt`,
+      chart: `${ctx}/projects/${projectId}/chart`,
+      calendar: `${ctx}/projects/${projectId}/calendar`,
+      files: `${ctx}/projects/${projectId}/files`,
+      members: `${ctx}/projects/${projectId}/members`,
+    };
+
+    const url = map[name];
+    if (!url) return render('<h1>Not Found</h1>');
+
+    fetch(url, { cache: 'no-cache' })
+      .then((r) => r.text())
+      .then(render)
+      .catch((err) => {
+        console.error('[Router] error:', err);
+        render('<h1>Load Error</h1>');
+      });
+  },
+};
+
+
 
   function render(html) {
     if (main) main.innerHTML = html;

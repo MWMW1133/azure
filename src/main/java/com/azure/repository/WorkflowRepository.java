@@ -21,4 +21,6 @@ public interface WorkflowRepository extends JpaRepository<Workflow, Long> {
 
     /** 이름으로 워크플로 찾을 때 사용 (changeWorkflow 보조용) */
     Optional<Workflow> findByProjectIdAndName(Long projectId, String name);
+    /** 프로젝트의 첫 번째 워크플로우 (sortOrder 기준) */
+    Optional<Workflow> findFirstByProject_IdOrderBySortOrderAsc(Long projectId);
 }

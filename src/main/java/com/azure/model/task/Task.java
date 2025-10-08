@@ -1,5 +1,6 @@
 package com.azure.model.task;
 
+import com.azure.model.file.FileObject;
 import com.azure.model.project.Project;
 import com.azure.model.user.User;
 import com.azure.model.workflow.Workflow;
@@ -9,6 +10,9 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 
 @Data
 @Entity
@@ -74,4 +78,15 @@ public class Task {
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FileObject> files = new ArrayList<>();
+    @Transient
+    private Long fileCount;   // 배치쿼리로 채움
+
+    public boolean isHasFile() {
+        return fileCount != null && fileCount > 0;
+    }
+    public Long getFileCount() { return fileCount; }
+    public void setFileCount(Long fileCount) { this.fileCount = fileCount; }
 }
