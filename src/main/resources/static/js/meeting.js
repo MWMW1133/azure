@@ -1,6 +1,8 @@
 // /js/meeting.js
 (function (w) {
   'use strict';
+    if (w.__meetingLoaded) return;
+    w.__meetingLoaded = true;
 
   /* ===========================
    * 1) Styles
@@ -599,6 +601,9 @@
    * =========================== */
   const Meeting = {
   mount(target){
+    if (w.__meetingMounted) return;
+    w.__meetingMounted = true;
+
     const el = (typeof target === 'string') ? document.querySelector(target) : target;
     if (!el) return;
     ensureRoomStyles();

@@ -1,11 +1,92 @@
-.wrapper {
-    display: flex;
-    min-height: 100vh;
+/* ===== Global Layout (clean) ===== */
+
+/* 전역 기본 값 — 필요 시 사이드바 폭만 여기서 통일 관리 */
+:root{
+  --sidebar-w: 300px;
+  --font-ui: "Pretendard Variable","Noto Sans KR",Inter,"Apple SD Gothic Neo",
+             system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
 
-.main-content {
-    flex-grow: 1;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
+/* 최소 전역 리셋 */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: #f6f8fb;  /* 팀 공용 배경 */
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-ui);  
 }
+
+/* 일부 컴포넌트가 자체 폰트를 지정해 상속이 끊기는 것 보완 */
+button, input, select, textarea,
+.table, .dropdown-menu, .modal, .nav, .list-group, .form-control {
+  font-family: var(--font-ui) !important;
+}
+
+/* 2열 래퍼: 사이드바 + 본문 */
+.wrapper{
+  width: 100%;
+  min-height: 100dvh;           /* 모바일 주소창 고려 */
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+}
+
+/* 본문 컬럼은 위에서 아래로(탑바 + 페이지 바디) */
+.main-content{
+  display: flex;
+  flex-direction: column;
+  min-width: 0;                 /* overflow 스크롤 시 내용 줄바꿈 안정화 */
+}
+
+/* 실제 페이지 내용 영역 */
+.page-body{
+  padding: 24px;
+  min-height: 0;                /* flex 컨테이너 내부에서 올바른 스크롤링 */
+  overflow: auto;
+}
+
+/* 부트스트랩 .container가 폭을 제한하는 것 무력화(본문에서는 항상 풀폭) */
+.page-body > .container,
+.page-body > .container-sm,
+.page-body > .container-md,
+.page-body > .container-lg,
+.page-body > .container-xl,
+.page-body > .container-xxl {
+  max-width: 100%;
+  width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* 반응형(선택): 좁은 화면에서는 1열로 전환 */
+@media (max-width: 960px){
+  .wrapper{
+    grid-template-columns: 1fr;
+  }
+  .page-body{
+    padding: 16px;
+  }
+}
+
+/* 본문은 항상 풀폭 */
+.page-body .container,
+.page-body .container-sm,
+.page-body .container-md,
+.page-body .container-lg,
+.page-body .container-xl,
+.page-body .container-xxl {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* 레이아웃 고정 */
+.wrapper{
+  display: grid !important;
+  grid-template-columns: 300px 1fr;
+  width: 100%;
+}
+.main-content{ min-width: 0; }

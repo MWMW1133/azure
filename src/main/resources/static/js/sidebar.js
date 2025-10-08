@@ -353,63 +353,89 @@
   // })();
 
 
-  // === Meeting SPA mount ===
-(function bindMeetingNav(){
+// === Meeting SPA mount ===
+(function bindMeetingNavOnce(){
+  // ★ 중복 바인딩 방지
+  if (window.__bindMeetingNav) return;
+  window.__bindMeetingNav = true;
+
+  // === SAFEGUARD: stray meeting link fix ===
+[...document.querySelectorAll('a.proj-row.room')].forEach(n=>{
+  const target = document.querySelector('.sidebar .proj-list');
+  if (target && !n.closest('.sidebar')) target.appendChild(n);
+});
+
   const MAINBAR = (window.APP_CTX || '') + '/mainbar';
 
-  function mountMeeting(withReset = true) {
-    const mountTarget = document.querySelector('.page-body');
-    if (!mountTarget) return;
-    if (window.resetStubStore) window.resetStubStore();
-    // 회의실 UI 렌더
-    if (window.Meeting && typeof window.Meeting.mount === 'function') {
-      window.Meeting.mount(mountTarget);
-    } else {
-      const s = document.createElement('script');
-      s.src = (window.APP_CTX || '') + '/js/meeting.js?v=spa_mount';
-      s.onload = () => window.Meeting?.mount(mountTarget);
-      document.body.appendChild(s);
-    }
-
-    // mount 직후 다음 프레임에 '첫 화면'으로 리셋
-    if (withReset && typeof window.resetMeetingUI === 'function') {
-      requestAnimationFrame(() => window.resetMeetingUI(mountTarget));
-    }
-
-    // 사이드바 active 표시
+  function setActiveForMeeting(){
     document.querySelectorAll('.nav-item, .proj-row').forEach(el => el.classList.remove('active'));
-    const link = document.querySelector('.proj-row.room');
+    const link = document.querySelector('.proj-row.room') || document.querySelector('#nav-room');
     if (link) link.classList.add('active');
   }
 
-  // ❌ (삭제) 사이드바 캡처 리스너는 제거하세요 — 쿼리 제거 로직이 막힙니다.
-  // if (sidebar) { sidebar.addEventListener('click', ... , true) }
+  // meeting.js 동적 주입을 한 번만
+  function ensureMeetingScriptLoaded(cb){
+    if (window.Meeting && typeof window.Meeting.mount === 'function') {
+      cb(); return;
+    }
+    let tag = document.getElementById('meeting-js');
+    if (!tag) {
+      tag = document.createElement('script');
+      tag.id = 'meeting-js';                         // ★ 중복 주입 방지
+      tag.src = (window.APP_CTX || '') + '/js/meeting.js?v=spa_mount';
+      tag.onload = cb;
+      document.body.appendChild(tag);
+    } else {
+      const done = () => cb();
+      if (tag.readyState) tag.onreadystatechange = done;
+      else tag.addEventListener('load', done, { once: true });
+    }
+  }
 
-  // === [UPDATE] 회의실 클릭시: 회의실 mount → 입장 모달
+  function mountMeeting(withReset = true) {
+    const mountTarget = document.querySelector('.page-body') || document.body;
+    if (!mountTarget) return;
+
+    if (window.resetStubStore) window.resetStubStore();
+
+    ensureMeetingScriptLoaded(() => {
+      // ★ meeting.js 내부에도 __meetingMounted 가드가 있으면 더 안전
+      window.Meeting?.mount(mountTarget);
+
+      // 첫 화면 리셋
+      if (withReset && typeof window.resetMeetingUI === 'function') {
+        requestAnimationFrame(() => window.resetMeetingUI(mountTarget));
+      }
+
+      // 사이드바 active 처리
+      setActiveForMeeting();
+
+      // 입장 모달(중복 방지는 모달 함수 내부에서 처리 가정)
+      const root = document.querySelector('.room-wrap') || document;
+      if (window.confirmJoinMeeting) {
+        window.confirmJoinMeeting(root);
+      }
+    });
+  }
+
+  // ▼ 클릭 위임: 회의실로 진입 (한 번만 바인딩됨)
   document.addEventListener('click', (e) => {
-  const el = e.target.closest('#nav-room, .proj-row.room');
-  if (!el) return;
-  e.preventDefault();
+    const a = e.target.closest('a[data-route="meeting"], .proj-row.room, #nav-room');
+    if (!a) return;
+    e.preventDefault();
 
-  // URL을 /mainbar 로 고정(project 파라미터 제거)
-  const base = (window.APP_CTX || '') + '/mainbar';
-  history.pushState({}, '', base);
+    // 서버 라우팅 대신 SPA로 고정
+    history.pushState({}, '', MAINBAR);
+    mountMeeting(true);
+  });
 
-  // 회의실 UI 마운트
-  const mountTarget = document.querySelector('.page-body') || document.body;
-  if (window.Meeting?.mount) {
-    window.Meeting.mount(mountTarget);
-  }
-
-  // ▶ 회의실 입장 모달 표시
-  const root = document.querySelector('.room-wrap') || document;
-  if (window.confirmJoinMeeting) {
-    // 모달은 중복 방지 플래그(root.__entryShown)로 한 번만 뜸
-    window.confirmJoinMeeting(root);
-  }
-});
-
+  // (선택) URL이 /meeting 으로 들어온 경우 SPA로 전환
+  // if (location.pathname === (window.APP_CTX || '') + '/meeting') {
+  //   history.replaceState({}, '', MAINBAR);
+  //   mountMeeting(true);
+  // }
 })();
+
 
 
   /* ========= [백엔드 연결 예시 – 이 주석만 보고 교체] =========
