@@ -1,3 +1,4 @@
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8"
 pageEncoding="UTF-8"%>
 <!DOCTYPE html>
@@ -16,7 +17,7 @@ pageEncoding="UTF-8"%>
 
       <input
         type="text"
-        name="userEmail"
+        name="userId"
         class="input-field"
         placeholder="이메일 입력"
       />
@@ -36,5 +37,12 @@ pageEncoding="UTF-8"%>
         회원가입
       </button>
     </form>
+
+    <c:if test="${not empty error}">
+      <script>
+        alert("${error}");
+        <c:remove var="error" scope="request"/>
+      </script>
+    </c:if>
   </body>
 </html>

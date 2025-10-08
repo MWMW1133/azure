@@ -45,7 +45,26 @@
       </div>
     </main>
 
+<<<<<<< HEAD
     <!-- 모달 템플릿(마크업만; JS는 아래에서 공통 로드) -->
+=======
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+    <!-- JS -->
+    <script src="${pageContext.request.contextPath}/js/sidebar.js"></script>
+    <script src="${pageContext.request.contextPath}/js/notification.js"></script>
+    <script src="${pageContext.request.contextPath}/js/todo.js"></script>
+    <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
+    <script src="${pageContext.request.contextPath}/js/my-tasks.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="${pageContext.request.contextPath}/js/project-plan.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+
+
+>>>>>>> origin/sohyun
     <jsp:include page="chat/createModal.jsp"/>
   </div>
 
@@ -55,6 +74,7 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
 
+<<<<<<< HEAD
   <!-- 앱 스크립트 -->
   <script src="${pageContext.request.contextPath}/js/sidebar.js"></script>
   <script src="${pageContext.request.contextPath}/js/notification.js"></script>
@@ -92,3 +112,15 @@
   </script>
 </body>
 </html>
+=======
+    <script src="${pageContext.request.contextPath}/js/bootstrap/bootstrap.bundle.js"></script>
+    <script src="${pageContext.request.contextPath}/js/sidebar.js"></script>
+    <script src="${pageContext.request.contextPath}/js/notification.js"></script>
+    <script src="${pageContext.request.contextPath}/js/todo.js"></script>
+    <script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
+    <script src="${pageContext.request.contextPath}/js/search.js"></script>
+    <script src="${pageContext.request.contextPath}/js/meeting.js"></script>
+
+  </body>
+</html>
+>>>>>>> origin/sohyun

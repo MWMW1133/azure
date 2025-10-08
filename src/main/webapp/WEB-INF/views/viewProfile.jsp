@@ -6,7 +6,6 @@
     <div class="flex-grow-1 p-4">
         <div class="card p-4 position-relative">
 
-            <!-- 주석 처리된 내용은 백엔드랑 연결하는 부분임!!!!!!!!!!!(나중에 더미 삭제하고 주석 해제할 것)-->
             <!-- 상단 우측 Save / Cancel -->
             <div class="position-absolute top-0 end-0 mt-3 me-3">
                 <button class="btn btn-primary btn-sm">Save</button>
@@ -16,9 +15,7 @@
             <!-- 프로필 영역 (사진 + 이름, 사진 업로드 아이콘 포함) -->
             <div class="d-flex align-items-center mb-4">
                 <div class="position-relative">
-                    <img src="${pageContext.request.contextPath}/images/my-cat.png"
-                         alt="Profile" class="rounded-circle" width="96" height="96">
-<%--                    <img src="${user.avatarUrl}" alt="Profile" class="rounded-circle" width="96" height="96">--%>
+                    <img src="${pageContext.request.contextPath}${user.avatarUrl}" alt="Profile" class="rounded-circle" width="96" height="96">
                     <!-- 업로드 아이콘 -->
                     <label for="profileImage" class="position-absolute bottom-0 end-0 bg-white rounded-circle p-1 shadow-sm"
                            style="cursor:pointer;">
@@ -26,8 +23,7 @@
                     </label>
                     <input type="file" id="profileImage" class="d-none">
                 </div>
-                <h5 class="mb-0 ms-3">박소현</h5>
-<%--                <h5 class="mb-0 ms-3">${user.name}</h5>--%>
+                <h5 class="mb-0 ms-3">${user.name}</h5>
 
             </div>
             <hr>
@@ -37,14 +33,23 @@
                 <!-- Full Name (수정 가능) -->
                 <div class="col-md-6">
                     <label class="form-label small text-muted">Full Name</label>
-                    <input type="text" class="form-control" value="박소현">
-<%--                    <input type="text" class="form-control" value="${user.name}">--%>
+                    <input type="text" class="form-control" value="${user.name}">
                 </div>
+
                 <!-- 회사명 (수정 불가) -->
                 <div class="col-md-6">
                     <label class="form-label small text-muted">회사명</label>
-                    <input type="text" class="form-control bg-light text-muted" value="동의대학교 미래교육원" readonly>
-<%--                    <input type="text" class="form-control bg-light text-muted" value="${org.name}" readonly>--%>
+                    <c:choose>
+                        <c:when test="${not empty org}">
+                            <input type="text" class="form-control bg-light text-muted"
+                                   value="${org.organization.name}" readonly>
+                        </c:when>
+                        <c:otherwise>
+                            <input type="text" class="form-control bg-light text-muted"
+                                   value="(소속 없음)" readonly>
+                        </c:otherwise>
+                    </c:choose>
+
                 </div>
             </div>
 
@@ -52,19 +57,17 @@
                 <!-- 가입일 (수정 불가) -->
                 <div class="col-md-6">
                     <label class="form-label small text-muted">가입일</label>
-                    <input type="text" class="form-control bg-light text-muted" value="2025.09.25" readonly>
-<%--                    <input type="text" class="form-control bg-light text-muted"--%>
-<%--                           value="${user.createdAt.toLocalDate()}" readonly>--%>
+                    <input type="text" class="form-control bg-light text-muted"
+                           value="${user.createdAt.toLocalDate()}" readonly>
 
                     <!-- 백엔드에서 포맷팅안할 경우, 프론트단에서 직접 처리 -->
 <%--                    <input type="text" class="form-control bg-light text-muted"--%>
 <%--                           value="<fmt:formatDate value='${user.createdAt}' pattern='yyyy.MM.dd'/>" readonly>--%>
                 </div>
-                <!-- ID (수정 불가) -->
+                <!-- 로그인 ID (수정 불가) -->
                 <div class="col-md-6">
                     <label class="form-label small text-muted">ID</label>
-                    <input type="text" class="form-control bg-light text-muted" value="kingoreu" readonly>
-<%--                    <input type="text" class="form-control bg-light text-muted" value="${user.id}" readonly>--%>
+                    <input type="text" class="form-control bg-light text-muted" value="${user.loginId}" readonly>
                 </div>
             </div>
 
@@ -72,9 +75,18 @@
                 <!-- 권한 (수정 불가) -->
                 <div class="col-md-6">
                     <label class="form-label small text-muted">권한</label>
-                    <input type="text" class="form-control bg-light text-muted" value="구성원" readonly>
-<%--                    <input type="text" class="form-control bg-light text-muted" value="${org.role}" readonly>--%>
+                    <c:choose>
+                        <c:when test="${not empty org}">
+                            <input type="text" class="form-control bg-light text-muted"
+                                   value="${org.role}" readonly>
+                        </c:when>
+                        <c:otherwise>
+                            <input type="text" class="form-control bg-light text-muted"
+                                   value="-" readonly>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
+
                 <!-- 근태 (수정 가능, select) -->
                 <div class="col-md-6">
                     <label class="form-label small text-muted">활동 상태</label>

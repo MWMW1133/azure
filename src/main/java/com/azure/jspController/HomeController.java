@@ -3,6 +3,10 @@ package com.azure.jspController;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.azure.model.user.User;
+import com.azure.service.UserService;
+import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,11 +17,11 @@ import com.azure.dto.HomeTaskCard; // ★ 추가
 @Controller
 public class HomeController {
 
+
     @GetMapping("/home")
-    public String home(Model model) {
+    public String home(Model model, HttpSession session) {
 
-        model.addAttribute("userName", "홍길동");
-
+        // 기존 더미 데이터=====================
         List<TodoItem> todoList = new ArrayList<>();
         todoList.add(new TodoItem("레퍼런스 찾기", "15:00 - 16:00", "미완료", "시각 자료 위주"));
         todoList.add(new TodoItem("클라이언트 원격", "16:30 - 17:30", "미완료", "내용 정리하기"));
