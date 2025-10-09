@@ -436,134 +436,155 @@
     </section>`;
   }
 
-  /* ===========================
-   * 3) Events & Logic
-   * =========================== */
-  function bindRoomEvents(root){
-    // HUD
-    const startBtn = root.querySelector('#hud-notes-start');
-    const stopBtn  = root.querySelector('#hud-notes-stop');
-    const openBtn  = root.querySelector('#hud-open-notes');
-    const endBtn   = root.querySelector('#hud-end');
-    const micSel   = root.querySelector('#hud-mic');
+    /* ===========================
+     * 3) Events & Logic  (UI/UX 변경 없음, 로직만 보강)
+     * =========================== */
 
-    // 모달
-    const notesModal  = document.getElementById('notes-modal');
-    const notesBody   = document.getElementById('notes-body');
-    const closeNotes  = document.getElementById('btn-close-notes');
-    const clearNotes  = document.getElementById('btn-clear-notes');
-    const exportNotes = document.getElementById('btn-export-notes');
+// 서버 컨텍스트
+    const CTX = (window.pageContextPath || (window.APP_CTX || '${pageContext && pageContext.request && pageContext.request.contextPath || ""}')).replace(/\/$/, '');
 
-    function openNotes(){
-      notesModal.setAttribute('aria-hidden','false');
+    async function apiStartMeeting(eventId, { organizationId=1, projectId=1 } = {}){
+        const r = await fetch(`${CTX}/api/meetings/${eventId}/start?organizationId=${organizationId}&projectId=${projectId}`, { method:'POST' });
+        if (!r.ok) throw new Error('startMeeting failed'); return r.json();
     }
-    function closeNotesFn(){
-      notesModal.setAttribute('aria-hidden','true');
+    async function apiEndMeeting(meetingId){
+        const r = await fetch(`${CTX}/api/meetings/${meetingId}/end`, { method:'POST' });
+        if (!r.ok) throw new Error('endMeeting failed'); return r.json();
     }
-
-    openBtn?.addEventListener('click', openNotes);
-    closeNotes?.addEventListener('click', closeNotesFn);
-    clearNotes?.addEventListener('click', ()=> notesBody.textContent = '(아직 내용이 없습니다)');
-    exportNotes?.addEventListener('click', ()=>{
-      const blob = new Blob([notesBody.textContent||''], {type:'text/plain;charset=utf-8'});
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'meeting-notes.txt'; a.click();
-      URL.revokeObjectURL(a.href);
-    });
-
-    // 회의록 작성 시작/종료
-    function beginNotes(){
-      startBtn.disabled = true; stopBtn.disabled = false;
-      openBtn.classList.remove('show'); // 작성 중에는 숨김
-      Speech.start();
-      root.classList.add('rec-on');     // 네온 링 ON
-    }
-    function endNotes(){
-      startBtn.disabled = false; stopBtn.disabled = true;
-      Speech.stop();
-      root.classList.remove('rec-on');  // 네온 링 OFF
-      requestAnimationFrame(()=> openBtn.classList.add('show')); // 회의록 버튼 등장
-    }
-
-    // 회의록 시작
-    startBtn?.addEventListener('click', async (e) => {
-      e.preventDefault();
-
-      // (선택) 프로젝트 멤버십 가드 — 멤버 아니면 프로젝트 참여 수락 모달 열고 종료
-      const pid = getCurrentProjectId?.(); // 너희가 쓰는 선택값 반환 함수
-      if (pid) {
-        const ids = await apiListProjectMemberIds(pid);
-        const isAdmin = currentUserId === COMPANY_ADMIN_ID;
-        if (!isAdmin && !ids.includes(currentUserId)) {
-          gateAccessForCurrentUser(document, pid);
-          return;
-        }
-      }
-
-      // 진짜 시작
-      beginNotes();
-      (document.querySelector('.room-wrap') || document).classList.add('in-call');
-    });
-
-    stopBtn ?.addEventListener('click', endNotes);
-
-    // 통화 종료 → 버튼 오른쪽 토스트
-    endBtn?.addEventListener('click', () => {
-      if (!startBtn.disabled) { /* 작성 중 아님 */ } else { endNotes(); }
-      showEndToastAtHangup('회의가 종료되었습니다.', endBtn);
-    });
-
-    // 마이크 리스트(가능하면 채우기)
-    try{
-      if (navigator.mediaDevices?.enumerateDevices) {
-        navigator.mediaDevices.enumerateDevices().then(list=>{
-          const mics = list.filter(d=>d.kind==='audioinput');
-          if (mics.length && micSel){
-            micSel.innerHTML = mics.map(d=>`<option value="${d.deviceId}">${d.label || '마이크'}</option>`).join('');
-          }
+    async function apiRtcToken(channel, uid){
+        const r = await fetch(`${CTX}/api/rtc/token`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ channel, uid })
         });
-      }
-    }catch(e){}
-  }
-
-  // 통화 종료 토스트 (버튼 오른쪽에 앵커)
-  function showEndToastAtHangup(message, anchorBtn){
-    let toast = document.getElementById('end-toast');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'end-toast';
-      toast.className = 'end-toast';
-      document.body.appendChild(toast);
+        if (!r.ok) throw new Error('token failed'); return r.json(); // {token}
     }
-    toast.textContent = message;
-
-    // 앵커 모드
-    toast.classList.add('anchored');
-    toast.style.right = ''; toast.style.bottom = '';
-
-    // 버튼 기준 위치 계산 (fixed 좌표계 = viewport 기준)
-    const btn = anchorBtn || document.querySelector('#hud-end') || document.querySelector('.hud-btn.danger');
-    if (btn) {
-      const r = btn.getBoundingClientRect();
-      // 먼저 임시로 보이게 해서 높이 측정
-      toast.style.left = (r.right + 28) + 'px';
-      toast.style.top  = r.top + 'px';
-      requestAnimationFrame(() => {
-        const h = toast.offsetHeight || 40;
-        toast.style.top = Math.round(r.top + (r.height - h) / 2) + 'px';
-        toast.classList.add('in');
-      });
-    } else {
-      // 폴백: 우하단
-      toast.classList.remove('anchored');
-      toast.style.right = '24px'; toast.style.bottom = '24px';
-      requestAnimationFrame(() => toast.classList.add('in'));
+    async function apiRecordingStart(eventId, uid){
+        const r = await fetch(`${CTX}/api/recordings/start`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ eventId, uid })
+        });
+        if (!r.ok) throw new Error('recording start failed'); return r.json(); // {resourceId,sid,channel}
+    }
+    async function apiRecordingStop({ meetingId, channel, uid, resourceId, sid }){
+        const r = await fetch(`${CTX}/api/recordings/stop`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ meetingId, channel, uid, resourceId, sid })
+        });
+        if (!r.ok) throw new Error('recording stop failed');
+    }
+    async function apiSttStart(meetingId){
+        const r = await fetch(`${CTX}/api/meet/stt/start`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ meetingId })
+        });
+        if (!r.ok) throw new Error('stt start failed');
+    }
+    async function apiSttStop(meetingId){
+        const r = await fetch(`${CTX}/api/meet/stt/stop`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ meetingId })
+        });
+        if (!r.ok) throw new Error('stt stop failed');
     }
 
-    clearTimeout(showEndToastAtHangup._timer);
-    showEndToastAtHangup._timer = setTimeout(() => {
-      toast.classList.remove('in');
-    }, 1800);
-  }
+    const CURRENT = { meetingId:null, eventId:null, channel:null,
+        rtc:{joined:false, uid:null, client:null, localTrack:null},
+        rec:{resourceId:null, sid:null} };
+    function channelOf(eventId){ return `meeting-${eventId}`; }
+
+    const RTC = {
+        async join(channel, token, uid, micDeviceId){
+            const client = AgoraRTC.createClient({ mode:'rtc', codec:'vp8' });
+            await client.join(null, channel, token, uid);
+            const localTrack = await AgoraRTC.createMicrophoneAudioTrack(
+                micDeviceId ? { microphoneId: micDeviceId } : {}
+            );
+            await client.publish([localTrack]);
+            CURRENT.rtc = { joined:true, uid, client, localTrack };
+        },
+        async leave(){
+            const { client, localTrack } = CURRENT.rtc || {};
+            if (localTrack){ try{ await client.unpublish([localTrack]); }catch(e){} try{ localTrack.close(); }catch(e){} }
+            if (client){ try{ await client.leave(); }catch(e){} }
+            CURRENT.rtc = { joined:false, uid:null, client:null, localTrack:null };
+        }
+    };
+
+    function bindRoomEvents(root){
+        const startBtn = root.querySelector('#hud-notes-start');
+        const stopBtn  = root.querySelector('#hud-notes-stop');
+        const openBtn  = root.querySelector('#hud-open-notes');
+        const endBtn   = root.querySelector('#hud-end');
+        const micSel   = root.querySelector('#hud-mic');
+
+        async function beginNotes(){
+            const eventId = (typeof getCurrentProjectId === 'function') ? getCurrentProjectId() : null;
+            if (!eventId) return alert('프로젝트를 먼저 선택하세요.');
+            CURRENT.eventId = eventId; CURRENT.channel = channelOf(eventId);
+
+            const meeting = await apiStartMeeting(eventId, { organizationId:1, projectId:1 });
+            CURRENT.meetingId = meeting.id;
+
+            const uid = String(window.currentUserId || Math.floor(Math.random()*1e9));
+            const { token } = await apiRtcToken(CURRENT.channel, uid);
+            const micId = micSel?.value;
+            await RTC.join(CURRENT.channel, token, uid, micId);
+
+            try{
+                const rec = await apiRecordingStart(eventId, uid);
+                CURRENT.rec.resourceId = rec.resourceId; CURRENT.rec.sid = rec.sid;
+            }catch(e){ console.warn('recording start failed', e); }
+
+            try{ await apiSttStart(CURRENT.meetingId); }catch(e){}
+
+            startBtn.disabled = true; stopBtn.disabled = false;
+            openBtn.classList.remove('show');
+            root.classList.add('rec-on');
+            (document.querySelector('.room-wrap') || document).classList.add('in-call');
+        }
+
+        async function endNotes(){
+            try{ if (CURRENT.meetingId) await apiSttStop(CURRENT.meetingId); }catch(e){}
+            try{
+                const { meetingId, channel } = CURRENT;
+                const { uid } = CURRENT.rtc || {};
+                const { resourceId, sid } = CURRENT.rec || {};
+                if (meetingId && channel && uid && resourceId && sid){
+                    await apiRecordingStop({ meetingId, channel, uid, resourceId, sid });
+                }
+            }catch(e){ console.warn('recording stop failed', e); }
+            try{ await RTC.leave(); }catch(e){}
+            try{ if (CURRENT.meetingId) await apiEndMeeting(CURRENT.meetingId); }catch(e){}
+
+            startBtn.disabled = false; stopBtn.disabled = true;
+            root.classList.remove('rec-on');
+            requestAnimationFrame(()=> openBtn.classList.add('show'));
+            (document.querySelector('.room-wrap') || document).classList.remove('in-call');
+        }
+
+        startBtn?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            // (기존) 멤버십 가드 유지
+            const pid = (typeof getCurrentProjectId === 'function') ? getCurrentProjectId() : null;
+            if (pid) {
+                const ids = await apiListProjectMemberIds(pid);
+                const isAdmin = currentUserId === COMPANY_ADMIN_ID;
+                if (!isAdmin && !ids.includes(currentUserId)) { gateAccessForCurrentUser(document, pid); return; }
+            }
+            try { await beginNotes(); } catch (err) {
+                console.error(err); alert('회의 시작 중 오류가 발생했습니다.');
+                startBtn.disabled = false; stopBtn.disabled = true; root.classList.remove('rec-on');
+            }
+        });
+
+        stopBtn ?.addEventListener('click', async () => { try{ await endNotes(); }catch(e){} });
+        endBtn  ?.addEventListener('click', async () => {
+            if (startBtn.disabled) { try{ await endNotes(); }catch(e){} }
+            showEndToastAtHangup('회의가 종료되었습니다.', endBtn);
+        });
+    }
+
+
 
   /* ===========================
    * 4) Speech (Web Speech API – 라이트)

@@ -1,4 +1,4 @@
-package com.azure.service.agora;
+package com.azure.service;
 
 public interface CloudRecordingService {
     record StartResp(String resourceId, String sid, String channel) {}

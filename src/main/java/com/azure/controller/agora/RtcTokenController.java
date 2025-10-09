@@ -1,11 +1,8 @@
-// src/main/java/com/azure/controller/agora/RtcTokenController.java
 package com.azure.controller.agora;
 
+import com.azure.config.AgoraProps;
 import com.azure.service.agora.AgoraTokenService;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -13,12 +10,14 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/rtc")
 public class RtcTokenController {
     private final AgoraTokenService tokenService;
+    private final AgoraProps props;
 
     @PostMapping("/token")
     public TokenResp token(@RequestBody TokenReq r) {
-        return new TokenResp(tokenService.buildToken(r.channel, r.uid, 3600));
+        String t = tokenService.buildToken(r.channel, r.uid, props.getTokenTtlSeconds());
+        return new TokenResp(t);
     }
 
-    @Data @NoArgsConstructor public static class TokenReq { private String channel; private String uid; }
-    @Data @AllArgsConstructor public static class TokenResp { private String token; }
+    @Getter @Setter public static class TokenReq { public String channel; public String uid; }
+    @AllArgsConstructor @Getter public static class TokenResp { private String token; }
 }

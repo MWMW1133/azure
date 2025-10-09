@@ -42,10 +42,11 @@ out/
 ### Spring/Secrets ###
 # .env 류
 .env
+*.env
+*.env.*
 ### VS Code ###
 .vscode/
 ﻿.env
-*.env
 
 # keystore 등
 application.properties

@@ -1,4 +1,3 @@
-// src/main/java/com/azure/config/ClovaProps.java
 package com.azure.config;
 
 import lombok.Data;
@@ -9,8 +8,8 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "clova")
 public class ClovaProps {
-    private String endpoint;
-    private String keyId;
-    private String keySecret;
-    private String callbackUrl;
+    private String clientId;      // X-NCP-APIGW-API-KEY-ID
+    private String clientSecret;  // X-NCP-APIGW-API-KEY
+    private String speechUrl;     // Invoke URL (REST)
+    private String callbackUrl;   // 콜백 받을 우리 서버 URL
 }

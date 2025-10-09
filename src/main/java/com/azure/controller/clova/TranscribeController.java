@@ -1,4 +1,3 @@
-// src/main/java/com/azure/controller/clova/TranscribeController.java
 package com.azure.controller.clova;
 
 import com.azure.model.meeting.Meeting;
@@ -12,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,28 +21,27 @@ public class TranscribeController {
     private final MeetingTranscriptRepository trRepo;
     private final MeetingSummaryRepository sumRepo;
 
-    /** CLOVA 콜백: submit 시 ?meetingId=... 로 붙였으므로 여기서 식별 */
+    /** CLOVA 콜백 (?meetingId=) */
     @PostMapping("/callback")
     @Transactional
-    public Map<String,Object> callback(@RequestParam Long meetingId, @RequestBody Map<String,Object> payload){
+    public Map<String,Object> callback(@RequestParam Long meetingId,
+                                       @RequestBody Map<String,Object> payload){
         Meeting m = meetingRepo.findById(meetingId).orElseThrow();
 
-        String fullText = String.valueOf(payload.getOrDefault("text",""));      // 실제 응답에 맞춰 파싱 필요
-        String summary  = String.valueOf(payload.getOrDefault("summary",""));
-        String actions  = String.valueOf(payload.getOrDefault("actionItems",""));
+        // 실제 응답 필드명에 맞게 조정
+        String fullText = Objects.toString(payload.get("text"), "");
+        String summary  = Objects.toString(payload.get("summary"), "");
+        String actions  = Objects.toString(payload.get("actionItems"), "");
         String lang     = "ko-KR";
 
-        MeetingTranscript tr = new MeetingTranscript();
-        tr.setMeeting(m); tr.setLang(lang);
-        tr.setContent(trimTiny(fullText)); // ver5 TINYTEXT 보호
+        var tr = new MeetingTranscript();
+        tr.setMeeting(m); tr.setLang(lang); tr.setContent(fullText);
         trRepo.save(tr);
 
-        MeetingSummary ms = new MeetingSummary();
-        ms.setMeeting(m); ms.setSummaryMd(trimTiny(summary)); ms.setActionItems(trimTiny(actions));
+        var ms = new MeetingSummary();
+        ms.setMeeting(m); ms.setSummaryMd(summary); ms.setActionItems(actions);
         sumRepo.save(ms);
 
         return Map.of("ok", true);
     }
-
-    private String trimTiny(String s){ if(s==null) return null; return s.length()>250? s.substring(0,250):s; }
 }
