@@ -212,14 +212,15 @@ document.addEventListener('DOMContentLoaded', function () {
       titleEl?.focus();
       return;
     }
+    const assigneeId = null; // 필요 시 담당자 지정 기능 추가
 
     const taskData = {
       title,
       startDate: startEl?.value || null, // 서버 DTO: startDate
       dueDate: dueEl?.value || null,     // 서버 DTO: dueDate
       priorityId: getPriorityId(prioEl?.value || 'normal'),
-      // 필요 시 parentId 전송:
-      // parentTaskId: form.dataset.parentId ? Number(form.dataset.parentId) : null,
+      assigneeId,
+      parentTaskId: form.dataset.parentId ? Number(form.dataset.parentId) : null,
     };
 
     try {
@@ -280,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const resp = await fetch(API.bulkDelete, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: selectedIds }),
+        body: JSON.stringify(selectedIds.map(Number)),
       });
       if (!resp.ok) throw new Error('삭제에 실패했습니다.');
 
