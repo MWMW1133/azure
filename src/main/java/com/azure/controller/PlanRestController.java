@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import static com.azure.security.SecurityUtil.getCurrentUserId;
+
 import java.time.LocalDate;
 
 @RestController
@@ -50,9 +52,9 @@ public ProjectProposalDTO updateStatus(
 
     ProjectProposal entity;
     if ("APPROVED".equalsIgnoreCase(status)) {
-        proposalService.approve(proposalId, 1L);
+        proposalService.approve(proposalId, getCurrentUserId());
     } else if ("REJECTED".equalsIgnoreCase(status)) {
-        entity = proposalService.reject(proposalId, 1L);
+        entity = proposalService.reject(proposalId, getCurrentUserId());
     } else {
         throw new IllegalArgumentException("Unknown status: " + status);
     }

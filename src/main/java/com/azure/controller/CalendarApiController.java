@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import static com.azure.security.SecurityUtil.requireUserId;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -23,18 +25,12 @@ public class CalendarApiController {
     private final PersonalCalendarRepository personalCalendarRepository;
     private final HttpSession httpSession;
 
-    /** 실제 환경에 맞게 교체(예: Spring Security) */
-    private Long currentUserId() {
-        Object v = Optional.ofNullable(httpSession.getAttribute("id"))
-                .orElse(httpSession.getAttribute("idKey"));
-        return (v != null) ? Long.valueOf(v.toString()) : 1L; // 임시
-    }
 
     // ───────────── 조회 ─────────────
     @GetMapping("/events")
     public List<EventDto> getEvents(@RequestParam(required = false) String start,
                                     @RequestParam(required = false) String end) {
-        Long uid = currentUserId();
+        Long uid = requireUserId(httpSession);   // ← 여기만 바뀜
 
         LocalDateTime from = (start != null && !start.isBlank())
                 ? parseFlexibleForAllDay(start, false, false)
@@ -53,7 +49,7 @@ public class CalendarApiController {
     // ───────────── 생성 ─────────────
     @PostMapping("/events")
     public EventDto createEvent(@RequestBody EventDto in) {
-        Long uid = currentUserId();
+         Long uid = requireUserId(httpSession);
 
         boolean allDay = in.isAllDay();
         LocalDateTime startAt = parseFlexibleForAllDay(in.getStart(), false, allDay);

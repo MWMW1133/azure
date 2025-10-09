@@ -11,45 +11,25 @@ public class CustomUserDetails implements UserDetails {
 
     private final User user;
 
-    // 생성자  
     public CustomUserDetails(User user) {
         this.user = user;
     }
 
-    // User 엔티티의 ID를 반환하는 메서드 추가
     public Long getId() {
-        return user.getId(); // PK 반환
+        return user.getId();
     }
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        // 권한이 따로 없으면 빈 리스트
-        return List.of();
+    /** 조직이 없을 수 있으므로 NPE 방지 */
+    public Long getOrganizationId() {
+        return (user.getOrganization() != null) ? user.getOrganization().getId() : 0L;
+        // 정책상 null이 더 낫다면 Long 반환으로 바꾸고 null 리턴하세요.
     }
 
-    @Override
-    public String getPassword() {
-        return user.getPasswordHash(); // DB 비밀번호
-    }
-
-    @Override
-    public String getUsername() {
-        return user.getLoginId(); // 로그인 ID
-    }
-
-    @Override
-    public boolean isAccountNonExpired() { return true; }
-
-    @Override
-    public boolean isAccountNonLocked() { return true; }
-
-    @Override
-    public boolean isCredentialsNonExpired() { return true; }
-
-    @Override
-    public boolean isEnabled() {
-    return user.getWorkStatus() == User.WorkStatus.WORKING;
-    }
-
+    @Override public Collection<? extends GrantedAuthority> getAuthorities() { return List.of(); }
+    @Override public String getPassword() { return user.getPasswordHash(); }
+    @Override public String getUsername() { return user.getLoginId(); }
+    @Override public boolean isAccountNonExpired() { return true; }
+    @Override public boolean isAccountNonLocked() { return true; }
+    @Override public boolean isCredentialsNonExpired() { return true; }
+    @Override public boolean isEnabled() { return user.getWorkStatus() == User.WorkStatus.WORKING; }
 }
-

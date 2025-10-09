@@ -9,6 +9,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
+import static com.azure.security.SecurityUtil.getOrganizationId;
+
 import java.util.List;
 
 @Controller
@@ -19,7 +21,7 @@ public class PlanController {
 
     @GetMapping("/project-plan")
     public String showProjectPlanPage(Model model) {
-        Long organizationId = 1L; // TODO: 세션에서 가져오기
+        Long organizationId = getOrganizationId(); // 로그인한 사용자의 조직 ID 가져오기
         var pageable = PageRequest.of(0, 50);
 
         // ServiceImpl에서 DTO 변환 끝낸 데이터 가져오기

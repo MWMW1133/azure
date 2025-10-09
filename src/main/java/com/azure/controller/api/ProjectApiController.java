@@ -5,7 +5,7 @@ import com.azure.dto.TagDTO;
 import com.azure.model.tag.Tag;
 import com.azure.service.ProjectService;
 import com.azure.service.TagService;
-
+import static com.azure.security.SecurityUtil.getCurrentUserId;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
@@ -30,7 +30,7 @@ public class ProjectApiController {
     // 프로젝트 리스트
     @GetMapping("/list")
     public List<ProjectDTO> myProjects() {
-      Long meId = 1L;
+      Long meId = getCurrentUserId();
 
       var page = projectService.listByUser(
           meId,

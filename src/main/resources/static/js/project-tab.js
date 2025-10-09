@@ -4,7 +4,7 @@
   const main = $('.project-body');
 
   // ------- 컨텍스트/경로 유틸 -------
-  const rootEl = document.getElementById('project-tab-root');
+  const rootEl = document.getElementById('project-tab-root')|| document.getElementById('project-tab-view-root');//수정
   const APP_CONTEXT = (rootEl?.dataset.contextPath || window.APP_CONTEXT || '').replace(/\/$/, '');
   const apiUrl = (p) => `${APP_CONTEXT}${p}`;
 
