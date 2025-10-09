@@ -1,4 +1,7 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%> <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%> 
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+
 <div class="pplan-container">
   <div class="pplan-container-top">
     <div class="pplan-title">프로젝트 계획</div>
@@ -50,3 +53,15 @@
       </div>
   </div>
 </div>
+<!-- 프로젝트 계획 전용 JS -->
+<script src="${pageContext.request.contextPath}/js/project-plan.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // project-plan.js 안에 정의된 초기화 실행
+    if (window.ProjectPlan?.mount) {
+      window.ProjectPlan.mount(document);
+    } else {
+      console.error("[project-plan] ProjectPlan.js가 로드되지 않았습니다.");
+    }
+  });
+</script>

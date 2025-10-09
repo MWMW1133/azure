@@ -1,84 +1,51 @@
 document.addEventListener('DOMContentLoaded', function () {
-  const api = {};
+  const root = document.getElementById('project-tab-root');
+  const ctx = (root?.dataset.ctx || '').replace(/\/$/, '');
+  const projectId = root?.dataset.projectId;
 
-  // ===== 상태 관리 변수 =====
+  const API = {
+    createTask: `${ctx}/api/projects/${projectId}/tasks`,
+    listTasks: `${ctx}/api/projects/${projectId}/tasks`,
+    bulkDelete: `${ctx}/api/projects/${projectId}/tasks/bulk-delete`,
+    workflows: `${ctx}/api/projects/${projectId}/workflows`,
+    assign: (taskId) => `${ctx}/api/tasks/${taskId}/assignee`,
+    setWorkflow: (taskId) => `${ctx}/api/tasks/${taskId}/workflow`,
+    children: (parentId) => `${ctx}/api/projects/${projectId}/tasks/${parentId}/children`,
+    users: `${ctx}/api/users`,
+  };
+
+  // ===== 상태 =====
   let currentOpenForm = null;
   let activeStatusPopover = null;
 
-  document.body.addEventListener('click', function (e) {
-    // --- Popover 처리 ---
-    const statusCell = e.target.closest('.task-row .task-cell.status-cell');
-    console.log(statusCell);
-    if (statusCell) {
-      toggleStatusPopover(statusCell);
-      return; // 상태 Popover를 열었으면 다른 클릭 로직은 무시
-    }
-    if (activeStatusPopover && !activeStatusPopover.contains(e.target)) {
-      hideStatusPopover();
-    }
+  // ===== 클릭/더블클릭 구분용 타이머 =====
+  let clickTimer = null;
+  const DOUBLE_DELAY = 250; // 필요시 200~300으로 조절
 
-    // 태스크 추가
-    const addBtn = e.target.closest('#task-add-btn');
-    if (addBtn) {
-      const activeTaskListBody = document.querySelector('.active-task-container .task-list-body');
-      if (activeTaskListBody) {
-        showTaskForm(activeTaskListBody, null);
-      }
-      return;
-    }
+  // ------------------------
+  // 공통 유틸
+  // ------------------------
+  function esc(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
 
-    // 태스크 삭제
-    const deleteBtn = e.target.closest('#task-delete-btn');
-    if (deleteBtn) {
-      handleDeleteTask();
-      return;
-    }
+  function showEl(el) {
+    if (!el) return;
+    el.classList.remove('hidden');
+    el.hidden = false;
+    el.removeAttribute('hidden');
+  }
+  function hideEl(el) {
+    if (!el) return;
+    el.classList.add('hidden');
+    el.hidden = true;
+  }
+  function isHidden(el) {
+    if (!el) return true;
+    return el.classList.contains('hidden') || el.hidden === true || el.hasAttribute('hidden');
+  }
 
-    // --- 하위 태스크 토글 처리 ---
-    const toggleTrigger = e.target.closest('.js-toggle-subtasks');
-    if (toggleTrigger && !e.target.closest('input[type="checkbox"]')) {
-      const parentRow = toggleTrigger.closest('[data-task-id]');
-      if (parentRow) {
-        const subTaskContainer = findSubTaskContainer(parentRow);
-        if (subTaskContainer) {
-          subTaskContainer.classList.toggle('hidden');
-          parentRow.querySelector('.js-toggle-subtasks')?.classList.toggle('open');
-        }
-      }
-      return;
-    }
-  });
-
-  // 더블클릭시 하위 태스크 추가
-  document.body.addEventListener('dblclick', function (e) {
-    const taskRow = e.target.closest('.task-row:not(.task-form-row)');
-    if (taskRow) {
-      const taskId = taskRow.dataset.taskId;
-      if (!taskId) return;
-
-      const container = ensureSubTaskContainer(taskRow);
-      container.classList.remove('hidden');
-      taskRow.querySelector('.js-toggle-subtasks')?.classList.add('open');
-      const subBody = container.querySelector('.sub-task-body') || container;
-      showTaskForm(subBody, taskId);
-    }
-  });
-
-  // ESC 키 이벤트 리스너
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') hideStatusPopover();
-  });
-
-  // 체크박스 변경 이벤트 리스너
-  document.body.addEventListener('change', function (e) {
-    if (e.target.matches('.task-row input[type="checkbox"]')) {
-      const row = e.target.closest('.task-row');
-      row?.classList.toggle('is-selected', e.target.checked);
-      syncDeleteButtonState();
-    }
-  });
-
-  /* 진행률 바 */
   function updateAllProgressBars() {
     document.querySelectorAll('.task-progress-bar').forEach((bar) => {
       const progress = parseInt(bar.dataset.progress || '0', 10);
@@ -86,7 +53,37 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+
   /*   하위 컨테이너 유틸   */
+  function renderChildRow(t) {
+    const hasChildren = !!(t.childrenCount && Number(t.childrenCount) > 0);
+    return `
+      <div class="task-row sub" data-task-id="${t.id}">
+        <div class="task-cell task-actions-cell">
+          <div class="icon-wrapper">
+            ${hasChildren ? '<span class="toggle-icon js-toggle-subtasks"><i class="fa-solid fa-caret-right"></i></span>' : '<input type="checkbox" class="form-check-input">'}
+          </div>
+        </div>
+        <div class="task-cell task-title-cell">${esc(t.title)}</div>
+        <div class="task-cell assignee-cell">${esc(t.assignee ?? '-')}</div>
+        <div class="task-cell started-at-cell">${esc(t.startDate ?? '')}</div>
+        <div class="task-cell duedate-cell">${esc(t.dueDate ?? '')}</div>
+        <div class="task-cell status-cell"><span class="status">${esc(t.status ?? '')}</span></div>
+        <div class="task-cell priority-cell">${esc(t.priority ?? '')}</div>
+        <div class="task-cell progress-cell">
+          <div class="progress-cell-wrapper">
+            <span class="progress-value"></span>
+            <div class="task-progress-container">
+              <div class="task-progress-bar" data-progress="0"></div>
+            </div>
+          </div>
+        </div>
+        <div class="task-cell file-cell"></div>
+        <div class="task-cell updated-at-cell"></div>
+      </div>
+    `;
+  }
+
   function findSubTaskContainer(taskRow) {
     let el = taskRow.nextElementSibling;
     while (el && !(el.classList && el.classList.contains('sub-task-container'))) {
@@ -94,30 +91,31 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     return el || null;
   }
+
   function ensureSubTaskContainer(taskRow) {
     const exist = findSubTaskContainer(taskRow);
     if (exist) return exist;
 
     const wrapper = document.createElement('div');
-    wrapper.className = 'sub-task-container';
+    wrapper.className = 'sub-task-container hidden';
     wrapper.innerHTML = `
-        <div class="task-list-header sub-task-header">
-            <div class="task-cell task-actions-cell"></div>
-            <div class="task-cell task-title-cell">하위 태스크</div>
-            <div class="task-cell assignee-cell">담당자</div>
-            <div class="task-cell started-at-cell">시작일</div>
-            <div class="task-cell duedate-cell">마감일</div>
-            <div class="task-cell status-cell">상태</div>
-            <div class="task-cell priority-cell">우선순위</div>
-            <div class="task-cell progress-cell">진행률</div>
-            <div class="task-cell file-cell">파일</div>
-            <div class="task-cell updated-at-cell">최근 수정일</div>
-        </div>
-        <div class="task-list-body sub-task-body"></div>
-        `;
+      <div class="task-list-header sub-task-header">
+        <div class="task-cell task-actions-cell"></div>
+        <div class="task-cell task-title-cell">하위 태스크</div>
+        <div class="task-cell assignee-cell">담당자</div>
+        <div class="task-cell started-at-cell">시작일</div>
+        <div class="task-cell duedate-cell">마감일</div>
+        <div class="task-cell status-cell">상태</div>
+        <div class="task-cell priority-cell">우선순위</div>
+        <div class="task-cell progress-cell">진행률</div>
+        <div class="task-cell file-cell">파일</div>
+        <div class="task-cell updated-at-cell">최근 수정일</div>
+      </div>
+      <div class="task-list-body sub-task-body"></div>
+    `;
     taskRow.insertAdjacentElement('afterend', wrapper);
 
-    //상위 태스크에 토글 아이콘 추가
+    // 상위 행에 토글 아이콘 보장
     const iconWrapper = taskRow.querySelector('.icon-wrapper');
     if (iconWrapper && !iconWrapper.querySelector('.js-toggle-subtasks')) {
       const checkbox = iconWrapper.querySelector('.form-check-input');
@@ -125,16 +123,25 @@ document.addEventListener('DOMContentLoaded', function () {
       span.className = 'toggle-icon js-toggle-subtasks';
       span.innerHTML = '<i class="fa-solid fa-caret-right"></i>';
 
-      if (checkbox) {
-        checkbox.replaceWith(span);
-      } else {
-        iconWrapper.prepend(span);
-      }
+      if (checkbox) checkbox.replaceWith(span);
+      else iconWrapper.prepend(span);
     }
     return wrapper;
   }
 
+
   /* ---------- 태스크 폼(추가/수정) 관련 ---------- */
+  async function loadChildrenOnce(container, parentId) {
+    if (container.dataset.loaded) return;
+    const res = await fetch(API.children(parentId));
+    if (!res.ok) throw new Error('하위 태스크 로드 실패');
+    const list = await res.json();
+    const body = container.querySelector('.sub-task-body') || container;
+    body.innerHTML = list.map(renderChildRow).join('');
+    container.dataset.loaded = '1';
+    updateAllProgressBars();
+  }
+
   function showTaskForm(targetContainer, parentTaskId = null) {
     if (currentOpenForm) {
       currentOpenForm.remove();
@@ -142,10 +149,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const formTemplate = document.getElementById('task-form-template');
-    if (!formTemplate) return console.warn('태스크 폼 템플릿이 없습니다.');
+
+    if (!formTemplate) {
+      console.warn('태스크 폼 템플릿이 없습니다.');
+      return;
+    }
 
     const formClone = formTemplate.cloneNode(true);
     formClone.removeAttribute('id');
+    formClone.classList.remove('hidden');
     if (parentTaskId) formClone.dataset.parentId = parentTaskId;
 
     targetContainer.insertAdjacentElement('beforeend', formClone);
@@ -177,64 +189,84 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
+
   async function handleSaveTask(event) {
-    const form = event.target.closest('.task-form');
-    if (!form) return;
-    const titleInput = form.querySelector('input[name="title"]');
-    if (!titleInput || !titleInput.value.trim()) {
-      alert('태스크 이름을 입력하세요.');
-      titleInput?.focus();
+    const form = event.target.closest('.task-form-row');
+    if (!form) {
+      alert('저장 폼을 찾을 수 없습니다.');
       return;
     }
-    const start_date = form.querySelector('input[name="startedAt"]')?.value || '';
-    const due_date = form.querySelector('input[name="dueDate"]')?.value || '';
-    const priority = form.querySelector('select[name="priority"]')?.value || 'normal';
 
+    const titleEl = form.querySelector('input[name="title"]');
+    const startEl = form.querySelector('input[name="startedAt"]');
+    const dueEl = form.querySelector('input[name="dueDate"]');
+    const prioEl = form.querySelector('select[name="priority"]');
+
+    const title = titleEl?.value?.trim() || '';
+    if (!title) {
+      alert('제목을 입력하세요.');
+      titleEl?.focus();
+      return;
+    }
+
+    const assigneeId = null;
     const taskData = {
-      name: titleInput.value.trim(),
-      start_date,
-      due_date,
-      status: 'Assignments',
-      priority,
-      parentId: form.dataset.parentId || null,
+      title,
+      startDate: startEl?.value || null,
+      dueDate: dueEl?.value || null,
+      priorityId: getPriorityId(prioEl?.value || 'normal'),
+      assigneeId,
+      parentTaskId: form.dataset.parentId ? Number(form.dataset.parentId) : null,
     };
-
-    ///////////////디버그
-    const requestUrl = '/api/tasks';
-    const requestBody = JSON.stringify(taskData);
-    const requestOptions = {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: requestBody,
-    };
-
-    console.groupCollapsed('[저장] 태스크 저장');
-    console.table(taskData);
-    console.log('Request URL:', requestUrl);
-    console.log('Request Options:', requestOptions);
-    console.groupEnd();
-    /////////디버그
 
     try {
-      const response = await fetch('/api/tasks', {
+      const res = await fetch(API.createTask, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData),
       });
-      if (!response.ok) throw new Error('태스크 저장에 실패했습니다.');
+
+      if (!res.ok) {
+        let msg = '저장 실패';
+        try {
+          const j = await res.json();
+          if (j?.message) msg += `: ${j.message}`;
+        } catch {}
+        alert(msg);
+        return;
+      }
+
+      alert('저장 완료');
       window.location.reload();
-    } catch (err) {
-      console.error(err);
-      alert(err.message || '저장 중 오류가 발생했습니다.');
+    } catch (e) {
+      console.error(e);
+      alert('저장 중 오류가 발생했습니다.');
     }
   }
 
-  /* ---------- 태스크 선택/삭제 관련 ---------- */
+  function getPriorityId(val) {
+    switch (val) {
+      case 'highest':
+        return 5;
+      case 'high':
+        return 4;
+      case 'normal':
+        return 3;
+      case 'low':
+        return 2;
+      case 'lowest':
+        return 1;
+      default:
+        return 3;
+    }
+  }
+
   function syncDeleteButtonState() {
     const anyChecked = document.querySelector('.task-row input[type="checkbox"]:checked') !== null;
     const delBtn = document.getElementById('task-delete-btn');
     if (delBtn) delBtn.disabled = !anyChecked;
   }
+
   async function handleDeleteTask() {
     const selectedIds = [...document.querySelectorAll('.task-row input[type="checkbox"]:checked')].map((cb) => cb.closest('.task-row')?.dataset.taskId).filter(Boolean);
 
@@ -242,10 +274,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!confirm(`${selectedIds.length}개의 태스크를 삭제할까요?`)) return;
 
     try {
-      const resp = await fetch('/api/tasks/bulk-delete', {
+      const resp = await fetch(API.bulkDelete, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: selectedIds }),
+        body: JSON.stringify(selectedIds),
       });
       if (!resp.ok) throw new Error('삭제에 실패했습니다.');
 
@@ -264,8 +296,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+
   /* 상태 */
   const statusPopover = document.getElementById('status-popover');
+
   function toggleStatusPopover(cell) {
     if (!statusPopover) return;
     if (statusPopover.hidden || activeStatusPopover !== statusPopover) {
@@ -274,10 +308,12 @@ document.addEventListener('DOMContentLoaded', function () {
       hideStatusPopover();
     }
   }
+
   async function showStatusPopover(cell) {
     if (!statusPopover) return;
     hideStatusPopover();
     activeStatusPopover = statusPopover;
+
     const currentTaskId = cell.closest('.task-row')?.dataset.taskId;
     if (!currentTaskId) return;
 
@@ -288,17 +324,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     await populateStatusList(currentTaskId, cell);
   }
+
   function hideStatusPopover() {
     if (!statusPopover) return;
     statusPopover.hidden = true;
     activeStatusPopover = null;
   }
+
   async function populateStatusList(taskId, cell) {
     const list = statusPopover.querySelector('.status-list');
     list.innerHTML = '<li>불러오는 중...</li>';
     try {
       const statuses = [
-        /* 데모 데이터 */ { id: 1, name: 'Assignments', color: '#e3e3e3' },
         { id: 2, name: 'in-progress', color: '#b5e6ff' },
         { id: 3, name: 'Reviewing', color: '#87cbfb' },
         { id: 4, name: 'Completed', color: '#3041ff' },
@@ -322,10 +359,11 @@ document.addEventListener('DOMContentLoaded', function () {
           statusSpan.textContent = statusName;
           statusSpan.className = `status ${statusName}`;
           hideStatusPopover();
-        } catch (err) {
+        } catch {
           alert('상태 변경에 실패했습니다.');
         }
       };
+
       statusPopover.querySelector('.status-add-input').onkeydown = async (e) => {
         if (e.key !== 'Enter') return;
         const newStatusName = e.target.value.trim();
@@ -334,16 +372,119 @@ document.addEventListener('DOMContentLoaded', function () {
           alert(`'${newStatusName}' 상태가 추가되었습니다.`);
           e.target.value = '';
           await populateStatusList(taskId, cell);
-        } catch (err) {
+        } catch {
           alert('새 상태 추가에 실패했습니다.');
         }
       };
-    } catch (err) {
+    } catch {
       list.innerHTML = '<li>목록을 불러오지 못했습니다.</li>';
     }
   }
 
-  /* ---------- 초기화 ---------- */
+  // ------------------------
+  // 클릭 하나로 모든 상호작용 처리
+  // ------------------------
+  document.body.addEventListener('click', function (e) {
+    // 1) 특별 버튼들 우선 처리
+    const addBtn = e.target.closest('#task-add-btn');
+    if (addBtn) {
+      const activeTaskListBody = document.querySelector('.active-task-container .task-list-body');
+      if (activeTaskListBody) showTaskForm(activeTaskListBody, null);
+      return;
+    }
+
+    const deleteBtn = e.target.closest('#task-delete-btn');
+    if (deleteBtn) {
+      handleDeleteTask();
+      return;
+    }
+
+    // 상태 팝오버 셀
+    const statusCell = e.target.closest('.task-row .task-cell.status-cell');
+    if (statusCell) {
+      toggleStatusPopover(statusCell);
+      return;
+    }
+    if (activeStatusPopover && !activeStatusPopover.contains(e.target)) hideStatusPopover();
+
+    // 2) 테이블 내부 클릭(행 기준)
+    const row = e.target.closest('.task-row:not(.task-form-row)');
+    if (!row) return;
+
+    const isToggle = !!e.target.closest('.js-toggle-subtasks');
+
+    // 더블클릭 감지: 두 번째 클릭 시 detail === 2
+    if (e.detail === 2) {
+      if (clickTimer) {
+        clearTimeout(clickTimer);
+        clickTimer = null;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+
+      // 더블클릭: 하위 컨테이너 열고 폼 표시(자식 최초 로드 포함)
+      (async () => {
+        const container = ensureSubTaskContainer(row);
+        try {
+          await loadChildrenOnce(container, row.dataset.taskId);
+          showEl(container);
+          row.querySelector('.js-toggle-subtasks')?.classList.add('open');
+          const subBody = container.querySelector('.sub-task-body') || container;
+          showTaskForm(subBody, row.dataset.taskId);
+        } catch (err) {
+          console.error(err);
+          hideEl(container);
+          row.querySelector('.js-toggle-subtasks')?.classList.remove('open');
+          alert(err.message || '하위 태스크를 불러오지 못했습니다.');
+        }
+      })();
+      return;
+    }
+
+    // 단일 클릭 후보: 타이머로 지연 실행해 더블클릭과 충돌 방지
+    if (clickTimer) clearTimeout(clickTimer);
+    clickTimer = setTimeout(async () => {
+      clickTimer = null;
+
+      // 단일 클릭 동작: 토글 아이콘을 눌렀을 때만 토글
+      if (isToggle) {
+        const container = findSubTaskContainer(row) || ensureSubTaskContainer(row);
+        const wasHidden = isHidden(container);
+
+        if (wasHidden) {
+          try {
+            await loadChildrenOnce(container, row.dataset.taskId);
+            showEl(container);
+            row.querySelector('.js-toggle-subtasks')?.classList.add('open');
+          } catch (err) {
+            console.error(err);
+            hideEl(container);
+            row.querySelector('.js-toggle-subtasks')?.classList.remove('open');
+            alert(err.message || '하위 태스크를 불러오지 못했습니다.');
+          }
+        } else {
+          hideEl(container);
+          row.querySelector('.js-toggle-subtasks')?.classList.remove('open');
+        }
+      }
+      // (필요 시 다른 “단일 클릭” 기능도 여기에 추가)
+    }, DOUBLE_DELAY);
+  });
+
+  // 체크박스 선택 토글
+  document.body.addEventListener('change', function (e) {
+    if (e.target.matches('.task-row input[type="checkbox"]')) {
+      const row = e.target.closest('.task-row');
+      row?.classList.toggle('is-selected', e.target.checked);
+      syncDeleteButtonState();
+    }
+  });
+
+  // ESC → 팝오버 닫기
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideStatusPopover();
+  });
+
   syncDeleteButtonState();
   updateAllProgressBars();
   const observer = new MutationObserver(updateAllProgressBars);

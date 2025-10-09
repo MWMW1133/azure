@@ -177,15 +177,15 @@
       { key: 'away', ...PRESENCE.away },
       { key: 'offline', ...PRESENCE.offline },
     ]
-      .map(
-        (s) => `
+        .map(
+            (s) => `
       <div class="status-item" role="menuitem" tabindex="0" data-key="${s.key}">
         <span class="status-dot" style="background:${s.color}"></span>
         <span>${s.label}</span>
       </div>
     `
-      )
-      .join('');
+        )
+        .join('');
 
     pop.addEventListener('click', (e) => {
       const item = e.target.closest('.status-item');

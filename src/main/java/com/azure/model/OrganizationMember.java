@@ -30,4 +30,13 @@ public class OrganizationMember {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrganizationRole role; // MANAGER or MEMBER
+
+    public OrganizationMember(Organization organization, User user, OrganizationRole role) {
+        this.organization = organization;
+        this.user = user;
+        this.role = role;
+        this.id = new OrganizationMemberId(organization.getId(), user.getId());
+    }
+
+    public OrganizationMember() {}
 }

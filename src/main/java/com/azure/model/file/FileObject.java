@@ -6,6 +6,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import com.azure.model.user.User;
 import com.azure.model.Organization;
+import com.azure.model.task.Task;
 
 @Data
 @Entity
@@ -36,4 +37,8 @@ public class FileObject {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organization_id")
     private Organization organization;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "task_id")
+    private Task task;
 }

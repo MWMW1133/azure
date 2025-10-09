@@ -6,7 +6,7 @@
       <button type="button" class="popup-close">&times;</button>
     </div>
     <div class="pplan-template-body">
-      <form id="project-pplan-form">
+      <form id="project-pplan-form" onsubmit="return false;">
         <input type="hidden" id="pplan-id" />
         <div class="form-row">
           <div class="form-group">

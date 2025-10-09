@@ -31,4 +31,6 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
             """)
     List<OrganizationMember> findByUserIdFetchOrganization(@Param("userId") Long userId);
 
+    boolean existsByOrganizationIdAndUserId(Long organizationId, Long userId);
+
 }

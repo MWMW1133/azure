@@ -11,9 +11,9 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <script src="${pageContext.request.contextPath}/js/bootstrap/bootstrap.bundle.js"></script>
 
-<div class="project-wrapper" 
-     id="project-root"
-     data-project-id="${projectId}" 
+<div class="project-wrapper"
+     id="project-tab-root"
+     data-project-id="${projectId}"
      data-project-name="${projectName}"
      data-context-path="${pageContext.request.contextPath}">
   <div class="project-header">
