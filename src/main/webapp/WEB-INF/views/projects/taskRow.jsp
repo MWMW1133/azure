@@ -125,3 +125,4 @@
     <span class="updated-at-text">${empty currentTask.updatedAt ? '-' : currentTask.updatedAt}</span>
   </div>
 </div>
+

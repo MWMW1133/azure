@@ -51,7 +51,6 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByOrganizationIdAndWorkStatus(organizationId, User.WorkStatus.WORKING);
     }
 
-
     @Override
     public User create(Long organizationId, String loginId, String passwordHash,
                        String name, String avatarUrl, User.WorkStatus workStatus,
@@ -117,8 +116,12 @@ public class UserServiceImpl implements UserService {
         System.out.println("[DEBUG] 일반 가입: 조직 미소속 userId=" + u.getId());
         return u;
     }
+<<<<<<<<< Temporary merge branch 1
+    // 로그인된 사용자 정보 수정 (비밀번호, 이름, 아바타, 근무 상태)
+=========
 
 
+>>>>>>>>> Temporary merge branch 2
     @Override
     public User update(String passwordHash, String name, String avatarUrl, User.WorkStatus workStatus) {
         Long currentUserId = com.azure.security.SecurityUtil.getCurrentUserId();

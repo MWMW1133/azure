@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="jakarta.tags.core" prefix="c" %> <%-- ★ JSTL 3.0 (Jakarta) --%>
 
+
 <div class="main-wrapper">
   <div class="main-wrapper-header">
     <div class="main-search-wrapper">
@@ -16,7 +17,7 @@
   </div>
 
   <div  class="main-wrapper-body"
-        id="project-tab-root"              
+        id="project-tab-root"               <%-- ★ JS와 id 통일(원래 project-root -> project-tab-root) --%>
         data-project-id="${projectId}"
         data-ctx="${pageContext.request.contextPath}">
 

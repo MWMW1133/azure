@@ -53,6 +53,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+
+  /*   하위 컨테이너 유틸   */
   function renderChildRow(t) {
     const hasChildren = !!(t.childrenCount && Number(t.childrenCount) > 0);
     return `
@@ -127,6 +129,8 @@ document.addEventListener('DOMContentLoaded', function () {
     return wrapper;
   }
 
+
+  /* ---------- 태스크 폼(추가/수정) 관련 ---------- */
   async function loadChildrenOnce(container, parentId) {
     if (container.dataset.loaded) return;
     const res = await fetch(API.children(parentId));
@@ -145,6 +149,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const formTemplate = document.getElementById('task-form-template');
+
     if (!formTemplate) {
       console.warn('태스크 폼 템플릿이 없습니다.');
       return;
@@ -203,8 +208,8 @@ document.addEventListener('DOMContentLoaded', function () {
       titleEl?.focus();
       return;
     }
-    const assigneeId = null; // 필요 시 담당자 지정 기능 추가
 
+    const assigneeId = null;
     const taskData = {
       title,
       startDate: startEl?.value || null,
@@ -272,7 +277,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const resp = await fetch(API.bulkDelete, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: selectedIds }),
+        body: JSON.stringify(selectedIds),
       });
       if (!resp.ok) throw new Error('삭제에 실패했습니다.');
 
@@ -291,7 +296,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // ===== 상태 팝오버 =====
+
+  /* 상태 */
   const statusPopover = document.getElementById('status-popover');
 
   function toggleStatusPopover(cell) {
@@ -330,7 +336,6 @@ document.addEventListener('DOMContentLoaded', function () {
     list.innerHTML = '<li>불러오는 중...</li>';
     try {
       const statuses = [
-        { id: 1, name: 'Assignments', color: '#e3e3e3' },
         { id: 2, name: 'in-progress', color: '#b5e6ff' },
         { id: 3, name: 'Reviewing', color: '#87cbfb' },
         { id: 4, name: 'Completed', color: '#3041ff' },
@@ -480,7 +485,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e.key === 'Escape') hideStatusPopover();
   });
 
-  // ---------- 초기화 ----------
   syncDeleteButtonState();
   updateAllProgressBars();
   const observer = new MutationObserver(updateAllProgressBars);
