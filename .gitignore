@@ -1,4 +1,7 @@
 ### build outputs ###
+/uploads/
+/recordings/
+/var/azure/uploads/
 target/
 build/
 out/
@@ -35,7 +38,6 @@ out/
 *.keystore
 
 # 🔐 비밀 설정 파일은 무조건 무시
-/src/main/resources/application-secret.yml
 /config/application-secret.yml
 
 # 📄 템플릿(예시)은 커밋 허용
@@ -45,4 +47,4 @@ out/
 # application.properties   <-- 제거
 # application.yml          <-- 제거
 src/main/resources/application-secret.yml
-src/main/resources/application-secret.yml
+
