@@ -41,6 +41,26 @@ public class TaskController {
                     map.put("priority",
                             (t.getPriority() != null && t.getPriority().getName() != null)
                                     ? t.getPriority().getName() : "-");
+                    map.put("childrenCount", t.getChildrenCount());
+                    return map;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/{parentId}/children")
+    public List<Map<String, Object>> getChildren(@PathVariable Long projectId, @PathVariable Long parentId) {
+        // 목록 조회 메소드의 매핑 로직을 재사용할 수 있습니다.
+        return taskService.getSubTasks(parentId).stream()
+                .map(t -> {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("id", t.getId());
+                    map.put("title", t.getTitle());
+                    map.put("assignee", (t.getAssignee() != null) ? t.getAssignee().getName() : "-");
+                    map.put("startDate", t.getStartDate());
+                    map.put("dueDate", t.getDueDate());
+                    map.put("status", (t.getWorkflow() != null) ? t.getWorkflow().getName() : "-");
+                    map.put("priority", (t.getPriority() != null) ? t.getPriority().getName() : "-");
+                    map.put("childrenCount", t.getChildrenCount()); // 중첩된 하위 태스크를 위해 추가
                     return map;
                 })
                 .collect(Collectors.toList());
@@ -88,4 +108,6 @@ public ResponseEntity<TaskResponseDTO> create(
     public void deleteTasks(@PathVariable Long projectId, @RequestBody List<Long> ids) {
         taskService.deleteTasks(ids);
     }
+
+    
 }

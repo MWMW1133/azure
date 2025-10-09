@@ -385,10 +385,54 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Transactional(readOnly = true)
     public List<Task> listByProject(Long projectId) {
-        // 컨트롤러에서 JSP 렌더링 직전까지 사용되므로 초기화 필수
-        List<Task> list = taskRepository.findByProject_IdOrderByIdAsc(projectId);
-        prefetchToOne(list);
-        return list;
+        // 1. 최상위 태스크만 조회
+        List<Task> topLevelTasks = taskRepository.findByProjectIdAndParentTaskIsNullOrderByIdAsc(projectId);
+
+        if (topLevelTasks.isEmpty()) {
+            return topLevelTasks;
+        }
+
+        // 2. 하위 태스크 개수를 일괄 조회하기 위해 부모 ID 목록을 준비
+        List<Long> parentIds = topLevelTasks.stream().map(Task::getId).collect(Collectors.toList());
+        
+        // 3. 한 번의 쿼리로 하위 태스크 개수들을 조회
+        Map<Long, Long> childrenCountMap = taskRepository.countChildrenByParentIds(parentIds).stream()
+                .collect(Collectors.toMap(
+                        map -> (Long) map.get("parentId"),
+                        map -> (Long) map.get("cnt")
+                ));
+
+        // 4. 각 최상위 태스크에 하위 태스크 개수를 설정
+        topLevelTasks.forEach(task -> 
+            task.setChildrenCount(childrenCountMap.getOrDefault(task.getId(), 0L))
+        );
+
+        prefetchToOne(topLevelTasks);
+        return topLevelTasks;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Task> getSubTasks(Long parentId) {
+        List<Task> subTasks = taskRepository.findByParentTaskId(parentId);
+        
+        if (subTasks.isEmpty()) {
+            return subTasks;
+        }
+
+        // 중첩된 하위 태스크가 있을 수 있으므로, 이 하위 태스크들의 자식 개수도 조회합니다.
+        List<Long> parentIds = subTasks.stream().map(Task::getId).collect(Collectors.toList());
+        Map<Long, Long> childrenCountMap = taskRepository.countChildrenByParentIds(parentIds).stream()
+                .collect(Collectors.toMap(
+                        map -> (Long) map.get("parentId"),
+                        map -> (Long) map.get("cnt")
+                ));
+
+        subTasks.forEach(task -> 
+            task.setChildrenCount(childrenCountMap.getOrDefault(task.getId(), 0L))
+        );
+        
+        prefetchToOne(subTasks);
+        return subTasks;
     }
 
     @Override
@@ -443,4 +487,5 @@ public class TaskServiceImpl implements TaskService {
             // if (t.getFiles() != null) Hibernate.initialize(t.getFiles());
         }
     }
+
 }

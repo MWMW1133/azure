@@ -84,4 +84,6 @@ public interface TaskService {
 
     /** 워크플로 단계를 이름으로 변경(이벤트 발행 포함) */
     Task changeWorkflow(Long taskId, String toStage, Long actorUserId);
+
+    List<Task> getSubTasks(Long parentId);
 }
