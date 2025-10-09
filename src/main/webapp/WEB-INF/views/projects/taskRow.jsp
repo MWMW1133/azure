@@ -11,7 +11,7 @@
   <div class="task-cell task-actions-cell">
     <div class="icon-wrapper">
       <c:choose>
-        <c:when test="${not empty children}">
+        <c:when test="${task.childrenCount > 0}">
           <span class="toggle-icon js-toggle-subtasks"><i class="fa-solid fa-caret-right"></i></span>
         </c:when>
         <c:otherwise>
@@ -125,26 +125,3 @@
     <span class="updated-at-text">${empty currentTask.updatedAt ? '-' : currentTask.updatedAt}</span>
   </div>
 </div>
-
-<!-- 하위 태스크 (재귀 구조) -->
-<c:if test="${not empty children}">
-  <div class="sub-task-container hidden">
-    <div class="task-list-header sub-task-header">
-      <div class="task-cell task-actions-cell"></div>
-      <div class="task-cell task-title-cell">하위 태스크</div>
-      <div class="task-cell assignee-cell">담당자</div>
-      <div class="task-cell started-at-cell">시작일</div>
-      <div class="task-cell duedate-cell">마감일</div>
-      <div class="task-cell status-cell">상태</div>
-      <div class="task-cell priority-cell">우선순위</div>
-      <div class="task-cell progress-cell">진행률</div>
-      <div class="task-cell file-cell">파일</div>
-      <div class="task-cell updated-at-cell">최근 수정일</div>
-    </div>
-
-    <c:forEach var="subTaskItem" items="${children}">
-      <c:set var="task" value="${subTaskItem}" scope="request" />
-      <jsp:include page="/WEB-INF/views/projects/taskRow.jsp" />
-    </c:forEach>
-  </div>
-</c:if>

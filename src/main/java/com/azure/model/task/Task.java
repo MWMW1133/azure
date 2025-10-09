@@ -89,4 +89,8 @@ public class Task {
     }
     public Long getFileCount() { return fileCount; }
     public void setFileCount(Long fileCount) { this.fileCount = fileCount; }
+
+    //하위 태스크 카운트
+    @Transient
+    private Long childrenCount;
 }

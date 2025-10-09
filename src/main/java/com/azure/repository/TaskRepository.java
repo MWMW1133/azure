@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.azure.model.task.Task;
 import java.util.List;
+import java.util.Map;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
     /** 특정 프로젝트의 모든 태스크 */
@@ -77,4 +78,15 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     @EntityGraph(attributePaths = {"assignee", "workflow", "priority"})
     Page<Task> findByProjectIdAndWorkflow_IdIn(Long projectId, List<Long> workflowIds, Pageable pageable);
+
+     @EntityGraph(attributePaths = {"assignee", "workflow", "priority"})
+    List<Task> findByProjectIdAndParentTaskIsNullOrderByIdAsc(Long projectId);
+
+    @Query("""
+        SELECT t.parentTask.id as parentId, COUNT(t.id) as cnt
+        FROM Task t
+        WHERE t.parentTask.id IN :parentIds
+        GROUP BY t.parentTask.id
+    """)
+    List<Map<String, Object>> countChildrenByParentIds(@Param("parentIds") List<Long> parentIds);
 }
