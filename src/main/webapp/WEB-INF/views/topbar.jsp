@@ -1,191 +1,5 @@
 <!-- topbar.jsp -->
 <%@ page contentType="text/html;charset=UTF-8" %>
-    <!-- Bootstrap CSS -->
-    <link href="${pageContext.request.contextPath}/css/bootstrap/bootstrap.css" rel="stylesheet">
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
-        .topbar {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            height: 60px;
-            background: #fff;
-            border-bottom: 1px solid #ddd;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
-        }
-        .topbar .left {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .topbar .logo {
-            height: 28px;
-            width: auto;
-        }
-
-        .topbar .right {
-            display: flex;
-            align-items: center;
-            gap: 1rem;  /* 아이콘 간격 */
-        }
-
-        .topbar .right i {
-            cursor: pointer;
-        }
-
-        .topbar .profile {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-        }
-
-        .notif-panel {
-            width: 340px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border: none;
-            position: relative;
-            padding: 16px;
-        }
-        .notif-panel::before {
-            content: "";
-            position: absolute;
-            top: -10px;
-            right: 10px;
-            border-width: 0 10px 10px 10px;
-            border-style: solid;
-            border-color: transparent transparent #fff transparent;
-            filter: drop-shadow(0 -1px 1px rgba(0,0,0,0.1));
-        }
-        /* 카드형 알림 */
-        .notif-card {
-            background: #f9f9f9;
-            border-radius: 10px;
-            padding: 10px 12px;
-            margin-bottom: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-            font-size: 14px;
-        }
-        .notif-card:hover {
-            background: #f1f1f1;
-        }
-
-        /* To-do 패널 공통 */
-        .todo-panel {
-            width: 500px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border: none;
-            position: relative;
-        }
-
-        /* 표 스타일 */
-        .todo-panel table {
-            border-collapse: separate;
-            border-spacing: 0 8px; /* 행 간격 */
-        }
-
-        .todo-panel thead th {
-            font-size: 13px;
-            color: #555;
-            border-bottom: 1px solid #e5e5e5;
-            padding-bottom: 6px;
-        }
-
-        .todo-panel tbody td {
-            font-size: 13px;
-            background: #f9f9f9;
-            border-radius: 6px;
-            padding: 8px 12px;
-            vertical-align: middle;
-        }
-
-        /* 완료/미완료 라벨 */
-        .badge {
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 6px;
-        }
-
-        /* 검색 관련 */
-        .search-modal { border-radius: 1rem; }
-        #searchTabContent { max-height: 48vh; overflow: auto; }
-        .notif-panel, .todo-panel { width: 380px; }
-
-
-        /* 프로필 클릭 시 */
-        /* 프로필 드롭다운 전체 */
-        .dropdown-menu.profile-menu {
-            min-width: 240px;
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-            padding: 12px;
-        }
-
-        /* 상단 프로필 영역 */
-        .profile-header {
-            display: flex;
-            align-items: center;
-            padding: 8px 0;
-        }
-
-        .profile-header img {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            margin-right: 10px;
-        }
-
-        .profile-header .name {
-            font-weight: 600;
-            font-size: 15px;
-        }
-
-        /* 메뉴 아이템 */
-        .profile-menu .dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            font-size: 14px;
-        }
-
-        .profile-menu .dropdown-item i {
-            font-size: 16px;
-        }
-
-        /* 로그아웃은 빨간색 */
-        .profile-menu .dropdown-item.logout {
-            color: #d93025;
-            font-weight: 500;
-        }
-        .profile-menu .dropdown-item.logout:hover {
-            background-color: #fce8e6;
-            color: #b31412;
-        }
-
-        /* 설정 서브 드롭다운 */
-        .dropdown-submenu {
-            position: relative;
-        }
-
-        .dropdown-submenu > .dropdown-menu {
-            top: 0;
-            left: -100%;
-            margin-top: -0.25rem;
-            margin-left: .1rem;
-            margin-right: .1rem;
-        }
-    </style>
-</head>
-<body>
-
     <!-- 탑바 -->
     <div class="topbar">
         <div class="left">
@@ -248,69 +62,22 @@
                 <i class="bi bi-search fs-5 text-dark" role="button" aria-label="검색"></i>
             </a>
 
-            <!-- 프로필 드롭다운 --> <!-- 더미 데이터라서 나중에 변경 -->
+            <!-- 프로필 드롭다운 -->
             <div class="dropdown">
-                <img src="${pageContext.request.contextPath}/images/my-cat.png"
+                <img src="${pageContext.request.contextPath}${user.avatarUrl}"
                      alt="Profile" class="profile dropdown-toggle" id="profileDropdown"
                      data-bs-toggle="dropdown" aria-expanded="false">
-<%--                <img src="$src="${user.avatarUrl}"--%>
-<%--                     alt="Profile" class="profile dropdown-toggle" id="profileDropdown"--%>
-<%--                     data-bs-toggle="dropdown" aria-expanded="false">--%>
 
                 <ul class="dropdown-menu dropdown-menu-end profile-menu" aria-labelledby="profileDropdown">
-                    <!-- 프로필 헤더 --> <!-- 더미 데이터라서 나중에 변경 -->
                     <li class="profile-header">
-                        <img src="${pageContext.request.contextPath}/images/my-cat.png" alt="Profile">
-<%--                        <img src="${user.avatarUrl}" alt="Profile">--%>
-                        <div class="name">박소현</div>
-<%--                        <div class="name">${user.name}</div>--%>
+                        <img src="${pageContext.request.contextPath}${user.avatarUrl}" alt="Profile">
+                        <div class="name">${user.name}</div>
                     </li>
                     <hr class="my-2">
 
                     <!-- 메뉴 아이템 -->
                     <li><a class="dropdown-item" href="${pageContext.request.contextPath}/profile"><i class="bi bi-person"></i>View profile</a></li>
 
-<%--                    <!-- 설정 서브메뉴 -->--%>
-<%--                    <li class="dropdown-submenu">--%>
-<%--                        <a class="dropdown-item" href="#">--%>
-<%--                            <i class="bi bi-gear"></i>Settings--%>
-<%--                        </a>--%>
-<%--                        <ul class="dropdown-menu">--%>
-<%--                            <li class="dropdown-header">--%>
-<%--                                <i class="bi bi-gear"></i> Settings--%>
-<%--                            </li>--%>
-<%--                            <li><hr class="dropdown-divider"></li>--%>
-
-<%--                            <!-- Account Settings -->--%>
-<%--                            <li class="dropdown-submenu">--%>
-<%--                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="#" data-bs-toggle="collapse" data-bs-target="#accountSettingsMenu">--%>
-<%--                                    <span><i class="bi bi-person"></i> Account Settings</span>--%>
-<%--                                    <i class="bi bi-chevron-down"></i>--%>
-<%--                                </a>--%>
-<%--                                <ul class="collapse list-unstyled ps-3" id="accountSettingsMenu">--%>
-<%--                                    <li>--%>
-<%--                                        <a class="dropdown-item change-password" href="#">--%>
-<%--                                            <i class="bi bi-key"></i> Change Password--%>
-<%--                                        </a>--%>
-<%--                                    </li>--%>
-<%--                                </ul>--%>
-<%--                            </li>--%>
-
-<%--                            <!-- Notification Settings -->--%>
-<%--                            <li class="dropdown-submenu">--%>
-<%--                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="#" data-bs-toggle="collapse" data-bs-target="#notificationSettingsMenu">--%>
-<%--                                    <span><i class="bi bi-bell"></i> Notification Settings</span>--%>
-<%--                                    <i class="bi bi-chevron-down"></i>--%>
-<%--                                </a>--%>
-<%--                                <ul class="collapse list-unstyled ps-3" id="notificationSettingsMenu">--%>
-<%--                                    <li>--%>
-<%--                                        <a class="dropdown-item" href="#">--%>
-<%--                                            <i class="bi bi-toggle-on"></i> Push Notifications--%>
-<%--                                        </a>--%>
-<%--                                    </li>--%>
-<%--                                </ul>--%>
-<%--                            </li>--%>
-<%--                        </ul>--%>
                     <!-- Settings 서브메뉴 -->
                     <li class="dropdown-submenu">
                         <a class="dropdown-item" href="#">
@@ -339,8 +106,21 @@
                     </li>
 
 
-                    <li><a class="dropdown-item" href="#"><i class="bi bi-people"></i>Invite colleagues</a></li>
-                    <li><a class="dropdown-item logout" href="#"><i class="bi bi-box-arrow-right"></i>Log out</a></li>
+<%--                    <li><a class="dropdown-item" href="#"><i class="bi bi-people"></i>Invite colleagues</a></li>--%>
+                    <li>
+                        <a class="dropdown-item" href="#" id="openInviteModal">
+                            <i class="bi bi-people"></i> Invite colleagues
+                        </a>
+                    </li>
+
+                    <li>
+                        <form action="${pageContext.request.contextPath}/logout" method="post" style="display:inline;">
+                            <button type="submit" class="dropdown-item logout"
+                                    style="border:none; background:none; width:100%; text-align:left;">
+                                <i class="bi bi-box-arrow-right"></i> Log out
+                            </button>
+                        </form>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -546,13 +326,19 @@
         </div>
     </div>
 
-<!-- Bootstrap Icons & JS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-<script src="${pageContext.request.contextPath}/js/bootstrap/bootstrap.bundle.js"></script>
-<script src="${pageContext.request.contextPath}/js/notification.js"></script>
-<script src="${pageContext.request.contextPath}/js/todo.js"></script>
-<script src="${pageContext.request.contextPath}/js/chat/modal.js"></script>
-<script src="${pageContext.request.contextPath}/js/profile.js"></script>
+    <!-- 전역 접근 경로 추가 -->
+    <script>
+        // 전역 컨텍스트 경로 (예: "/azure")
+        window.APP_CTX = '${pageContext.request.contextPath}';
+        const userRole = "${org.role}";
+        const CURRENT_USER_ID = ${user.id};
+        // document.addEventListener("DOMContentLoaded", () => {
+        //     connectNotificationSocket(CURRENT_USER_ID);
+        // })
+    </script>
 
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<%--    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>--%>
 
-</body>
+    <!-- 이게 최신 stomp 버전인가? -->
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>

@@ -1,8 +1,12 @@
 package com.azure.service;
 
+import com.azure.model.OrganizationMember;
 import com.azure.model.user.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -32,18 +36,30 @@ public interface UserService {
      * @param avatarUrl 아바타 URL(선택)
      * @param workStatus 근무 상태 (기본값: WORKING)
      */
+//    User create(Long organizationId, String loginId, String passwordHash,
+//                String name, String avatarUrl, User.WorkStatus workStatus);
+//
+//    /** 프로필 필드 수정(조직/로그인ID 변경은 포함하지 않음). */
+//    User update(String passwordHash, String name, String avatarUrl, User.WorkStatus workStatus);
+//
+//    /** 물리 삭제. 소프트 삭제가 필요하면 workStatus = LEAVE 등으로 대체 가능. */
+//    void delete(Long userId);
+//
+//    /** 로그인 ID로 사용자 조회(없으면 Optional.empty()). */
+//    Optional<User> findByLoginId(String loginId);
+//
+//    /** 로그인 ID 중복 여부 확인 */
+//    boolean existsByLoginId(String loginId);
+
     User create(Long organizationId, String loginId, String passwordHash,
-                String name, String avatarUrl, User.WorkStatus workStatus);
+                String name, String avatarUrl, User.WorkStatus workStatus,
+                boolean isAdminSignup, String companyName);
 
-    /** 프로필 필드 수정(조직/로그인ID 변경은 포함하지 않음). */
     User update(String passwordHash, String name, String avatarUrl, User.WorkStatus workStatus);
-
-    /** 물리 삭제. 소프트 삭제가 필요하면 workStatus = LEAVE 등으로 대체 가능. */
     void delete(Long userId);
-
-    /** 로그인 ID로 사용자 조회(없으면 Optional.empty()). */
     Optional<User> findByLoginId(String loginId);
-
-    /** 로그인 ID 중복 여부 확인 */
     boolean existsByLoginId(String loginId);
+    Optional<OrganizationMember> findMembershipByUserId(Long userId);
+    List<User> searchInvitableUsers(String keyword);
+
 }

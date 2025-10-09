@@ -64,70 +64,52 @@
   // 상단 고정 3개
   (function bindFixed() {
     const fixed = document.querySelectorAll('.nav-fixed .nav-item');
-    // if (fixed[0]) fixed[0].addEventListener('click', () => Router.go('home'));
-    // if (fixed[1]) fixed[1].addEventListener('click', () => Router.go('tasks'));
-    // if (fixed[2]) fixed[2].addEventListener('click', () => Router.go('calendar'));
     if (fixed[0])
       fixed[0].addEventListener('click', (e) => {
-        Router.go('home');
+        // Router.go('home');
         setActiveNav(e.currentTarget);
       });
     if (fixed[1])
       fixed[1].addEventListener('click', (e) => {
-        Router.go('tasks');
+        // Router.go('tasks');
         setActiveNav(e.currentTarget);
       });
     if (fixed[2])
       fixed[2].addEventListener('click', (e) => {
-        Router.go('calendar');
+        // Router.go('calendar');
         setActiveNav(e.currentTarget);
       });
   })();
 
+
   // 프로젝트 목록 버튼
-  document.addEventListener('DOMContentLoaded', () => loadSidebarProjects());
-
-  async function loadSidebarProjects() {
-    const wrap = document.getElementById('sidebar-projects');
-    if (!wrap) return;
-    const ctx = (wrap.dataset.ctx || '').replace(/\/$/, '');
-    const activeId = wrap.dataset.activeProjectId;
-
-    const r = await fetch(`${ctx}/api/projects/list`, { cache: 'no-cache' });
-    if (!r.ok) throw new Error('myProjects ' + r.status);
-    const items = await r.json(); // [{id,name,...}]
-
-    wrap.innerHTML = '';
-    for (const p of items) {
-      const a = document.createElement('a');
-      a.className = 'proj-row' + (String(activeId) === String(p.id) ? ' active' : '');
-      a.href = `${ctx}/projects/${p.id}`;
-      a.innerHTML = `
-      <span class="ic elbow">
-        <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
-          <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>
-        </svg>
-      </span>
-      <span>${p.name ?? ''}</span>`;
-      wrap.appendChild(a);
-    }
-  }
+  document.querySelectorAll('.proj-list .proj-row').forEach((btn, i) => {
+    const name = btn.querySelector('span:last-child')?.textContent?.trim() || '프로젝트 ' + (i + 1);
+    const id = 11 + i; // 더미 ID
+    // btn.addEventListener('click', () => Router.go('project', { id, name }));
+    btn.addEventListener('click', (e) => {
+      // Router.go('project', { id, name });
+      setActiveNav(e.currentTarget);
+    });
+  });
 
   // 프로젝트 계획
   const planBtn = document.querySelector('.proj-row.proj-plan');
   // if (planBtn) planBtn.addEventListener('click', () => Router.go('plan'));
   if (planBtn)
     planBtn.addEventListener('click', (e) => {
-      Router.go('plan');
+      // Router.go('plan');
       setActiveNav(e.currentTarget);
     });
 
+
+  // 이쪽 router validation
   // 회의실
   const roomBtn = document.querySelector('.proj-row.room');
   // if (roomBtn) roomBtn.addEventListener('click', () => Router.go('room'));
   if (roomBtn)
     roomBtn.addEventListener('click', (e) => {
-      Router.go('room');
+      // Router.go('room');
       setActiveNav(e.currentTarget);
     });
 
@@ -135,10 +117,11 @@
   // const firstNav = document.querySelector(".nav-fixed .nav-item");
   // if (firstNav) setActiveNav(firstNav);
 
-  const currentActive = document.querySelector('.nav-fixed .nav-item.active');
+  const currentActive = document.querySelector(".nav-fixed .nav-item.active");
   if (currentActive) {
     setActiveNav(currentActive); // 서버가 붙인 active 유지
   }
+
 
   // ===== Presence Status (상태 선택 팝오버) =====
   const PRESENCE = {
@@ -312,68 +295,11 @@
         else showPopover();
       }
     });
+
+
   })();
 
-  // // === Meeting SPA mount ===
-  // (function bindMeetingNav() {
-  //   function mountMeeting() {
-  //     const mountTarget = document.querySelector('.page-body');
-  //     if (!mountTarget) return;
-  //
-  //     // 본문에 회의실 UI 렌더
-  //     if (window.Meeting && typeof window.Meeting.mount === 'function') {
-  //       window.Meeting.mount(mountTarget);
-  //     } else {
-  //       // meeting.js가 아직 안 들어왔을 때 대비(거의 필요 없지만 안전핀)
-  //       const s = document.createElement('script');
-  //       s.src = (window.APP_CTX || '') + '/js/meeting.js?v=spa_mount';
-  //       s.onload = () => window.Meeting?.mount(mountTarget);
-  //       document.body.appendChild(s);
-  //     }
-  //
-  //     // 사이드바 active 표시
-  //     document.querySelectorAll('.nav-item, .proj-row').forEach((el) => el.classList.remove('active'));
-  //     const link = document.querySelector('.proj-row.room');
-  //     if (link) link.classList.add('active');
-  //   }
-  //
-  //   // 사이드바 전체에 이벤트 위임 (캡처 단계에서 가장 먼저 가로채기)
-  //   const sidebar = document.querySelector('.sidebar');
-  //   if (sidebar) {
-  //     sidebar.addEventListener(
-  //       'click',
-  //       function (e) {
-  //         const a = e.target.closest('.proj-row.room');
-  //         if (!a) return;
-  //         e.preventDefault();
-  //         e.stopPropagation();
-  //         mountMeeting();
-  //       },
-  //       true
-  //     );
-  //   }
-  //
-  //   // 혹시 위임이 적용되기 전 클릭을 잡아주기 위한 2중 안전핀
-  //   const roomLink = document.querySelector('.proj-row.room');
-  //   if (roomLink) {
-  //     roomLink.addEventListener(
-  //       'click',
-  //       function (e) {
-  //         e.preventDefault();
-  //         e.stopPropagation();
-  //         mountMeeting();
-  //       },
-  //       true
-  //     );
-  //   }
-  // })();
 
-  // body에 calendar 컨테이너가 있으면 초기화
-  //   document.addEventListener("DOMContentLoaded", () => {
-  //     if (document.getElementById("calendar")) {
-  //       window.initCalendar();
-  //     }
-  //   });
 
   /* ========= [백엔드 연결 예시 – 이 주석만 보고 교체] =========
   // 1) 유저 정보 로드

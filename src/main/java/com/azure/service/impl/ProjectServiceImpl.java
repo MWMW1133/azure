@@ -1,6 +1,6 @@
 package com.azure.service.impl;
 
-import com.azure.dto.UserRole;
+// import com.azure.dto.UserRole;
 import com.azure.event.ProjectMemberAddedEvent;
 import com.azure.event.ProjectMemberRemovedEvent;
 import com.azure.model.Organization;
@@ -9,11 +9,7 @@ import com.azure.model.project.ProjectMember;
 import com.azure.model.project.ProjectMemberId;
 import com.azure.model.user.User;
 import com.azure.model.workflow.Workflow;
-import com.azure.repository.OrganizationRepository;
-import com.azure.repository.ProjectMemberRepository;
-import com.azure.repository.ProjectRepository;
-import com.azure.repository.UserRepository;
-import com.azure.repository.WorkflowRepository;
+import com.azure.repository.*;
 import com.azure.service.ProjectService;
 import com.azure.service.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +28,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final OrganizationRepository organizationRepository;
+    private final OrganizationMemberRepository organizationMemberRepository;
     private final UserRepository userRepository;
     private final WorkflowRepository workflowRepository; // ✅ 추가
         private final ApplicationEventPublisher publisher; // 📢 이벤트 퍼블리셔 추가
@@ -43,15 +40,30 @@ public class ProjectServiceImpl implements ProjectService {
                 .orElseThrow(() -> new NotFoundException("Project not found: " + id));
     }
 
+//    @Override
+//    @Transactional(readOnly = true)
+//    public Page<Project> listByUser(Long userId, Pageable pageable) {
+//        var orgs = organizationRepository.findAllByUserId(userId);
+//        if (orgs.isEmpty()) return Page.empty(pageable);
+//
+//        var orgIds = orgs.stream().map(Organization::getId).toList();
+//        return projectRepository.findByOrganizationIdIn(orgIds, pageable);
+//    }
+
     @Override
     @Transactional(readOnly = true)
     public Page<Project> listByUser(Long userId, Pageable pageable) {
-        var orgs = organizationRepository.findAllByUserId(userId);
-        if (orgs.isEmpty()) return Page.empty(pageable);
+        var memberships = organizationMemberRepository.findByUserId(userId);
+        if (memberships.isEmpty()) return Page.empty(pageable);
 
-        var orgIds = orgs.stream().map(Organization::getId).toList();
+        var orgIds = memberships.stream()
+                .map(m -> m.getOrganization().getId())
+                .distinct()
+                .toList();
+
         return projectRepository.findByOrganizationIdIn(orgIds, pageable);
     }
+
 
 
     @Override
@@ -123,7 +135,8 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public ProjectMember addMember(Long projectId, Long userId, UserRole role) {
+//    public ProjectMember addMember(Long projectId, Long userId, UserRole role) {
+    public ProjectMember addMember(Long projectId, Long userId) {
         Project project = get(projectId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
@@ -139,8 +152,10 @@ public class ProjectServiceImpl implements ProjectService {
         pm.getId().setUserId(user.getId());
         pm.setProject(project);
         pm.setUser(user);
-        pm.setRole(role);
-                ProjectMember saved = projectMemberRepository.save(pm);
+//        pm.setRole(role);
+//                ProjectMember saved = projectMemberRepository.save(pm);
+
+        ProjectMember saved = projectMemberRepository.save(pm);
 
         // 📢 이벤트 발행 (멤버 추가 알림)
         publisher.publishEvent(new ProjectMemberAddedEvent(projectId, userId, project.getOwner().getId()));
