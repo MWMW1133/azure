@@ -49,6 +49,8 @@ button, input, select, textarea,
 .main-content{
     display: flex;
     flex-direction: column;
+    width: 100%;
+    flex-grow: 1;
     min-width: 0;                 /* overflow 스크롤 시 내용 줄바꿈 안정화 */
 }
 

@@ -4,14 +4,66 @@
   const main = $('.project-body');
 
   // ------- 컨텍스트/경로 유틸 -------
-  const rootEl = document.getElementById('project-root');
+  const rootEl = document.getElementById('project-tab-root');
   const APP_CONTEXT = (rootEl?.dataset.contextPath || window.APP_CONTEXT || '').replace(/\/$/, '');
   const apiUrl = (p) => `${APP_CONTEXT}${p}`;
 
   // ------- 프로젝트 컨텍스트 -------
   const PROJECT_ID = (rootEl?.dataset.projectId || window.PROJECT_ID || '').trim();
   const PROJECT_NAME = (rootEl?.dataset.projectName || window.PROJECT_NAME || '').trim();
-  if (!PROJECT_ID) console.warn('[project] PROJECT_ID is empty. Check JSP data-project-id or window.PROJECT_ID');
+
+  if (!PROJECT_ID) console.warn('[project] PROJECT_ID is empty.');
+
+  const dummyDB = {
+    tags: [
+      { id: 'tag-1', name: '기획' },
+      { id: 'tag-2', name: '디자인' },
+      { id: 'tag-3', name: '긴급' },
+    ],
+    users: [
+      { id: 'user-1', name: '김민준', email: 'mj.kim@example.com', avatarUrl: 'https://i.pravatar.cc/40?u=user-1' },
+      { id: 'user-2', name: '이서연', email: 'sy.lee@example.com', avatarUrl: 'https://i.pravatar.cc/40?u=user-2' },
+      { id: 'user-3', name: '박도윤', email: 'dy.park@example.com', avatarUrl: null },
+      { id: 'user-4', name: '최아린', email: 'ar.choi@example.com', avatarUrl: 'https://i.pravatar.cc/40?u=user-4' },
+      { id: 'user-5', name: '정시우', email: 'sw.jung@example.com', avatarUrl: 'https://i.pravatar.cc/40?u=user-5' },
+    ],
+  };
+
+  // // --- 더미 데이터를 사용하는 가짜 API ---
+  // const api = {
+  //   _delay: (ms = 200) => new Promise((res) => setTimeout(res, ms)),
+
+  //   async getProject() {
+  //     await this._delay();
+  //     return { id: PROJECT_ID, name: PROJECT_NAME };
+  //   },
+  //   async getTags() {
+  //     await this._delay();
+  //     return [...dummyDB.tags];
+  //   },
+  //   async addTag(name) {
+  //     await this._delay(300);
+  //     const newTag = { id: `tag-${Date.now()}`, name };
+  //     dummyDB.tags.push(newTag);
+  //     return newTag;
+  //   },
+  //   async removeTag(tagId) {
+  //     await this._delay(300);
+  //     dummyDB.tags = dummyDB.tags.filter((t) => t.id !== tagId);
+  //     return true;
+  //   },
+  //   async searchUsers(q = '') {
+  //     await this._delay();
+  //     const query = q.toLowerCase();
+  //     const results = q ? dummyDB.users.filter((u) => u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query)) : [...dummyDB.users];
+  //     return results;
+  //   },
+  //   async invite(userIds) {
+  //     await this._delay(500);
+  //     alert(`${userIds.length}명의 사용자를 초대했습니다 (ID: ${userIds.join(', ')})`);
+  //     return true;
+  //   },
+  // };
 
   // ------- API 래퍼 -------
   const api = {
@@ -56,26 +108,35 @@
   };
 
   // ------- Router -------
-  const Router = {
-    go(name) {
-      const base = `/projects/${encodeURIComponent(PROJECT_ID)}`;
-      const map = {
-        table: apiUrl(`${base}/table`),
-        card: apiUrl(`${base}/card`),
-        gantt: apiUrl(`${base}/gantt`),
-        chart: apiUrl(`${base}/chart`),
-        calendar: apiUrl(`${base}/calendar`),
-        files: apiUrl(`${base}/files`),
-        members: apiUrl(`${base}/members`),
-      };
-      const url = map[name];
-      if (!url) return render('<h1>Not Found</h1>');
-      fetch(url, { cache: 'no-cache' })
-        .then((r) => r.text())
-        .then(render)
-        .catch(() => render('<h1>Load Error</h1>'));
-    },
-  };
+const Router = {
+  go(name) {
+    const projectId = PROJECT_ID;  // 이미 위쪽에서 설정되어 있음
+    const ctx = APP_CONTEXT;       // /azure 혹은 ''
+
+    const map = {
+      table: `${ctx}/projects/${projectId}/table`,   // ✅ 수정
+      card: `${ctx}/projects/${projectId}/card`,
+      gantt: `${ctx}/projects/${projectId}/gantt`,
+      chart: `${ctx}/projects/${projectId}/chart`,
+      calendar: `${ctx}/projects/${projectId}/calendar`,
+      files: `${ctx}/projects/${projectId}/files`,
+      members: `${ctx}/projects/${projectId}/members`,
+    };
+
+    const url = map[name];
+    if (!url) return render('<h1>Not Found</h1>');
+
+    fetch(url, { cache: 'no-cache' })
+      .then((r) => r.text())
+      .then(render)
+      .catch((err) => {
+        console.error('[Router] error:', err);
+        render('<h1>Load Error</h1>');
+      });
+  },
+};
+
+
 
   function render(html) {
     if (main) main.innerHTML = html;
