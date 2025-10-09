@@ -58,7 +58,7 @@
             </div>
             <div class="col-auto">
               <button type="button" class="btn btn-primary btn-sm"
-                      onclick="/* TODO: send handler 연결 */ null">
+                      id="btnChatSend" onclick="sendMessage()"> 
                 보내기
               </button>
             </div>

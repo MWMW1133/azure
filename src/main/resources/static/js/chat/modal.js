@@ -95,6 +95,7 @@
       const li = d.createElement('li');
       li.textContent = name;
       li.dataset.room = name;
+      li.dataset.channelId = (w.APP?.channelMap?.[name] ?? ''); // ← 채널 ID 주입
       li.addEventListener('click', () => selectRoom(li, name));
       list.appendChild(li);
     });
@@ -108,6 +109,7 @@
       const li = d.createElement('li');
       li.textContent = name;
       li.dataset.room = name;
+      li.dataset.channelId = (w.APP?.channelMap?.[name] ?? '');
       li.addEventListener('click', () => selectRoom(li, name));
       list.appendChild(li);
     });
@@ -141,9 +143,17 @@
     if (clickedLi) clickedLi.classList.add('active');
     const header = d.getElementById('chatHeaderTitle');
     if (header) header.textContent = roomName;
-    renderMessages(roomName);
-  }
-
+      // 백엔드 모드면 client.js에게 방 변경 알림
+      const channelId = clickedLi?.dataset?.channelId || null;
+      if (w.APP && w.APP.useBackend) {
+        w.dispatchEvent(new CustomEvent('chat:room-selected', {
+          detail: { roomName, channelId }
+        }));
+      } else {
+      // (개발 초기 더미 렌더 유지용)
+      renderMessages(roomName);
+      }
+    }
   function renderProjectSelect() {
     const select = d.getElementById('projectSelect');
     if (!select) return;

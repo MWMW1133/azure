@@ -1,6 +1,7 @@
 // ===== sidebar.js =====
 // 클릭 시 본문 전환 + 백엔드 연결 포인트 + 상태 팝오버
 // + 폰트 크기/굵기(타이포) 런타임 오버레이 주입
+window.__SPA_NAV_ENABLED__ = false;
 
 (function () {
   /* ──[A] 사이드바 타이포(크기/굵기) 런타임 주입 ────────────────────────────
@@ -415,22 +416,40 @@
     });
   }
 
-  // ▼ 클릭 위임: 회의실로 진입 (한 번만 바인딩됨)
-  document.addEventListener('click', (e) => {
-    const a = e.target.closest('a[data-route="meeting"], .proj-row.room, #nav-room');
-    if (!a) return;
-    e.preventDefault();
+    // 전역 스위치(없으면 기본 false = 가로채기 안 함)
+    if (typeof window.__SPA_NAV_ENABLED__ === 'undefined') {
+      window.__SPA_NAV_ENABLED__ = false;
+    }
 
-    // 서버 라우팅 대신 SPA로 고정
-    history.pushState({}, '', MAINBAR);
-    mountMeeting(true);
-  });
+    // ▼ 클릭 위임: 회의실로 진입 (한 번만 바인딩됨)
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a[data-route="meeting"], .proj-row.room, #nav-room');
+      if (!a) return;
 
-  // (선택) URL이 /meeting 으로 들어온 경우 SPA로 전환
-  // if (location.pathname === (window.APP_CTX || '') + '/meeting') {
-  //   history.replaceState({}, '', MAINBAR);
-  //   mountMeeting(true);
-  // }
+      // 1) SPA 가로채기 전역 OFF면 그대로 브라우저 네비게이션
+      if (window.__SPA_NAV_ENABLED__ === false) return;
+
+      // 2) 새 탭/중클릭 등은 건드리지 않음
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+
+      // 3) 삽입 대상 없으면 가로채지 말고 서버 라우팅
+      const container = document.querySelector('.page-body');
+      if (!container) return;
+
+      // === 여기서만 SPA 전환 ===
+      e.preventDefault();
+      history.pushState({}, '', MAINBAR);
+      mountMeeting(true);
+    });
+
+    // (선택) URL이 /meeting 으로 들어온 경우 SPA로 전환
+    // if (window.__SPA_NAV_ENABLED__ && location.pathname === (window.APP_CTX || '') + '/meeting') {
+    //   const container = document.querySelector('.page-body');
+    //   if (container) {
+    //     history.replaceState({}, '', MAINBAR);
+    //     mountMeeting(true);
+    //   }
+    // }
 })();
 
 
