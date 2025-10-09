@@ -15,7 +15,7 @@ import java.util.Optional;
  * 모든 JSP 컨트롤러에서 공통적으로 로그인 사용자 정보를 모델에 추가한다.
  * - 로그인 안 된 경우 user = null
  */
-@ControllerAdvice("com.azure.jspController") // ← JSP 컨트롤러 패키지 전체에 적용
+@ControllerAdvice
 @RequiredArgsConstructor
 public class WebUserAdvice {
 

@@ -1,8 +1,8 @@
 // src/main/java/com/azure/repository/MeetingSummaryRepository.java
 package com.azure.repository;
 
-import com.azure.model.meeting.MeetingSummary;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.azure.model.meeting.MeetingSummary;
 import java.util.List;
 import java.util.Optional;
 

@@ -1,6 +1,5 @@
 package com.azure.jspController;
 
-import com.azure.config.AgoraProps;               // ✅ 추가
 import com.azure.model.user.User;
 import com.azure.service.UserService;
 import jakarta.servlet.http.HttpSession;
@@ -20,29 +19,32 @@ import java.util.Map;
 public class pageController {
 
     private final UserService userService;
-    private final AgoraProps agoraProps;         // ✅ 추가
 
     @GetMapping("/profile")
-    public String viewProfile(@ModelAttribute("user") User user, Model model) {
-        if (user == null) return "redirect:/login";
+    public String viewProfile(Model model, HttpSession session) {
+        User loginUser = (User) session.getAttribute("loginUser");
+        if (loginUser == null) return "redirect:/login";
 
-        // model.addAttribute("activePage", "profile");
+        model.addAttribute("activePage", "profile");
         model.addAttribute("body", "viewProfile.jsp");
         return "mainbar";
     }
+
 
     @GetMapping("/noInvitePage")
     public String noInvitePage() {
         return "noInvitePage"; // /WEB-INF/views/noInvitePage.jsp
     }
 
+
     @GetMapping("/meeting")
     public String meeting(Model model) {
-        model.addAttribute("agoraAppId", agoraProps.getAppId()); // ✅ 추가
         model.addAttribute("body", "meeting.jsp");
         model.addAttribute("activePage", "meeting");
         return "mainbar";
     }
+
+
 
     @GetMapping("/calendar")
     public String calendar(Model model) {
@@ -58,7 +60,9 @@ public class pageController {
 //        return "mainbar";
 //    }
 
-    @GetMapping("/projects")
+
+
+ @GetMapping("/projects")
     public String projects() {
         return "project-tab"; // /WEB-INF/views/my-tasks.jsp
     }
@@ -131,6 +135,7 @@ public class pageController {
         return "projects/mainTable";
     }
 
+
     @Controller
     public class ModalController {
         // 직접 접근인가? 아니면 include해서 해결 안되나?
@@ -141,7 +146,10 @@ public class pageController {
 
         @GetMapping("/plan")
         public String plan() {
+
             return "project-plan"; // /WEB-INF/views/project-plan.jsp
         }
+
     }
 }
+

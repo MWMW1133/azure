@@ -8,21 +8,12 @@ import java.time.LocalDateTime;
 public class ProjectProposalDTO {
     private Long id;
     private Long proposerId;
-
-    // 작성자 표시용
-    private String proposerName;
-    private String proposerAvatarUrl;
-
-    private String name;          // 프로젝트명
+    private String name;
     private String description;
     private String status;
-    private LocalDate startDate;
-    private LocalDate dueDate;
+    private LocalDate startDate;   // 예상 시작일
+    private LocalDate dueDate;     // 예상 마감일
     private LocalDateTime createdAt;
     private Long organizationId;
     private Long projectId;
-
-    // JSP 호환용
-    public String getTitle() { return name; }
-    public LocalDate getEndDate() { return dueDate; }
 }

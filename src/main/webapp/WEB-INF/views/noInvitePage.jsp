@@ -20,6 +20,16 @@
     </div>
 </div>
 
+<%--<script>--%>
+<%--    window.APP_CTX = '${pageContext.request.contextPath}';--%>
+<%--    const CURRENT_USER_ID = ${user.id};--%>
+<%--    document.addEventListener("DOMContentLoaded", () => {--%>
+<%--        if (CURRENT_USER_ID) {--%>
+<%--            connectNotificationSocket(CURRENT_USER_ID);--%>
+<%--        }--%>
+<%--    });--%>
+<%--</script>--%>
+
 <script src="${pageContext.request.contextPath}/js/bootstrap/bootstrap.bundle.js"></script>
 </body>
 </html>

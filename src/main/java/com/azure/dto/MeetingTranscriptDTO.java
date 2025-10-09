@@ -1,4 +1,3 @@
-// src/main/java/com/azure/dto/MeetingTranscriptDTO.java
 package com.azure.dto;
 
 import lombok.Data;

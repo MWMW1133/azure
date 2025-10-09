@@ -9,8 +9,8 @@ import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 
 public interface MeetingService {
+    Meeting startMeeting(Long organizationId, Long projectId, LocalDateTime startedAt);
     // [REPLACE] 이벤트 기반 시작/종료
-    Meeting startMeeting(Long eventId, Long organizationId, Long projectId, LocalDateTime startedAt);
     Meeting endMeeting(Long meetingId, LocalDateTime endedAt);
 
     MeetingDTO create(MeetingDTO dto);

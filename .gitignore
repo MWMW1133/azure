@@ -2,24 +2,33 @@
 /uploads/
 /recordings/
 /var/azure/uploads/
+HELP.md
 target/
 build/
 out/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
 
 ### IDE ###
 .idea/
 .vscode/
-*.iml
-*.ipr
-*.iws
-.sts4-cache
-.settings
-.project
+### STS ###
+.apt_generated
 .classpath
 .factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
 
-### Maven wrapper ###
-.mvn/wrapper/maven-wrapper.jar
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+
 
 ### NetBeans ###
 /nbproject/private/
@@ -27,24 +36,22 @@ out/
 /dist/
 /nbdist/
 /.nb-gradle/
+!**/src/main/**/build/
+!**/src/test/**/build/
 
 ### Spring/Secrets ###
 # .env 류
 .env
+### VS Code ###
+.vscode/
+﻿.env
 *.env
 
 # keystore 등
+application.properties
+application.yml
 *.p12
 *.keystore
 
-# 🔐 비밀 설정 파일은 무조건 무시
-/config/application-secret.yml
-
-# 📄 템플릿(예시)은 커밋 허용
-!/src/main/resources/application-secret.example.yml
-
-# ⚠️ 기본 설정 파일은 커밋 유지 (아래 두 줄은 넣지 마세요)
-# application.properties   <-- 제거
-# application.yml          <-- 제거
-src/main/resources/application-secret.yml
-
+.vscode/
+.idea/

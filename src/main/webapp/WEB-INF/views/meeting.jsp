@@ -1,25 +1,22 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 
-<!-- 회의실이 렌더될 루트 -->
-<main id="room-root"></main>
+  <!-- 회의실이 렌더될 루트 -->
+  <main id="room-root"></main>
 
-<!-- Agora Web SDK 로드 (UI에는 영향 없음) -->
-<script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
-
-<!-- 서버 값 주입 (하드코딩 금지) -->
-<script>
-    window.APP = {
-        agoraAppId: '${agoraAppId}',
-        eventId: '${param.eventId}',
-        meetingId: '${param.meetingId}',
-        uid: '${sessionScope.userId != null ? sessionScope.userId : "1001"}',
-        csrf: '${_csrf.token}'
-    };
-</script>
-
-<script src="${pageContext.request.contextPath}/js/meeting.js?v=spa_2"></script>
-<script>
+  <script src="${pageContext.request.contextPath}/js/meeting.js?v=spa_2"></script>
+  <script>
     window.addEventListener('DOMContentLoaded', function () {
-        if (window.Meeting) window.Meeting.mount('#room-root');
+      if (window.Meeting) window.Meeting.mount('#room-root');
     });
-</script>
+    //
+    // function getCurrentProjectId() {
+    //   return 1; // 하드코딩
+    // }
+
+    // 실제 드롭다운과 연동 시 이런식으로 변경
+    function getCurrentProjectId() {
+      const sel = document.querySelector('#projectSelect');
+      return sel ? Number(sel.value) : null;
+    }
+  </script>
+

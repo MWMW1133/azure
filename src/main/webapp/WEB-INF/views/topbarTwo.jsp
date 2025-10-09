@@ -69,12 +69,30 @@
                 <h5 class="modal-title">알림</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" id="notifList">
                 아직 새로운 알림이 없습니다.
             </div>
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+
+
+<!-- notification.js 포함 -->
+<script src="${pageContext.request.contextPath}/js/notification.js"></script>
+
+<script>
+    window.APP_CTX = '${pageContext.request.contextPath}';
+    const CURRENT_USER_ID = ${user.id};
+
+    document.addEventListener("DOMContentLoaded", () => {
+        if (CURRENT_USER_ID) {
+            connectNotificationSocket(CURRENT_USER_ID);
+        }
+    });
+</script>
 
 <!-- Bootstrap Icons & JS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">

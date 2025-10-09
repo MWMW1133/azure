@@ -12,18 +12,13 @@ import java.time.LocalDateTime;
 public class MeetingDTO {
     private Long id;
     private Long eventId;
-
-    private String meetingName;         // <- event.title 등에서 채우기
-    private String meetingDescription;  // <- event.description 등에서 채우기
-
+    private String meetingName;
+    private String meetingDescription;
     private Long organizationId;
     private String organizationName;
-
     private Long projectId;
     private String projectName;
-
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
-
-    private String recordingFileUrl;    // FileObject → 공개 URL 변환 결과
+    private String recordingFileUrl;
 }

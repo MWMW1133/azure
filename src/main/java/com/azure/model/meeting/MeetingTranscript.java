@@ -1,4 +1,3 @@
-// src/main/java/com/azure/model/meeting/MeetingTranscript.java
 package com.azure.model.meeting;
 
 import jakarta.persistence.*;
@@ -20,9 +19,8 @@ public class MeetingTranscript {
     @Column(name = "lang", length = 20)
     private String lang;
 
-    /** [FIX] ver5 스키마: content가 TINYTEXT였던 점 반영
-     *  전문을 저장하려면 TEXT/MEDIUMTEXT로 스키마 변경 권장 */
+    /** 전사 본문 — TINYTEXT/LONGTEXT 대응을 위해 @Lob 권장 */
     @Lob
-    @Column(name = "content", columnDefinition = "TINYTEXT")
+    @Column(name = "content")
     private String content;
 }

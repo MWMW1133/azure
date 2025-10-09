@@ -1,4 +1,3 @@
-// src/main/java/com/azure/model/meeting/MeetingSummary.java
 package com.azure.model.meeting;
 
 import jakarta.persistence.*;
@@ -16,13 +15,12 @@ public class MeetingSummary {
     @JoinColumn(name = "meeting_id")
     private Meeting meeting;
 
-    // [FIX] ver5 스키마(TINYTEXT) 제약을 명시
-    @Lob
-    @Column(name = "summary_md", columnDefinition = "TINYTEXT")
+    // 마크다운 본문
+    @Column(name = "summary_md")
     private String summaryMd;
 
-    // [FIX] ver5 스키마(TINYTEXT). JSON 문자열 보관 시 길이 주의
-    @Lob
-    @Column(name = "action_items", columnDefinition = "TINYTEXT")
+    // 액션아이템(JSON String). 필요 시 @Convert로 JSON 매핑 가능
+    @Column(name = "action_items")
     private String actionItems;
 }
+
