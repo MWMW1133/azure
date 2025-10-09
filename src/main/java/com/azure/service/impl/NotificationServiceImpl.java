@@ -51,6 +51,17 @@ public class NotificationServiceImpl implements NotificationService {
         msg.put("type", saved.getType());
         msg.put("payload", saved.getPayload());
         msg.put("createdAt", saved.getCreatedAt());
+
+        // payload를 실제 객체(JSON)로 변환해서 전달 (원래 문자열이엇슴)
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            Object jsonPayload = mapper.readValue(saved.getPayload(), Object.class);
+            msg.put("payload", jsonPayload);
+        } catch (Exception e) {
+            System.err.println("[WARN] payload JSON 파싱 실패 → 문자열 그대로 전송");
+            msg.put("payload", saved.getPayload());
+        }
+
         System.out.println("[DEBUG] send STOMP → /topic/notifications/" + userId + " payload=" + msg);
         messagingTemplate.convertAndSend("/topic/notifications/" + userId, msg);
 

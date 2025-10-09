@@ -23,6 +23,7 @@ import java.util.Optional;
  * - 관리자만 접근 가능 (접근 제어는 WebSecurityConfig 또는 JSP에서 처리 가능)
  * - /invite 페이지에서 현재 조직 멤버와 초대 가능 사용자 조회
  */
+// 초대만!!!!!!!!! 있음 수락/거절은 inviteapicontroller에
 @Controller
 @RequestMapping("/invite")
 @RequiredArgsConstructor
@@ -114,24 +115,43 @@ public class InviteController {
             return Map.of("status", "error", "message", "관리자만 초대할 수 있습니다.");
         }
 
+        var org = memberOpt.get().getOrganization();
         // 초대 처리 및 알림 생성
         int successCount = 0;
         for (Long targetId : userIds) {
+            // 초대 엔티티 만들기
+            // Long inviteId = System.currentTimeMillis(); // 암거나 넣엇음
+
             // 알림 생성
-            String payload = String.format(
-                    "{\"sender\":\"%s\",\"organization\":\"%s\",\"link\":\"/organization/invitations\"}",
-                    sender.getName(),
-                    memberOpt.get().getOrganization().getName()
+//            String payload = String.format(
+//                    "{\"sender\":\"%s\",\"organization\":\"%s\",\"link\":\"/organization/invitations\"}",
+//                    sender.getName(),
+//                    memberOpt.get().getOrganization().getName()
+//            );
+
+            // payload JSON 구성
+            Map<String, Object> payloadMap = Map.of(
+                    "sender", sender.getName(),
+                    "organizationId", org.getId(),
+                    "organization", org.getName(),
+                    "link", "/organization/invitations"
             );
 
-            notificationService.notifyUser(
-                    targetId,
-                    NotificationType.INVITE_ORGANIZATION.name(),
-                    payload
-            );
+            try {
+                String payloadJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payloadMap);
 
-            successCount++;
-            System.out.println("[INVITE] from=" + sender.getName() + " → to userId=" + targetId);
+                // 알림 전송
+                notificationService.notifyUser(
+                        targetId,
+                        NotificationType.INVITE_ORGANIZATION.name(),
+                        payloadJson
+                );
+                successCount++;
+
+                System.out.println("[INVITE] from=" + sender.getName() + " → to userId=" + targetId + " payload=" + payloadJson);
+            } catch (Exception e) {
+                System.err.println("[ERROR] 초대 알림 JSON 생성 실패: " + e.getMessage());
+            }
         }
 
         return Map.of("status", "success", "count", successCount);

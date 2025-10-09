@@ -1,103 +1,3 @@
-// document.addEventListener("DOMContentLoaded", () => {
-//     const notifList = document.getElementById("notifList");
-//     if (!notifList) {
-//         console.warn("notifList 요소가 없습니다. (조직 미소속 사용자)");
-//     }
-//
-//     //  렌더링 함수
-//     const renderNotifs = (data) => {
-//         notifList.innerHTML = "";
-//         data.forEach(n => {
-//             notifList.innerHTML += `
-//         <a href="${n.link}" class="text-decoration-none text-dark" data-id="${n.id}">
-//           <div class="notif-card ${n.isRead ? 'opacity-75' : ''}">
-//             <div class="fw-bold">${n.title}</div>
-//             <div>${n.message}</div>
-//             <div class="text-end text-muted small">${n.createdAt}</div>
-//           </div>
-//         </a>
-//       `;
-//         });
-//     };
-//
-//
-//     //  알림 클릭 시 읽음 처리
-//     notifList.addEventListener("click", (e) => {
-//         const notifCard = e.target.closest(".notif-card");
-//         if (!notifCard) return;
-//
-//         const id = parseInt(notifCard.dataset.id, 10);
-//         const notif = notifications.find(n => n.id === id);
-//
-//         if (notif && !notif.isRead) {
-//             notif.isRead = true; // UI 반영
-//             renderNotifs(notifications);
-//
-//             // TODO: 서버 연동 (읽음 처리)
-//             // 근데 알림은 RESTful보다 액션 엔드포인트가 나을듯.. 주소는 임시
-//             // fetch(`/api/notifications/${id}/read`, { method: "POST" })
-//             //     .then(res => {
-//             //         if (res.ok) console.log("알림 읽음 처리 완료");
-//             //         else console.error("읽음 처리 실패", res.status);
-//             //     })
-//             //     .catch(err => console.error("에러 발생", err));
-//         }
-//     });
-//
-//
-//     // ==============================
-//     //  [WebSocket 실시간 알림 연결]
-//     // ==============================
-//
-//     function connectNotificationSocket(userId) {
-//         const socket = new SockJS(`${window.APP_CTX}/ws`);
-//         const client = Stomp.over(socket);
-//         client.connect({}, () => {
-//             console.log("Notification WebSocket connected");
-//
-//             // 개인별 채널 구독
-//             client.subscribe(`/topic/notifications/${userId}`, (msg) => {
-//                 const data = JSON.parse(msg.body);
-//
-//                 // payload가 JSON 문자열이면 파싱
-//                 let payload;
-//                 try {
-//                     payload = JSON.parse(data.payload);
-//                 } catch {
-//                     payload = data.payload;
-//                 }
-//
-//                 // 새 알림 객체 생성 (렌더링 포맷에 맞춰 변환)
-//                 const newNotif = {
-//                     id: data.id || Date.now(),
-//                     type: data.type,
-//                     title: "조직 초대 알림",
-//                     message: `${payload.sender}님이 ${payload.organization} 조직에 초대했습니다.`,
-//                     link: payload.link || "#",
-//                     createdAt: new Date().toLocaleString(),
-//                     isRead: false
-//                 };
-//
-//                 // 현재 알림 배열에 추가 (기존 더미 포함)
-//                 notifications.unshift(newNotif);
-//                 renderNotifs(notifications);
-//
-//                 // 시각적 강조 (간단한 반짝 효과)
-//                 const firstCard = document.querySelector(".notif-card");
-//                 if (firstCard) {
-//                     firstCard.style.backgroundColor = "#eaf1ff";
-//                     setTimeout(() => firstCard.style.backgroundColor = "#f9f9f9", 2000);
-//                 }
-//             });
-//         });
-//     }
-//
-//     // connectNotificationSocket();
-//
-//     // 초기 렌더링
-//     renderNotifs(notifications);
-//
-// });
 document.addEventListener("DOMContentLoaded", () => {
 
     /** ======================================
@@ -150,17 +50,43 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!notifList) return;
 
         notifList.innerHTML = "";
+
         data.forEach(n => {
-            notifList.innerHTML += `
-                <a href="${n.link}" class="text-decoration-none text-dark" data-id="${n.id}">
-                  <div class="notif-card ${n.isRead ? 'opacity-75' : ''}">
-                    <div class="fw-bold">${n.title}</div>
-                    <div>${n.message}</div>
-                    <div class="text-end text-muted small">${n.createdAt}</div>
-                  </div>
-                </a>
+            // 기본 메시지 영역
+            let actionsHtml = "";
+
+            // 조직 초대 알림일 경우에만 수락/거절 버튼 표시
+            if (n.type === "INVITE_ORGANIZATION") {
+                actionsHtml = `
+                <div class="mt-2 d-flex gap-2">
+                    <button class="btn btn-sm btn-primary"
+                            onclick="handleInviteAction(${n.id}, 'accept')">수락</button>
+                    <button class="btn btn-sm btn-outline-secondary"
+                            onclick="handleInviteAction(${n.id}, 'reject')">거절</button>
+                </div>
             `;
+            }
+
+            notifList.innerHTML += `
+            <div class="notif-card ${n.isRead ? 'opacity-75' : ''}" data-id="${n.id}">
+              <div class="fw-bold">${n.title}</div>
+              <div>${n.message}</div>
+              ${actionsHtml}
+              <div class="text-end text-muted small mt-1">${n.createdAt}</div>
+            </div>
+        `;
         });
+        // data.forEach(n => {
+        //     notifList.innerHTML += `
+        //         <a href="${n.link}" class="text-decoration-none text-dark" data-id="${n.id}">
+        //           <div class="notif-card ${n.isRead ? 'opacity-75' : ''}">
+        //             <div class="fw-bold">${n.title}</div>
+        //             <div>${n.message}</div>
+        //             <div class="text-end text-muted small">${n.createdAt}</div>
+        //           </div>
+        //         </a>
+        //     `;
+        // });
     };
 
 
@@ -213,21 +139,32 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.log("📨 RAW MSG:", msg);
                 const data = JSON.parse(msg.body);
 
-                // payload가 JSON 문자열이면 파싱
-                let payload;
-                try {
-                    payload = JSON.parse(data.payload);
-                } catch {
-                    payload = data.payload;
-                }
+                const payload = data.payload;
 
                 // 새 알림 객체 생성
+                // const newNotif = {
+                //     id: data.id || Date.now(),
+                //     type: data.type,
+                //     title: "조직 초대 알림",
+                //     message: `${payload.sender}님이 ${payload.organization} 조직에 초대했습니다.`,
+                //     link: payload.link || "#",
+                //     createdAt: new Date().toLocaleString(),
+                //     isRead: false
+                // };
+
                 const newNotif = {
                     id: data.id || Date.now(),
                     type: data.type,
-                    title: "조직 초대 알림",
-                    message: `${payload.sender}님이 ${payload.organization} 조직에 초대했습니다.`,
-                    link: payload.link || "#",
+                    title:
+                        data.type === "INVITE_ORGANIZATION"
+                            ? "조직 초대 알림"
+                            : "새 알림",
+                    message:
+                        data.type === "INVITE_ORGANIZATION"
+                            ? `${payload.sender}님이 ${payload.organization} 조직에 초대했습니다.`
+                            : payload.message || "새로운 알림이 있습니다.",
+                    organizationId: payload.organizationId,
+                    link: payload.link || "#",       // 초대 상세 링크
                     createdAt: new Date().toLocaleString(),
                     isRead: false
                 };
@@ -267,4 +204,50 @@ document.addEventListener("DOMContentLoaded", () => {
      *  [6] 초기 렌더링
      * ====================================== */
     renderNotifs(notifications);
+
+    /** ======================================
+     *  [7] 초대 수락/거절 처리
+     * ====================================== */
+    // window.handleInviteAction = function (notifId, action) {
+    //     // api 주소 바꾸잣
+    //     fetch(`/api/organization-invites/${notifId}/${action}`, { method: "POST" })
+    //         .then(res => {
+    //             if (!res.ok) throw new Error("요청 실패");
+    //             return res.text();
+    //         })
+    //         .then(msg => {
+    //             alert(msg);
+    //             // ✅ UI에서 해당 알림 제거 or 상태 변경
+    //             notifications = notifications.filter(n => n.id !== notifId);
+    //             renderNotifs(notifications);
+    //         })
+    //         .catch(err => {
+    //             console.error("초대 처리 실패:", err);
+    //             alert("초대 처리 중 오류가 발생했습니다.");
+    //         });
+    // };
+    window.handleInviteAction = function (notifId, action) {
+        const notif = notifications.find(n => n.id === notifId);
+        if (!notif || !notif.link) {
+            alert("초대 정보를 찾을 수 없습니다.");
+            return;
+        }
+
+        const body = { organizationId: notif.organizationId };
+        fetch(`/api/invite/${action}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                notifications = notifications.filter(n => n.id !== notifId);
+                renderNotifs(notifications);
+            })
+            .catch(err => {
+                console.error("초대 처리 실패:", err);
+                alert("처리 중 오류가 발생했습니다.");
+            });
+    };
 });
