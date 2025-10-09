@@ -236,6 +236,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 notifications.unshift(newNotif);
                 renderNotifs(notifications);
 
+                // 새 알림 도착 효과
+                const bellIcon = document.querySelector(".bi-bell");
+                if (bellIcon) {
+                    bellIcon.classList.add("text-danger");  // 빨간색
+                    bellIcon.style.transition = "color 0.3s ease";
+                    setTimeout(() => bellIcon.classList.remove("text-danger"), 2000);
+                }
+
                 // 반짝 효과
                 const firstCard = document.querySelector(".notif-card");
                 if (firstCard) {

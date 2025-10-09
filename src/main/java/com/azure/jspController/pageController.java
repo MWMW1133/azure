@@ -21,10 +21,11 @@ public class pageController {
     private final UserService userService;
 
     @GetMapping("/profile")
-    public String viewProfile(@ModelAttribute("user") User user, Model model) {
-        if (user == null) return "redirect:/login";
+    public String viewProfile(Model model, HttpSession session) {
+        User loginUser = (User) session.getAttribute("loginUser");
+        if (loginUser == null) return "redirect:/login";
 
-        // model.addAttribute("activePage", "profile");
+        model.addAttribute("activePage", "profile");
         model.addAttribute("body", "viewProfile.jsp");
         return "mainbar";
     }

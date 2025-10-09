@@ -1,0 +1,163 @@
+/* ===== Sidebar scoped styles ===== */
+
+/* 사이드바 전용 토큰(원래 :root에 있던 값들) */
+.sidebar {
+    --sidebar-w: 300px;
+    --page-bg: #f6f8fb;
+    --text: #111827;
+    --muted: #5b6b83;
+    --border: #e6ebf3;
+    --hover: #eef3ff;
+    --g0: rgba(181,206,251,.24);
+    --g1: rgba(181,206,251,.20);
+    --g2: rgba(181,206,251,.16);
+    --shadow-card: 0 12px 24px rgba(0,0,0,.10);
+    --shadow-pill: 0 8px 14px rgba(0,0,0,.15);
+    --font-ui: "Pretendard Variable","Noto Sans KR",Inter,"Apple SD Gothic Neo",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+
+/* 폰트/렌더링: 사이드바 내부에만 적용 (전역 X) */
+.sidebar, .sidebar *{
+    font-family: var(--font-ui);
+    /*  font-optical-sizing:auto;*/
+    font-synthesis-weight:none;
+    text-rendering:optimizeLegibility;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+}
+
+/* 사이드바 컨테이너 */
+.sidebar{
+    height:100dvh;
+    padding:10px;
+    position:relative;
+    background:linear-gradient(180deg,var(--g0) 0%,var(--g1) 55%,var(--g2) 100%);
+    border-right:1px solid rgba(0,0,0,.06);
+}
+.sidebar::before{
+    content:"";
+    position:absolute; inset:8px 8px 14px 8px; border-radius:20px;
+    box-shadow:0 10px 20px rgba(0,0,0,.08); pointer-events:none;
+}
+
+/* 스크롤 영역 */
+.sidebar .sidebar-inner{
+    height:calc(100dvh - 118px); /* 하단 카드 자리 확보 */
+    overflow:auto; border-radius:20px; padding:18px 16px 8px;
+}
+
+/* 상단 고정 메뉴 */
+.sidebar .nav-fixed{
+    display:flex; flex-direction:column; gap:10px; margin:6px 0 45px;
+}
+.sidebar .nav-item{
+    display:flex; align-items:center; gap:12px;
+    padding:12px 14px; border-radius:999px; border:1px solid transparent;
+    background:transparent; cursor:pointer; text-align:left;
+    color:inherit; text-decoration:none;
+}
+.sidebar .nav-item:hover{ background:var(--hover); }
+.sidebar .nav-item.active{
+    background:#eaf1ff; border-color:#eaf1ff; box-shadow:var(--shadow-pill);
+}
+
+/* 아이콘 공통 */
+.sidebar .ic{ width:22px; height:22px; display:inline-grid; place-items:center; }
+.sidebar svg{ display:block; }
+.sidebar .stroke-1{ stroke:#111827; stroke-width:1.8; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+
+/* 라벨/섹션 제목 */
+.sidebar .label{ margin:0 6px 40px; color:#2f3747; }
+.sidebar .group-title{
+    display:flex; align-items:center; gap:10px;
+    margin:0 6px 30px; color:#374151;
+}
+
+/* 프로젝트/일반 항목 (회의실 포함) */
+.sidebar .proj-list{ display:flex; flex-direction:column; gap:10px; padding-left:2px; }
+.sidebar .proj-row{
+    position:relative;
+    display:flex; align-items:center; gap:12px;
+    width:100%;
+    box-sizing:border-box;
+    padding:12px 14px; border-radius:12px;
+    background:transparent; border:0; cursor:pointer; text-align:left;
+    color:#273449; text-decoration:none;
+    -webkit-appearance:none; appearance:none;
+}
+.sidebar .proj-row > span{ position:relative; z-index:1; }
+.sidebar .proj-row:hover{ background:var(--hover); }
+.sidebar .elbow{ width:22px; color:#273449; }
+
+/* 프로젝트 계획 여백 */
+.sidebar .proj-plan{ margin-top:50px; }
+
+/* 구분선 */
+.sidebar .divider{ height:1px; background:var(--border); border:0; margin:60px 6px; }
+
+/* 하단 사용자 카드 */
+.sidebar .sidebar-footer{ position:absolute; left:20px; right:20px; bottom:16px; }
+.sidebar .user-card{
+    background:transparent; border:0; box-shadow:none;
+    border-radius:20px; padding:14px;
+    display:grid; grid-template-columns:44px 1fr; gap:12px;
+}
+.sidebar .user-card:focus, .sidebar .user-card:focus-visible{ outline:none; }
+.sidebar .avatar{
+    width:44px; height:44px; border-radius:999px; background:#95a4be;
+    display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800;
+}
+.sidebar .user-name{ color:#1f2937; }
+.sidebar .presence{ display:flex; align-items:center; gap:8px; color:#667085; }
+.sidebar .dot{ width:10px; height:10px; border-radius:999px; background:#22c55e; }
+
+/* 회의실 전용 구분선 + 간격 (프로젝트 계획 바로 아래) */
+.sidebar .room-section{ margin: 18px 6px 6px; }   /* 상 좌우 하 */
+.sidebar .divider-room{ height:2px; background:#cfd7e6; margin:0; border:0; border-radius:2px; }
+
+/* 회의실 항목 기본 간격/표시 보장 */
+.sidebar a.proj-row.room{ display:flex; margin-top:8px; }
+
+/* === 타이포 일괄 제어 === */
+.sidebar{
+    --sb-fs: 17px;   /* 사이드바 공통 텍스트 크기 */
+    --sb-fw: 430;    /* 사이드바 공통 굵기 */
+    --sb-label-fs: 24px;  /* "워크 스페이스" 라벨 크기 */
+    --sb-label-fw: 720;   /* 라벨 굵기 */
+    --sb-nav-fw:   var(--sb-fw);
+    --sb-proj-fw:  var(--sb-fw);
+    --sb-title-fw: 520;
+    --sb-user-fw:  560;
+    --sb-pres-fw:  520;
+}
+.sidebar .nav-fixed .nav-item > span:last-child{
+    font-size:var(--sb-fs) !important; font-weight:var(--sb-nav-fw) !important; letter-spacing:-0.012em;
+}
+.sidebar .group-title > span:last-child{
+    font-size:var(--sb-fs) !important; font-weight:var(--sb-title-fw) !important; letter-spacing:-0.006em; color:#2b3447;
+}
+.sidebar .proj-row > span:last-child{
+    font-size:var(--sb-fs) !important; font-weight:var(--sb-proj-fw) !important; letter-spacing:-0.006em; color:#1e293b;
+}
+.sidebar .label{
+    font-size:var(--sb-label-fs) !important; font-weight:var(--sb-label-fw) !important; letter-spacing:-0.012em;
+}
+.sidebar .user-name{
+    font-size:var(--sb-fs) !important; font-weight:var(--sb-user-fw) !important; letter-spacing:-0.012em; color:#0f172a;
+}
+.sidebar .presence{
+    font-size:15px !important; font-weight:var(--sb-pres-fw) !important; letter-spacing:0; color:#6b7280;
+}
+
+/* 공통 active 스타일(네가 추가했던 규칙 유지) */
+.sidebar .nav-item.active,
+.sidebar .proj-row.active {
+    background:#eaf1ff; border-color:#eaf1ff; box-shadow:var(--shadow-pill); border-radius:999px;
+}
+.sidebar .nav-item.active > span:last-child,
+.sidebar .proj-row.active > span:last-child {
+    font-weight:700 !important;
+    color:#000;
+}
+
+.sidebar a.proj-row.room { display: flex !important; }

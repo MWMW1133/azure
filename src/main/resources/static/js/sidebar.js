@@ -66,17 +66,17 @@
     const fixed = document.querySelectorAll('.nav-fixed .nav-item');
     if (fixed[0])
       fixed[0].addEventListener('click', (e) => {
-        Router.go('home');
+        // Router.go('home');
         setActiveNav(e.currentTarget);
       });
     if (fixed[1])
       fixed[1].addEventListener('click', (e) => {
-        Router.go('tasks');
+        // Router.go('tasks');
         setActiveNav(e.currentTarget);
       });
     if (fixed[2])
       fixed[2].addEventListener('click', (e) => {
-        Router.go('calendar');
+        // Router.go('calendar');
         setActiveNav(e.currentTarget);
       });
   })();
@@ -88,7 +88,7 @@
     const id = 11 + i; // 더미 ID
     // btn.addEventListener('click', () => Router.go('project', { id, name }));
     btn.addEventListener('click', (e) => {
-      Router.go('project', { id, name });
+      // Router.go('project', { id, name });
       setActiveNav(e.currentTarget);
     });
   });
@@ -98,17 +98,18 @@
   // if (planBtn) planBtn.addEventListener('click', () => Router.go('plan'));
   if (planBtn)
     planBtn.addEventListener('click', (e) => {
-      Router.go('plan');
+      // Router.go('plan');
       setActiveNav(e.currentTarget);
     });
 
 
+  // 이쪽 router validation
   // 회의실
   const roomBtn = document.querySelector('.proj-row.room');
   // if (roomBtn) roomBtn.addEventListener('click', () => Router.go('room'));
   if (roomBtn)
     roomBtn.addEventListener('click', (e) => {
-      Router.go('room');
+      // Router.go('room');
       setActiveNav(e.currentTarget);
     });
 
@@ -294,68 +295,10 @@
         else showPopover();
       }
     });
+
+
   })();
 
-  // // === Meeting SPA mount ===
-  // (function bindMeetingNav() {
-  //   function mountMeeting() {
-  //     const mountTarget = document.querySelector('.page-body');
-  //     if (!mountTarget) return;
-  //
-  //     // 본문에 회의실 UI 렌더
-  //     if (window.Meeting && typeof window.Meeting.mount === 'function') {
-  //       window.Meeting.mount(mountTarget);
-  //     } else {
-  //       // meeting.js가 아직 안 들어왔을 때 대비(거의 필요 없지만 안전핀)
-  //       const s = document.createElement('script');
-  //       s.src = (window.APP_CTX || '') + '/js/meeting.js?v=spa_mount';
-  //       s.onload = () => window.Meeting?.mount(mountTarget);
-  //       document.body.appendChild(s);
-  //     }
-  //
-  //     // 사이드바 active 표시
-  //     document.querySelectorAll('.nav-item, .proj-row').forEach((el) => el.classList.remove('active'));
-  //     const link = document.querySelector('.proj-row.room');
-  //     if (link) link.classList.add('active');
-  //   }
-  //
-  //   // 사이드바 전체에 이벤트 위임 (캡처 단계에서 가장 먼저 가로채기)
-  //   const sidebar = document.querySelector('.sidebar');
-  //   if (sidebar) {
-  //     sidebar.addEventListener(
-  //       'click',
-  //       function (e) {
-  //         const a = e.target.closest('.proj-row.room');
-  //         if (!a) return;
-  //         e.preventDefault();
-  //         e.stopPropagation();
-  //         mountMeeting();
-  //       },
-  //       true
-  //     );
-  //   }
-  //
-  //   // 혹시 위임이 적용되기 전 클릭을 잡아주기 위한 2중 안전핀
-  //   const roomLink = document.querySelector('.proj-row.room');
-  //   if (roomLink) {
-  //     roomLink.addEventListener(
-  //       'click',
-  //       function (e) {
-  //         e.preventDefault();
-  //         e.stopPropagation();
-  //         mountMeeting();
-  //       },
-  //       true
-  //     );
-  //   }
-  // })();
-
-// body에 calendar 컨테이너가 있으면 초기화
-//   document.addEventListener("DOMContentLoaded", () => {
-//     if (document.getElementById("calendar")) {
-//       window.initCalendar();
-//     }
-//   });
 
 
   /* ========= [백엔드 연결 예시 – 이 주석만 보고 교체] =========
