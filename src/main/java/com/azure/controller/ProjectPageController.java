@@ -8,7 +8,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
 @Controller
 @RequestMapping("/projects/{projectId}")
 @RequiredArgsConstructor
@@ -68,21 +67,22 @@ public class ProjectPageController {
     }
 
     @GetMapping("/table")
-public String table(@PathVariable Long projectId, Model model) {
-    var project = projectService.get(projectId);
+    public String table(@PathVariable Long projectId, Model model) {
+        var project = projectService.get(projectId);
 
-    // 진행중 태스크 (List)
-    var activeTasks = taskService.listByProject(projectId);
+        // 진행중 태스크 (List)
+        var activeTasks = taskService.listByProject(projectId);
 
-    // 완료(아카이브) 태스크 (Page → List)
-    var archivedPage  = taskService.listCompletedTasksByProject(projectId, Pageable.unpaged());
-    var archivedTasks = (archivedPage != null) ? archivedPage.getContent() : java.util.List.of();
+        // 완료(아카이브) 태스크 (Page → List)
+        var archivedPage  = taskService.listCompletedTasksByProject(projectId, Pageable.unpaged());
+        var archivedTasks = (archivedPage != null) ? archivedPage.getContent() : java.util.List.of();
 
-    model.addAttribute("projectId", projectId);
-    model.addAttribute("projectName", project.getName());
-    model.addAttribute("activeTasks", activeTasks);
-    model.addAttribute("archivedTasks", archivedTasks); // ✅ 여기!
+        model.addAttribute("projectId", projectId);
+        model.addAttribute("projectName", project.getName());
+        model.addAttribute("activeTasks", activeTasks);
+        model.addAttribute("archivedTasks", archivedTasks); // ✅ 여기!
 
-    return "projects/mainTable";
-}
+        return "projects/mainTable";
+    }
+
 }

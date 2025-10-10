@@ -2,6 +2,7 @@ package com.azure.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -26,6 +27,7 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Pr
     boolean existsById_ProjectIdAndId_UserId(Long projectId, Long userId);
     
     // 프로젝트 ID로 멤버 페이징 조회
+    @EntityGraph(attributePaths = "user")
     Page<ProjectMember> findById_ProjectId(Long projectId, Pageable pageable);
 
 }
