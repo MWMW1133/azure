@@ -89,4 +89,18 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
         GROUP BY t.parentTask.id
     """)
     List<Map<String, Object>> countChildrenByParentIds(@Param("parentIds") List<Long> parentIds);
+
+    @EntityGraph(attributePaths = {"assignee", "workflow", "priority"})
+    List<Task> findByProjectIdAndWorkflow_IsTerminalFalseOrderByIdAsc(Long projectId);
+
+    @EntityGraph(attributePaths = {"assignee", "workflow", "priority"})
+    List<Task> findByProjectIdAndWorkflow_IsTerminalTrueOrderByIdAsc(Long projectId);
+
+    // ✅ Pageable -> Page<T> 로 수정
+    @EntityGraph(attributePaths = {"assignee", "workflow", "priority"})
+    Page<Task> findByProjectIdAndWorkflow_IsTerminalFalse(Long projectId, Pageable pageable);
+
+    // ✅ Pageable -> Page<T> 로 수정
+    @EntityGraph(attributePaths = {"assignee", "workflow", "priority"})
+    Page<Task> findByProjectIdAndWorkflow_IsTerminalTrue(Long projectId, Pageable pageable);  
 }

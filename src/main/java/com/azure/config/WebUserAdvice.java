@@ -3,6 +3,7 @@ package com.azure.config;
 import com.azure.model.OrganizationMember;
 import com.azure.model.user.User;
 import com.azure.repository.OrganizationMemberRepository;
+import com.azure.security.CurrentUserId;
 import com.azure.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
