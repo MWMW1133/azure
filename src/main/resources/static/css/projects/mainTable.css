@@ -502,3 +502,249 @@ body {
 .status-edit-btn:hover {
   color: var(--primary-color);
 }
+.assignee-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+.assignee-item.is-current {
+  background: #f6f7fb;
+}
+.assignee-action {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  line-height: 26px;
+  text-align: center;
+  background: #fff;
+  cursor: pointer;
+}
+.assignee-item.is-current .assignee-action {
+  border-color: #f3b8b8;
+  color: #c73838;
+}
+/* ── 테이블 셀(리스트)용 담당자 뱃지 스타일 ───────────────────────── */
+.assignee-cell {
+  position: relative; /* 패널 포지셔닝용 - 이미 있으나 안전하게 유지 */
+  justify-content: center; /* 가운데 정렬 (원하면 제거) */
+}
+
+/* 프로필 이미지 뱃지 */
+.assignee-cell .assignee-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: inline-block;
+  box-shadow: 0 1px 2px rgba(2, 6, 23, 0.06);
+}
+
+/* 이니셜 뱃지 (프로필 사진 없는 경우) */
+.assignee-cell .assignee-initial {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #e2e8f0; /* 패널의 .assignee-avatar 배경과 맞춤 */
+  color: #334155;
+  font-weight: 700;
+  font-size: 13px;
+  display: grid;
+  place-items: center;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(2, 6, 23, 0.06);
+}
+
+/* 담당자 미지정(‘-’) 표시 */
+.assignee-cell .assignee-placeholder {
+  min-width: 28px; /* 뱃지와 폭 맞추기 (정렬 안정) */
+  height: 28px;
+  display: grid;
+  place-items: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* 행 높이가 낮아도 뱃지가 눌리지 않게 */
+.task-row .assignee-cell > .assignee-img,
+.task-row .assignee-cell > .assignee-initial,
+.task-row .assignee-cell > .assignee-placeholder {
+  margin: 4px 0; /* 위아래 여백 살짝 */
+}
+
+/* ============ 상태(Workflow) 셀/패널 ============ */
+
+/* 상태 셀은 말풍선 위치 기준점이 되도록 */
+.task-row .status-cell {
+  position: relative;
+}
+
+/* 뱃지(셀 안에 보이는 현재 상태) */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.status-badge:hover {
+  background: #fafbff;
+  border-color: #dfe6f4;
+}
+.status-badge:active {
+  transform: translateY(0.5px);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e5e7eb; /* JS에서 실제 색으로 바뀜 */
+  flex-shrink: 0;
+}
+.status-text {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 패널(말풍선) */
+.status-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 280px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: saturate(140%) blur(6px);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 18px 36px rgba(2, 6, 23, 0.12);
+  padding: 12px;
+  z-index: 1600;
+
+  /* 애니메이션 초기 상태 */
+  transform: translateY(-6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+.status-panel.is-open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 말풍선 꼬리 */
+.status-panel::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: 24px;
+  width: 14px;
+  height: 14px;
+  background: inherit;
+  border-left: 1px solid #e5e7eb;
+  border-top: 1px solid #e5e7eb;
+  transform: rotate(45deg);
+  border-radius: 3px 0 0 0;
+}
+
+/* 검색 */
+.status-search {
+  position: relative;
+  margin-bottom: 8px;
+}
+.status-search .bi {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 16px;
+}
+.status-search-input {
+  width: 100%;
+  height: 36px;
+  padding: 6px 10px 6px 34px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 13px;
+  background: #fff;
+  color: var(--text-primary);
+}
+
+/* 목록 */
+.status-list {
+  list-style: none;
+  margin: 8px 0 10px;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.status-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.status-list-item:hover {
+  background: #f8fafc;
+}
+
+/* 패널 하단(새 상태 생성) */
+.status-footer {
+  display: grid;
+  grid-template-columns: 1fr 84px 68px; /* 이름 / color / 추가버튼 */
+  gap: 8px;
+  border-top: 1px solid #eef2f7;
+  padding-top: 10px;
+}
+.status-new-name {
+  height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.status-new-color {
+  width: 84px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+.status-create-btn {
+  height: 34px;
+  border: 1px solid var(--primary-color);
+  background: var(--primary-color);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.status-create-btn:hover {
+  filter: brightness(0.98);
+}
+
+/* 모바일에서 상태/담당자 셀을 숨겼다면(너 기존 CSS에 존재),
+   패널이 화면 밖으로 나가거나 터치가 막히지 않게 강제 표기 옵션 */
+@media (max-width: 768px) {
+  .status-panel {
+    right: auto;
+    left: 0;
+    width: min(92vw, 360px);
+  }
+}

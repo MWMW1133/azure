@@ -2,18 +2,24 @@ package com.azure.controller.api;
 
 import com.azure.dto.ProjectDTO;
 import com.azure.dto.TagDTO;
+import com.azure.dto.UserDTO;
 import com.azure.model.tag.Tag;
+import com.azure.model.user.User;
 import com.azure.service.ProjectService;
 import com.azure.service.TagService;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
+
 
 @RestController
 @RequestMapping("/api/projects")
@@ -86,4 +92,31 @@ public class ProjectApiController {
         return dto;
     }
 
+    @GetMapping("/{projectId}/members") 
+    public List<UserDTO> projectMembers(@PathVariable Long projectId,
+                                        @RequestParam(required = false) String query) {
+        // 정렬이 불가하면 Sort.unsorted() 해도 됨
+        var page = projectService.listMembers(projectId, PageRequest.of(0, 200, Sort.unsorted()));
+
+        // 중복 제거(같은 유저가 중복 안 오더라도 안전하게)
+        Map<Long, User> users = new LinkedHashMap<>();
+        page.getContent().forEach(pm -> {
+            if (pm.getUser() != null) users.putIfAbsent(pm.getUser().getId(), pm.getUser());
+        });
+
+        return users.values().stream()
+                .filter(u -> {
+                    if (query == null || query.isBlank()) return true;
+                    String q = query.toLowerCase();
+                    return (u.getName() != null && u.getName().toLowerCase().contains(q));
+                })
+                .map(u -> {
+                    var dto = new UserDTO();
+                    dto.setId(u.getId());
+                    dto.setName(u.getName());
+                    dto.setAvatarUrl(u.getAvatarUrl());
+                    return dto;
+                })
+                .toList();
+            }
 }

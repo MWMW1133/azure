@@ -6,8 +6,17 @@
 <c:set var="currentTask" value="${task}" />
 <c:set var="children" value="${childrenByParent[currentTask.id]}" />
 
-<div class="task-row" data-task-id="${currentTask.id}">
-  <!-- 선택 및 토글 아이콘 -->
+<%-- 행에 현재 값들을 data-*로 싣고, 셀은 JS가 채우게 둔다 --%>
+<div class="task-row"
+     data-task-id="${currentTask.id}"
+     data-assignee-id="${currentTask.assignee != null ? currentTask.assignee.id : ''}"
+     data-workflow-id="${empty currentTask.workflow ? '' : currentTask.workflow.id}"
+     data-workflow-name="${empty currentTask.workflow ? '' : fn:escapeXml(currentTask.workflow.name)}"
+     data-workflow-color="${empty currentTask.workflow ? '' : currentTask.workflow.color}"
+     data-priority-id="${empty currentTask.priority ? '' : currentTask.priority.id}"
+     data-progress="${empty currentTask.progressPct ? 0 : currentTask.progressPct}"
+>
+  <!-- 선택/토글 -->
   <div class="task-cell task-actions-cell">
     <div class="icon-wrapper">
       <c:choose>
@@ -22,17 +31,17 @@
   </div>
 
   <!-- 제목 -->
-  <div class="task-cell task-title-cell">
+  <div class="task-cell task-title-cell" data-cell="title">
     <span class="task-title-text">${fn:escapeXml(currentTask.title)}</span>
   </div>
 
-  <%-- 담당자 안전 바인딩(서비스에서 미리 초기화됨) --%>
+  <%-- 담당자 안전 바인딩 --%>
   <c:set var="assignee" value="${currentTask.assignee}" />
   <c:set var="assigneeName" value="${empty assignee ? '' : assignee.name}" />
   <c:set var="avatarUrl" value="${empty assignee ? null : assignee.avatarUrl}" />
 
-  <!-- 담당자 -->
-  <div class="task-cell assignee-cell">
+  <!-- 담당자 (패널 포함: 기존 유지) -->
+  <div class="task-cell assignee-cell" data-cell="assignee">
     <c:choose>
       <c:when test="${not empty assignee}">
         <c:choose>
@@ -51,7 +60,6 @@
       </c:otherwise>
     </c:choose>
 
-    <!-- 담당자 선택 패널 (assignee-panel.js에서 제어됨) -->
     <div class="assignee-panel" role="dialog" aria-modal="true" hidden>
       <div class="assignee-search">
         <i class="bi bi-search"></i>
@@ -67,42 +75,50 @@
   </div>
 
   <!-- 시작일 / 마감일 -->
-  <div class="task-cell started-at-cell">
+  <div class="task-cell started-at-cell" data-cell="startDate">
     <c:out value="${empty currentTask.startDate ? '-' : currentTask.startDate}" />
   </div>
-  <div class="task-cell duedate-cell">
+  <div class="task-cell duedate-cell" data-cell="dueDate">
     <c:out value="${empty currentTask.dueDate ? '-' : currentTask.dueDate}" />
   </div>
 
-  <!-- 상태(워크플로) -->
-  <div class="task-cell status-cell">
-    <c:set var="wfName" value="${empty currentTask.workflow ? 'Unspecified' : currentTask.workflow.name}" />
-    <span class="status ${wfName}">${wfName}</span>
-  </div>
-
-  <!-- 우선순위 -->
-  <div class="task-cell priority-cell">
+  <!-- 상태(워크플로) : 내용은 비워두고 JS가 채움 -->
+  <div class="task-cell status-cell" data-cell="workflow">
     <c:choose>
-      <c:when test="${currentTask.priority != null && currentTask.priority.name == 'highest'}">
-        <span class="priority highest">매우 높음</span>
-      </c:when>
-      <c:when test="${currentTask.priority != null && currentTask.priority.name == 'high'}">
-        <span class="priority high">높음</span>
-      </c:when>
-      <c:when test="${currentTask.priority != null && currentTask.priority.name == 'low'}">
-        <span class="priority low">낮음</span>
-      </c:when>
-      <c:when test="${currentTask.priority != null && currentTask.priority.name == 'lowest'}">
-        <span class="priority lowest">매우 낮음</span>
+      <c:when test="${not empty currentTask.workflow}">
+        <span class="status-badge">
+          <span class="status-dot" style="background:${currentTask.workflow.color};"></span>
+          <span class="status-text">${fn:escapeXml(currentTask.workflow.name)}</span>
+        </span>
       </c:when>
       <c:otherwise>
-        <span class="priority normal">보통</span>
+        <span class="status-badge">
+          <span class="status-dot" style="background:#e5e7eb;"></span>
+          <span class="status-text">-</span>
+        </span>
       </c:otherwise>
     </c:choose>
+
+    <!-- 상태 패널 (숨김, JS가 열고 닫음) -->
+    <div class="status-panel" role="dialog" aria-modal="true" hidden>
+      <div class="status-search">
+        <i class="bi bi-search"></i>
+        <input type="text" class="status-search-input" placeholder="상태 검색" />
+      </div>
+      <ul class="status-list"></ul>
+      <div class="status-footer">
+        <input class="status-new-name" type="text" placeholder="새 상태명" />
+        <input class="status-new-color" type="color" value="#ffffff" />
+        <button class="status-create-btn" type="button">추가</button>
+      </div>
+    </div>
   </div>
 
+  <!-- 우선순위 : 내용은 비워두고 JS가 채움 -->
+  <div class="task-cell priority-cell" data-cell="priority"></div>
+
   <!-- 진행률 -->
-  <div class="task-cell progress-cell">
+  <div class="task-cell progress-cell" data-cell="progress">
     <div class="progress-cell-wrapper">
       <span class="progress-value">
         <c:out value="${empty currentTask.progressPct ? 0 : currentTask.progressPct}" />%
@@ -114,15 +130,14 @@
   </div>
 
   <!-- 파일 -->
-  <div class="task-cell file-cell">
+  <div class="task-cell file-cell" data-cell="files">
     <c:if test="${currentTask.hasFile}">
       <span class="file-icon"><i class="fa-solid fa-paperclip"></i></span>
     </c:if>
   </div>
 
   <!-- 수정일 -->
-  <div class="task-cell updated-at-cell">
+  <div class="task-cell updated-at-cell" data-cell="updatedAt">
     <span class="updated-at-text">${empty currentTask.updatedAt ? '-' : currentTask.updatedAt}</span>
   </div>
 </div>
-
