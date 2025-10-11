@@ -267,12 +267,10 @@
     // 초기 로드
     load('');
   }
-
-  console.log('[assignee] mounted v3.1');
 })();
 (function mountStatusPanel() {
-  if (window.__STATUS_PANEL_MOUNTED__ === 'v1') return;
-  window.__STATUS_PANEL_MOUNTED__ = 'v1';
+  if (window.__STATUS_PANEL_MOUNTED__ === 'v2') return;
+  window.__STATUS_PANEL_MOUNTED__ = 'v2';
 
   const root = document.getElementById('project-tab-root');
   if (!root) return;
@@ -289,9 +287,19 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload), // {name, color}만 넘겨도 됨
       });
       if (!r.ok) throw new Error('workflow create failed');
+      return r.json();
+    },
+    async update(id, payload) {
+      const r = await fetch(`/api/projects/${projectId}/workflows/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload), // {name?, color?}
+      });
+      if (!r.ok) throw new Error('workflow update failed');
       return r.json();
     },
     async setTaskWorkflow(taskId, workflowId) {
@@ -302,6 +310,16 @@
         body: JSON.stringify({ workflowId }),
       });
       if (!r.ok) throw new Error('set workflow failed');
+    },
+    async remove(id) {
+      const r = await fetch(`/api/projects/${projectId}/workflows/${id}`, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+      });
+      if (!r.ok) {
+        const msg = r.status === 409 ? '이 상태를 사용하는 태스크가 있어 삭제할 수 없습니다.' : `삭제 실패 (${r.status})`;
+        throw new Error(msg);
+      }
     },
   };
 
@@ -321,13 +339,12 @@
     if (activePanel === panel) activePanel = null;
   }
 
-  // 캡처 단계에서 처리 (다른 전역 핸들러 간섭 방지)
+  // 캡처 단계 우선 처리 (다른 핸들러 간섭 방지)
   function handleClick(e) {
-    // 패널 내부는 닫힘 방지
-    if (e.target.closest('.status-panel')) {
-      return;
-    }
-    // 상태 뱃지 클릭 → 패널 토글
+    // 패널 내부는 닫지 않음
+    if (e.target.closest('.status-panel')) return;
+
+    // 뱃지 클릭 → 패널 토글
     const badge = e.target.closest('.status-cell .status-badge');
     if (badge) {
       const cell = badge.closest('.status-cell');
@@ -339,6 +356,7 @@
       e.stopPropagation();
       return;
     }
+
     // 바깥 클릭 → 닫기
     if (activePanel) {
       const justOpened = performance.now() - openedAt < 140;
@@ -361,23 +379,94 @@
     const newNameEl = panel.querySelector('.status-new-name');
     const newColorEl = panel.querySelector('.status-new-color');
     const createBtn = panel.querySelector('.status-create-btn');
+    const editToggleBtn = panel.querySelector('.status-edit-toggle');
 
     let all = [];
     let q = '';
+    let editMode = false;
 
     function render() {
       const curId = row.dataset.workflowId || '';
       const filtered = q ? all.filter((w) => (w.name || '').toLowerCase().includes(q.toLowerCase())) : all;
       listEl.innerHTML = '';
+
       filtered.forEach((w) => {
         const li = document.createElement('li');
         li.className = 'status-list-item';
         li.dataset.id = String(w.id);
-        li.innerHTML = `
-          <span class="status-color-dot" style="background:${w.color || '#e5e7eb'}"></span>
-          <span class="status-name">${w.name}</span>
-          ${String(w.id) === String(curId) ? '<span style="margin-left:auto;font-size:12px;color:#64748b">현재</span>' : ''}
-        `;
+
+        if (!editMode) {
+          li.innerHTML = `
+            <span class="status-color-dot" style="background:${w.color || '#e5e7eb'}"></span>
+            <span class="status-name">${w.name}</span>
+            ${String(w.id) === String(curId) ? '<span class="status-current">현재</span>' : ''}
+          `;
+          li.onclick = async () => {
+            try {
+              await api.setTaskWorkflow(taskId, w.id);
+              row.dataset.workflowId = String(w.id);
+              const badge = row.querySelector('.status-cell .status-badge');
+              if (badge) {
+                badge.querySelector('.status-dot').style.background = w.color || '#e5e7eb';
+                badge.querySelector('.status-text').textContent = w.name || '-';
+              }
+              closePanel(panel);
+            } catch {
+              alert('상태 변경 실패');
+            }
+          };
+        } else {
+          li.innerHTML = `
+            <input class="status-edit-name" value="${w.name || ''}" />
+            <input class="status-edit-color" type="color" value="${w.color || '#e5e7eb'}" />
+            <button class="status-save-btn" title="저장">✔</button>
+            <button class="status-delete-btn" title="삭제">X</button>
+          `;
+          const nameEl = li.querySelector('.status-edit-name');
+          const colorEl = li.querySelector('.status-edit-color');
+
+          li.querySelector('.status-save-btn').onclick = async (e) => {
+            e.stopPropagation();
+            const name = nameEl.value.trim();
+            const color = colorEl.value.trim() || '#e5e7eb';
+            if (!name) return;
+            try {
+              const updated = await api.update(w.id, { name, color });
+              const idx = all.findIndex((x) => x.id === w.id);
+              if (idx >= 0) all[idx] = { ...all[idx], name: updated.name, color: updated.color };
+              render();
+            } catch {
+              alert('수정 실패');
+            }
+          };
+          li.querySelector('.status-delete-btn').onclick = async (e) => {
+            e.stopPropagation();
+            // if () {
+            //   alert('3개 이하로 ㄴㄴ연');
+            //   return;
+            // }
+            if (!confirm(`'${w.name}' 상태를 삭제할까요?`)) return;
+            try {
+              await api.remove(w.id);
+              // 목록에서 제거
+              all = all.filter((x) => String(x.id) !== String(w.id));
+              // 현재 행의 상태가 삭제된 것이면 뱃지 리셋
+              const curId = row.dataset.workflowId || '';
+              if (String(w.id) === String(curId)) {
+                row.dataset.workflowId = '';
+                const badge = row.querySelector('.status-cell .status-badge');
+                if (badge) {
+                  badge.querySelector('.status-dot').style.background = '#e5e7eb';
+                  badge.querySelector('.status-text').textContent = '-';
+                }
+              }
+              render();
+            } catch (err) {
+              alert(err.message || '삭제 실패');
+            }
+          };
+        }
+
         listEl.appendChild(li);
       });
     }
@@ -386,29 +475,6 @@
       all = await api.list().catch(() => []);
       render();
     }
-
-    listEl.onclick = async (e) => {
-      const item = e.target.closest('.status-list-item');
-      if (!item) return;
-      const workflowId = Number(item.dataset.id);
-      const wf = all.find((w) => String(w.id) === String(workflowId));
-      if (!wf) return;
-      try {
-        await api.setTaskWorkflow(taskId, workflowId);
-        // 셀 즉시 갱신
-        row.dataset.workflowId = String(workflowId);
-        const badge = row.querySelector('.status-cell .status-badge');
-        if (badge) {
-          const dot = badge.querySelector('.status-dot');
-          const txt = badge.querySelector('.status-text');
-          if (dot) dot.style.background = wf.color || '#ffffff';
-          if (txt) txt.textContent = wf.name || '-';
-        }
-        closePanel(panel);
-      } catch (err) {
-        alert('상태 변경 실패');
-      }
-    };
 
     if (searchEl) {
       let t;
@@ -423,6 +489,13 @@
       };
     }
 
+    if (editToggleBtn) {
+      editToggleBtn.onclick = () => {
+        editMode = !editMode;
+        render();
+      };
+    }
+
     if (createBtn) {
       createBtn.onclick = async () => {
         const name = (newNameEl?.value || '').trim();
@@ -430,10 +503,10 @@
         if (!name) return;
         try {
           const created = await api.create({ name, color });
-          all.push(created);
+          all.push(created); // 서버에서 정렬/터미널 보정됨
           newNameEl.value = '';
           render();
-        } catch (err) {
+        } catch {
           alert('상태 생성 실패');
         }
       };

@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import java.util.List;
 import java.util.Optional;
 
+import org.hibernate.boot.registry.classloading.spi.ClassLoaderService.Work;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,16 +37,18 @@ public class WorkflowServiceImpl implements WorkflowService {
     public Workflow create(Long projectId, String name, int sortOrder, boolean isBlocking, boolean isTerminal, String color) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException("Project not found: " + projectId));
-
+        int nextOrder = workflowRepository.findMaxSortOrderByProjectId(projectId).orElse(0) + 1;
         Workflow wf = new Workflow();
         wf.setProject(project);
         wf.setName(name);
-        wf.setSortOrder(sortOrder);
+        wf.setSortOrder(nextOrder);
         wf.setIsBlocking(isBlocking);
-        wf.setIsTerminal(isTerminal);
+        wf.setIsTerminal(false);
         wf.setColor(color != null ? color : "#cccccc");
 
-        return workflowRepository.save(wf);
+        Workflow w = workflowRepository.save(wf);
+        enforceTerminal(projectId);
+        return w;
     }
 
     /// 워크플로우 수정
@@ -57,7 +60,6 @@ public class WorkflowServiceImpl implements WorkflowService {
         if (name != null) wf.setName(name);
         if (sortOrder != null) wf.setSortOrder(sortOrder);
         if (isBlocking != null) wf.setIsBlocking(isBlocking);
-        if (isTerminal != null) wf.setIsTerminal(isTerminal);
         if (color != null) wf.setColor(color);
 
         return workflowRepository.save(wf);
@@ -66,7 +68,10 @@ public class WorkflowServiceImpl implements WorkflowService {
     /** 워크플로우 삭제 */
     @Override
     public void delete(Long workflowId) {
-        workflowRepository.deleteById(workflowId);
+        Workflow w = workflowRepository.findById(workflowId).orElseThrow();
+        Long projectId = w.getProject().getId();
+        workflowRepository.delete(w);
+        enforceTerminal(projectId);
     }
     /** 프로젝트 내 모든 워크플로우를 sortOrder 순서로 조회 */
     @Override
@@ -81,4 +86,18 @@ public class WorkflowServiceImpl implements WorkflowService {
         return workflowRepository.findByProjectIdAndIsDefaultTrue(projectId);
     }
 
+    private void enforceTerminal(Long projectId) {
+        List<Workflow> list = workflowRepository.findByProjectIdOrderBySortOrderAsc(projectId);
+        if (list.isEmpty()) return;
+
+        int lastIdx = list.size() - 1;
+        for (int i = 0; i < list.size(); i++) {
+            Workflow wf = list.get(i);
+            boolean shouldBeTerminal = (i == lastIdx);
+            if (Boolean.TRUE.equals(wf.getIsTerminal()) != shouldBeTerminal) {
+                wf.setIsTerminal(shouldBeTerminal);
+                workflowRepository.save(wf);
+            }
+        }
+    }
 }

@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +22,7 @@ import java.util.stream.Collectors;
 public class TaskController {
 
     private final TaskService taskService;
-
+    private static final DateTimeFormatter YYMMDD = DateTimeFormatter.ofPattern("yy-MM-dd");
     /** ✅ 목록 조회 */
     @GetMapping
     public List<Map<String, Object>> list(@PathVariable Long projectId) {
@@ -33,8 +34,8 @@ public class TaskController {
                     map.put("assigneeId",     t.getAssignee() != null ? t.getAssignee().getId() : null);
                     map.put("assigneeName",   t.getAssignee() != null ? t.getAssignee().getName() : null);
                     map.put("assigneeAvatarUrl", (t.getAssignee()!=null)? t.getAssignee().getAvatarUrl() : null);
-                    map.put("startDate", t.getStartDate());
-                    map.put("dueDate", t.getDueDate());
+                    map.put("startDate", t.getStartDate().format(YYMMDD));
+                    map.put("dueDate", t.getDueDate().format(YYMMDD));
                     map.put("workflowId",    t.getWorkflow()!=null ? t.getWorkflow().getId()    : null);
                     map.put("workflowName",  t.getWorkflow()!=null ? t.getWorkflow().getName()  : null);
                     map.put("workflowColor", t.getWorkflow()!=null ? t.getWorkflow().getColor() : null);
@@ -58,8 +59,8 @@ public class TaskController {
                     map.put("assigneeId",     t.getAssignee() != null ? t.getAssignee().getId() : null);
                     map.put("assigneeName",   t.getAssignee() != null ? t.getAssignee().getName() : null);
                     map.put("assigneeAvatarUrl", (t.getAssignee()!=null)? t.getAssignee().getAvatarUrl() : null);
-                    map.put("startDate", t.getStartDate());
-                    map.put("dueDate", t.getDueDate());
+                    map.put("startDate", t.getStartDate().format(YYMMDD));
+                    map.put("dueDate", t.getDueDate().format(YYMMDD));
                     map.put("workflowId",    t.getWorkflow()!=null ? t.getWorkflow().getId()    : null);
                     map.put("workflowName",  t.getWorkflow()!=null ? t.getWorkflow().getName()  : null);
                     map.put("workflowColor", t.getWorkflow()!=null ? t.getWorkflow().getColor() : null);
