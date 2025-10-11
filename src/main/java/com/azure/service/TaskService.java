@@ -24,35 +24,20 @@ public interface TaskService {
     /** 개인 태스크 (project_id IS NULL) */
     Page<Task> listPersonalTasks(Long userId, Pageable pageable);
 
-    /** 완료(terminal=true) 목록(페이징) */
+    /** 완료(terminal=true) 목록(페이징) — 하위 태스크도 포함해 모두 반환 */
     Page<Task> listCompletedTasksByProject(Long projectId, Pageable pageable);
 
-    /** 프로젝트별 직원별 담당 태스크 리스트 (assigneeId -> tasks) */
+    /** 프로젝트별 직원별 담당 태스크 리스트 */
     Map<Long, List<Task>> listTasksByAssignee(Long projectId);
 
-    /** 특정 담당자의 모든 태스크 목록(페이징) */
+    /** (옵션) 담당자별 목록(페이징) */
     Page<Task> listByAssignee(Long assigneeId, Pageable pageable);
 
-    /** (선택) 시그니처가 필요한 곳이 있어 추가: assignee 기준 페이징 */
+    /** (옵션) 동일 의미: listTasksByAssignee */
     Page<Task> listTasksByAssignee(Long assigneeId, Pageable pageable);
 
     /** 프로젝트별 태스크 간트차트 데이터 */
     List<GanttTaskDTO> getProjectTasksForGantt(Long projectId);
-
-    /** 프로젝트의 모든 태스크(정렬) */
-    List<Task> getTasksForProject(Long projectId);
-
-    /** 프로젝트 내 전체 태스크 (To-One fetch 포함, 정렬) */
-    List<Task> getByProjectId(Long projectId);
-
-    /** 프로젝트 + 담당자 필터 */
-    List<Task> getByProjectIdAndAssigneeId(Long projectId, Long assigneeId);
-
-    /** 부모 태스크 ID로 하위 태스크 조회 */
-    List<Task> getByParentTaskId(Long parentTaskId);
-
-    /** 메인 테이블용: 프로젝트의 최상위 ‘진행중’ 태스크 리스트 */
-    List<Task> listByProject(Long projectId);
 
     /** 프로젝트 태스크 생성(상세) */
     Task createTask(Long projectId, Long assigneeId, String title,
@@ -69,13 +54,23 @@ public interface TaskService {
     /** 하위 태스크 생성 (상위 태스크 ID 기준) */
     Task createSubTask(Long parentTaskId, Long assigneeId, String title, Long workflowId, Integer priorityId);
 
+    /** 하위 태스크 조회 */
+    List<Task> getSubTasks(Long parentId);
+
+    /** 프로젝트의 모든 태스크(정렬) */
+    List<Task> getTasksForProject(Long projectId);
+
+    /** 프로젝트 내 특정 조건 단건/리스트 조회 (선택) */
+    List<Task> getByProjectId(Long projectId);
+    List<Task> getByProjectIdAndAssigneeId(Long projectId, Long assigneeId);
+
     /** 담당자 지정/해제(assigneeId가 null이면 해제) */
     Task assign(Long taskId, Long assigneeId);
 
-    /** 워크플로우(칸반 컬럼) 변경 (ID) */
+    /** 워크플로우(칸반 컬럼) 변경 */
     Task setWorkflow(Long taskId, Long workflowId);
 
-    /** 워크플로 단계를 이름으로 변경(이벤트 발행 포함) */
+    /** 단계 이름으로 변경(이벤트 발행 포함) */
     Task changeWorkflow(Long taskId, String toStage, Long actorUserId);
 
     /** 계획 시작일/마감일 설정 */
@@ -84,19 +79,17 @@ public interface TaskService {
     /** 진행률(0.00~100.00) 업데이트 */
     Task setProgress(Long taskId, BigDecimal progressPct);
 
-    /** 태스크 삭제(단건) */
+    /** 태스크 삭제(단건/일괄) */
     void delete(Long taskId);
-
-    /** 태스크 일괄 삭제 */
     void deleteTasks(List<Long> ids);
-
-    /** 첨부파일 추가/제거 */
-    void addAttachment(Long taskId, Long fileId);
-    void removeAttachment(Long taskId, Long fileId);
 
     /** 특정 프로젝트 + 워크플로우에 속한 태스크 수 */
     long countByProjectAndWorkflow(Long projectId, Long workflowId);
 
-    /** 하위 태스크 조회 (UI 편의) */
-    List<Task> getSubTasks(Long parentId);
+    /** 메인 테이블용: 프로젝트의 최상위 ‘진행중’ 태스크 리스트 */
+    List<Task> listByProject(Long projectId);
+    
+    /** 첨부파일 연결/해제 */
+    void addAttachment(Long taskId, Long fileId);
+    void removeAttachment(Long taskId, Long fileId);
 }

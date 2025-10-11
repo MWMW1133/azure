@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,9 +46,9 @@ public class TaskServiceImpl implements TaskService {
     private final ApplicationEventPublisher publisher;
     private final ProjectRepository projectRepository;
 
-    // =========================================================================
+    // =========================================================
     // 기본 조회
-    // =========================================================================
+    // =========================================================
     @Override
     @Transactional(readOnly = true)
     public Task get(Long id) {
@@ -55,9 +56,9 @@ public class TaskServiceImpl implements TaskService {
                 .orElseThrow(() -> new NotFoundException("Task not found: " + id));
     }
 
-    // =========================================================================
+    // =========================================================
     // 리스트 (페이징)
-    // =========================================================================
+    // =========================================================
     /** 진행중(terminal=false)만 페이징 */
     @Override
     @Transactional(readOnly = true)
@@ -75,22 +76,34 @@ public class TaskServiceImpl implements TaskService {
         return page;
     }
 
-    /** 완료(terminal=true)만 페이징 – 최상위(Task.parentTask == null)만 노출 */
+    /** 완료(terminal=true) — 부모행만 페이지에 노출(자식은 펼침시 별도 호출) */
     @Override
     @Transactional(readOnly = true)
     public Page<Task> listCompletedTasksByProject(Long projectId, Pageable pageable) {
-        Page<Task> page = taskRepository.findByProjectIdAndWorkflow_IsTerminalTrue(projectId, pageable);
-        List<Task> topsOnly = page.getContent().stream()
+        Page<Task> page = taskRepository
+                .findByProjectIdAndWorkflow_IsTerminalTrue(projectId, pageable);
+
+        List<Task> parents = page.getContent().stream()
                 .filter(t -> t.getParentTask() == null)
                 .toList();
-        prefetchToOne(topsOnly);
-        return new org.springframework.data.domain.PageImpl<>(topsOnly, pageable, topsOnly.size());
+
+        if (!parents.isEmpty()) {
+            List<Long> parentIds = parents.stream().map(Task::getId).toList();
+            Map<Long, Long> childrenCountMap = taskRepository.countChildrenByParentIds(parentIds).stream()
+                    .collect(Collectors.toMap(
+                            map -> (Long) map.get("parentId"),
+                            map -> (Long) map.get("cnt")
+                    ));
+            parents.forEach(p -> p.setChildrenCount(childrenCountMap.getOrDefault(p.getId(), 0L)));
+        }
+
+        prefetchToOne(parents);
+        return new PageImpl<>(parents, pageable, parents.size());
     }
 
-    // =========================================================================
+    // =========================================================
     // 그룹/검색
-    // =========================================================================
-    /** 프로젝트 내 담당자별 그룹 */
+    // =========================================================
     @Override
     @Transactional(readOnly = true)
     public Map<Long, List<Task>> listTasksByAssignee(Long projectId) {
@@ -101,7 +114,6 @@ public class TaskServiceImpl implements TaskService {
                 .collect(Collectors.groupingBy(t -> t.getAssignee().getId()));
     }
 
-    /** (선택) 시그니처가 필요한 곳이 있어 추가: assignee 기준 페이징 */
     @Override
     @Transactional(readOnly = true)
     public Page<Task> listTasksByAssignee(Long assigneeId, Pageable pageable) {
@@ -118,7 +130,6 @@ public class TaskServiceImpl implements TaskService {
         return page;
     }
 
-    /** 간트 차트 DTO */
     @Override
     @Transactional(readOnly = true)
     public List<GanttTaskDTO> getProjectTasksForGantt(Long projectId) {
@@ -156,23 +167,15 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Task> getByParentTaskId(Long parentTaskId) {
-        List<Task> list = taskRepository.findByParentTaskId(parentTaskId);
-        prefetchToOne(list);
-        return list;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public List<Task> getByProjectIdAndAssigneeId(Long projectId, Long assigneeId) {
         List<Task> list = taskRepository.findByProjectIdAndAssigneeId(projectId, assigneeId);
         prefetchToOne(list);
         return list;
     }
 
-    // =========================================================================
+    // =========================================================
     // 상태/단계 변경
-    // =========================================================================
+    // =========================================================
     /** 단계 이름으로 변경 + 이벤트 발행 */
     @Override
     public Task changeWorkflow(Long taskId, String toStage, Long actorUserId) {
@@ -185,7 +188,7 @@ public class TaskServiceImpl implements TaskService {
                 .findByProjectIdAndName(task.getProject().getId(), toStage)
                 .orElseThrow(() -> new IllegalArgumentException("Workflow not found in project: " + toStage));
 
-        // 부모(상위) 테스크는 사용자 변경 금지
+        // 상위(부모) 테스크는 사용자 변경 금지
         if (!taskRepository.findByParentTaskId(taskId).isEmpty()) {
             throw new IllegalStateException("Parent task is controlled by its subtasks");
         }
@@ -193,7 +196,6 @@ public class TaskServiceImpl implements TaskService {
         applyStageAndProgressRules(task, toWorkflow);
         taskRepository.save(task);
 
-        // 자식일 경우 상위 집계 반영
         if (task.getParentTask() != null) {
             updateParentAggregate(task.getParentTask().getId());
         }
@@ -209,12 +211,12 @@ public class TaskServiceImpl implements TaskService {
         return task;
     }
 
-    /** 단계 ID로 변경(진행률/완료시간 동기화 포함) */
+    /** 단계 ID로 변경 */
     @Override
     public Task setWorkflow(Long taskId, Long workflowId) {
         Task task = get(taskId);
 
-        // 부모(상위) 테스크는 사용자 변경 금지
+        // 상위(부모) 테스크는 사용자 변경 금지
         if (!taskRepository.findByParentTaskId(taskId).isEmpty()) {
             throw new IllegalStateException("Parent task is controlled by its subtasks");
         }
@@ -235,14 +237,15 @@ public class TaskServiceImpl implements TaskService {
         return saved;
     }
 
-    // =========================================================================
+    // =========================================================
     // 생성
-    // =========================================================================
+    // =========================================================
     @Override
     public Task createTask(Long projectId, Long assigneeId, String title,
                            Long workflowsId, Integer priorityId,
                            LocalDate startDate, LocalDate dueDate,
                            Long parentTaskId) {
+
         var project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException("Project not found: " + projectId));
 
@@ -282,7 +285,19 @@ public class TaskServiceImpl implements TaskService {
             task.setProject(parent.getProject());
         }
 
+        // 생성 시 진행률 초기화
+        if (task.getProgressPct() == null) {
+            if (wf != null) {
+                var stages = workflowRepository.findByProjectIdOrderBySortOrderAsc(projectId);
+                int floor = computeStageFloorPct(stages, wf);
+                task.setProgressPct(BigDecimal.valueOf(floor));
+            } else {
+                task.setProgressPct(BigDecimal.ZERO);
+            }
+        }
+
         Task saved = taskRepository.save(task);
+
         if (saved.getParentTask() != null) {
             updateParentAggregate(saved.getParentTask().getId());
         }
@@ -304,20 +319,32 @@ public class TaskServiceImpl implements TaskService {
             task.setAssignee(user);
         }
 
+        Workflow wf;
         if (workflowsId != null) {
-            var wf = workflowRepository.findById(workflowsId)
+            wf = workflowRepository.findById(workflowsId)
                     .orElseThrow(() -> new NotFoundException("Workflow not found: " + workflowsId));
-            task.setWorkflow(wf);
         } else {
-            workflowRepository.findByProjectIdAndIsDefaultTrue(projectId)
+            wf = workflowRepository.findByProjectIdAndIsDefaultTrue(projectId)
                     .or(() -> workflowRepository.findFirstByProject_IdOrderBySortOrderAsc(projectId))
-                    .ifPresent(task::setWorkflow);
+                    .orElse(null);
         }
+        task.setWorkflow(wf);
 
         if (priorityId != null) {
             var pr = priorityRepository.findById(priorityId)
                     .orElseThrow(() -> new NotFoundException("Priority not found: " + priorityId));
             task.setPriority(pr);
+        }
+
+        // 생성 시 진행률 초기화
+        if (task.getProgressPct() == null) {
+            if (wf != null) {
+                var stages = workflowRepository.findByProjectIdOrderBySortOrderAsc(projectId);
+                int floor = computeStageFloorPct(stages, wf);
+                task.setProgressPct(BigDecimal.valueOf(floor));
+            } else {
+                task.setProgressPct(BigDecimal.ZERO);
+            }
         }
 
         Task saved = taskRepository.save(task);
@@ -343,6 +370,8 @@ public class TaskServiceImpl implements TaskService {
                     .orElseThrow(() -> new NotFoundException("Priority not found: " + priorityId));
             t.setPriority(pr);
         }
+        if (t.getProgressPct() == null) t.setProgressPct(BigDecimal.ZERO);
+
         return taskRepository.save(t);
     }
 
@@ -359,18 +388,34 @@ public class TaskServiceImpl implements TaskService {
                     .orElseThrow(() -> new NotFoundException("User not found: " + assigneeId));
             subTask.setAssignee(assignee);
         }
+
+        Workflow wf;
         if (workflowId != null) {
-            Workflow w = workflowRepository.findById(workflowId)
+            wf = workflowRepository.findById(workflowId)
                     .orElseThrow(() -> new NotFoundException("Workflow not found: " + workflowId));
-            if (!w.getProject().getId().equals(parent.getProject().getId())) {
+            if (!wf.getProject().getId().equals(parent.getProject().getId())) {
                 throw new IllegalArgumentException("Workflow must belong to the same project as parent task");
             }
-            subTask.setWorkflow(w);
+        } else {
+            wf = workflowRepository.findByProjectIdAndIsDefaultTrue(parent.getProject().getId())
+                    .or(() -> workflowRepository.findFirstByProject_IdOrderBySortOrderAsc(parent.getProject().getId()))
+                    .orElse(null);
         }
+        subTask.setWorkflow(wf);
+
         if (priorityId != null) {
             Priority pr = priorityRepository.findById(priorityId)
                     .orElseThrow(() -> new NotFoundException("Priority not found: " + priorityId));
             subTask.setPriority(pr);
+        }
+
+        // 생성 즉시 진행률 초기화
+        if (wf != null) {
+            var stages = workflowRepository.findByProjectIdOrderBySortOrderAsc(parent.getProject().getId());
+            int floor = computeStageFloorPct(stages, wf);
+            subTask.setProgressPct(BigDecimal.valueOf(floor));
+        } else {
+            subTask.setProgressPct(BigDecimal.ZERO);
         }
 
         Task saved = taskRepository.save(subTask);
@@ -378,9 +423,27 @@ public class TaskServiceImpl implements TaskService {
         return saved;
     }
 
-    // =========================================================================
+    @Override
+    @Transactional(readOnly = true)
+    public List<Task> getSubTasks(Long parentId) {
+        List<Task> subTasks = taskRepository.findByParentTaskId(parentId);
+        if (subTasks.isEmpty()) return subTasks;
+
+        List<Long> parentIds = subTasks.stream().map(Task::getId).toList();
+        Map<Long, Long> childrenCountMap = taskRepository.countChildrenByParentIds(parentIds).stream()
+                .collect(Collectors.toMap(
+                        map -> (Long) map.get("parentId"),
+                        map -> (Long) map.get("cnt")
+                ));
+        subTasks.forEach(t -> t.setChildrenCount(childrenCountMap.getOrDefault(t.getId(), 0L)));
+
+        prefetchToOne(subTasks);
+        return subTasks;
+    }
+
+    // =========================================================
     // 변경
-    // =========================================================================
+    // =========================================================
     @Override
     public Task assign(Long taskId, Long assigneeId) {
         Task t = get(taskId);
@@ -447,9 +510,9 @@ public class TaskServiceImpl implements TaskService {
         }
     }
 
-    // =========================================================================
+    // =========================================================
     // 파일
-    // =========================================================================
+    // =========================================================
     @Override
     public void addAttachment(Long taskId, Long fileId) {
         Task task = get(taskId);
@@ -469,25 +532,24 @@ public class TaskServiceImpl implements TaskService {
         }
     }
 
-    // =========================================================================
+    // =========================================================
     // 카운트
-    // =========================================================================
+    // =========================================================
     @Override
     @Transactional(readOnly = true)
     public long countByProjectAndWorkflow(Long projectId, Long workflowId) {
         return taskRepository.countByProjectIdAndWorkflow_Id(projectId, workflowId);
     }
 
-    // =========================================================================
+    // =========================================================
     // 내부 로직
-    // =========================================================================
+    // =========================================================
     /** 부모 집계: 하위 평균으로 진행률/단계 자동 결정(단계 수 늘어나도 동작) */
     private void updateParentAggregate(Long parentTaskId) {
         Task parent = get(parentTaskId);
         List<Task> subs = taskRepository.findByParentTaskId(parentTaskId);
         if (subs.isEmpty()) return;
 
-        // 평균(Null은 0으로 간주)
         BigDecimal total = BigDecimal.ZERO;
         int cnt = 0;
         for (Task s : subs) {
@@ -499,7 +561,6 @@ public class TaskServiceImpl implements TaskService {
                 ? total.divide(BigDecimal.valueOf(cnt), 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
-        // 단계 정렬
         List<Workflow> stages = workflowRepository
                 .findByProjectIdOrderBySortOrderAsc(parent.getProject().getId());
         if (stages.isEmpty()) {
@@ -508,11 +569,9 @@ public class TaskServiceImpl implements TaskService {
             return;
         }
 
-        // 평균으로 단계 선택
         Workflow picked = pickStageByProgress(stages, avg);
         parent.setWorkflow(picked);
 
-        // 진행률 스냅: 다음 구간 시작점(예: 4단계면 0/25/50/75, 35%면 50으로 표시)
         int snap = Boolean.TRUE.equals(picked.getIsTerminal())
                 ? 100
                 : Math.max(computeStageFloorPct(stages, picked) + (100 / (stages.size())),
@@ -520,7 +579,6 @@ public class TaskServiceImpl implements TaskService {
         if (snap >= 100 && !Boolean.TRUE.equals(picked.getIsTerminal())) snap = 99;
         parent.setProgressPct(BigDecimal.valueOf(snap));
 
-        // 완료/해제 시간
         if (Boolean.TRUE.equals(picked.getIsTerminal())) {
             if (parent.getCompletedAt() == null) parent.setCompletedAt(LocalDateTime.now());
         } else {
@@ -588,13 +646,14 @@ public class TaskServiceImpl implements TaskService {
         }
     }
 
-    // =========================================================================
-    // 오버로드: 메인 테이블용 (최상위 + 진행중만)
-    // =========================================================================
+    // =========================================================
+    // 메인 테이블용 리스트(최상위 + 진행중만)
+    // =========================================================
     @Override
     @Transactional(readOnly = true)
     public List<Task> listByProject(Long projectId) {
         List<Task> top = taskRepository.findByProjectIdAndParentTaskIsNullOrderByIdAsc(projectId);
+
         top = top.stream()
                 .filter(t -> t.getWorkflow() == null
                         || !Boolean.TRUE.equals(t.getWorkflow().getIsTerminal()))
@@ -612,25 +671,5 @@ public class TaskServiceImpl implements TaskService {
 
         prefetchToOne(top);
         return top;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<Task> getSubTasks(Long parentId) {
-        List<Task> subTasks = taskRepository.findByParentTaskId(parentId);
-        if (subTasks.isEmpty()) return subTasks;
-
-        List<Long> parentIds = subTasks.stream().map(Task::getId).toList();
-        Map<Long, Long> childrenCountMap = taskRepository.countChildrenByParentIds(parentIds).stream()
-                .collect(Collectors.toMap(
-                        map -> (Long) map.get("parentId"),
-                        map -> (Long) map.get("cnt")
-                ));
-        subTasks.forEach(t ->
-                t.setChildrenCount(childrenCountMap.getOrDefault(t.getId(), 0L))
-        );
-
-        prefetchToOne(subTasks);
-        return subTasks;
     }
 }
