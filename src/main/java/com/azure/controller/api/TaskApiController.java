@@ -1,5 +1,8 @@
 package com.azure.controller.api;
 
+import java.util.Map;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -7,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.azure.dto.TaskUpdateDTO;
+import com.azure.model.enums.PriorityCode;
 import com.azure.model.task.Task;
 import com.azure.model.user.User;
 import com.azure.model.workflow.Workflow;
@@ -56,4 +60,17 @@ public class TaskApiController {
 
     @Data
     static class WorkflowReq { Long workflowId; }
+
+    @PatchMapping("/{taskId}/priority")
+    public TaskUpdateDTO setPriority(@PathVariable Long taskId, @RequestBody PriorityReq req) {
+        Task t = taskService.setPriority(taskId, req.getPriorityId());
+        TaskUpdateDTO dto = new TaskUpdateDTO();
+        dto.setId(t.getId());
+        dto.setPriorityId(t.getPriority().getId());
+
+        return dto;
+    }
+
+    @Data
+    static class PriorityReq { Long priorityId; }
 }

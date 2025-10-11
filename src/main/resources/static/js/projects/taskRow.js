@@ -515,3 +515,196 @@
     load();
   }
 })();
+(function mountPriorityPanel() {
+  if (window.__PRIORITY_PANEL_MOUNTED__ === 'v6') return;
+  window.__PRIORITY_PANEL_MOUNTED__ = 'v6';
+
+  // ===== 1) 5단계 고정 매핑 (id는 "문자" 키로 통일) =====
+  const MAP_BY_ID = {
+    5: { label: '매우 높음', color: '#ef4444', name: 'HIGHEST' },
+    4: { label: '높음', color: '#f59e0b', name: 'HIGH' },
+    3: { label: '보통', color: '#22c55e', name: 'MEDIUM' },
+    2: { label: '낮음', color: '#3b82f6', name: 'LOW' },
+    1: { label: '매우 낮음', color: '#64748b', name: 'LOWEST' },
+  };
+  // 서버/DB 영문명이 다를 수 있으니 별칭도 지원
+  const NAME_ALIASES = {
+    CRITICAL: 'HIGHEST',
+    URGENT: 'HIGHEST',
+    HIGHEST: 'HIGHEST',
+    HIGH: 'HIGH',
+    MEDIUM: 'MEDIUM',
+    NORMAL: 'MEDIUM',
+    LOW: 'LOW',
+    LOWEST: 'LOWEST',
+  };
+  const ORDER_DESC = ['5', '4', '3', '2', '1'];
+  const COLOR_FALLBACK = '#e5e7eb';
+
+  // ===== 2) API =====
+  const api = {
+    async setTaskPriority(taskId, priorityId) {
+      const r = await fetch(`/api/tasks/${taskId}/priority`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ priorityId }), // 서버와 키 통일
+      });
+      if (!r.ok) throw new Error('set priority failed: ' + r.status);
+    },
+  };
+
+  // ===== 3) 유틸: 메타 해석 & 배지 그리기 =====
+  function resolveMeta({ idKey, nameKey, textKey }) {
+    // 1) id 우선
+    if (idKey && MAP_BY_ID[idKey]) return MAP_BY_ID[idKey];
+    // 2) data-priority-name (영문/별칭) 해석
+    if (nameKey) {
+      const alias = NAME_ALIASES[nameKey];
+      if (alias) {
+        const byAlias = Object.values(MAP_BY_ID).find((m) => m.name === alias);
+        if (byAlias) return byAlias;
+      }
+    }
+    // 3) 현재 텍스트(영문일 수 있음)로도 보정
+    if (textKey) {
+      const alias = NAME_ALIASES[textKey];
+      if (alias) {
+        const byTxt = Object.values(MAP_BY_ID).find((m) => m.name === alias);
+        if (byTxt) return byTxt;
+      }
+    }
+    return null;
+  }
+
+  function applyBadge(row) {
+    const badge = row.querySelector('.priority-badge');
+    if (!badge) return;
+
+    const idKey = String(row.dataset.priorityId || row.dataset.priorityCode || '').trim(); // "1"~"5"
+    const nameKey = (row.dataset.priorityName || '').trim().toUpperCase(); // 영문명
+    const nowTxt = (badge.querySelector('.priority-text')?.textContent || '').trim().toUpperCase();
+
+    const meta = resolveMeta({ idKey, nameKey, textKey: nowTxt });
+    const text = meta ? meta.label : '-';
+    const color = meta ? meta.color : COLOR_FALLBACK;
+
+    const textEl = badge.querySelector('.priority-text');
+    const dotEl = badge.querySelector('.priority-dot');
+    if (textEl) textEl.textContent = text;
+    if (dotEl) dotEl.style.background = color;
+  }
+
+  async function setFromPanel(row, idStr) {
+    const m = MAP_BY_ID[String(idStr)];
+    row.dataset.priorityId = String(idStr); // "1"~"5"
+    row.dataset.priorityName = m?.name || ''; // 영문 표준명 보관
+    applyBadge(row); // 즉시 배지 갱신
+  }
+
+  // ===== 4) 패널 열기/닫기 + 토글 핸들러 =====
+  let activePanel = null,
+    openedAt = 0;
+
+  function openPanel(panel) {
+    panel.hidden = false;
+    panel.classList.add('is-open');
+    activePanel = panel;
+    openedAt = performance.now();
+    initPanel(panel);
+  }
+  function closePanel(panel) {
+    panel.hidden = true;
+    panel.classList.remove('is-open');
+    if (activePanel === panel) activePanel = null;
+  }
+
+  function handleClick(e) {
+    if (e.target.closest('.priority-panel')) return; // 내부 클릭은 무시
+
+    const badge = e.target.closest('.priority-cell .priority-badge');
+    if (badge) {
+      const cell = badge.closest('.priority-cell');
+      const panel = cell.querySelector('.priority-panel');
+      if (!panel) return;
+      if (activePanel && activePanel !== panel) closePanel(activePanel);
+      (panel.hidden ? openPanel : closePanel)(panel);
+      e.stopImmediatePropagation();
+      e.stopPropagation();
+      return;
+    }
+
+    if (activePanel) {
+      const justOpened = performance.now() - openedAt < 140;
+      if (!justOpened && !activePanel.contains(e.target)) closePanel(activePanel);
+    }
+  }
+  window.addEventListener('click', handleClick, true);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && activePanel) closePanel(activePanel);
+  });
+
+  // ===== 5) 패널 초기화 (리스트 생성 & 클릭 → PATCH) =====
+  async function initPanel(panel) {
+    const row = panel.closest('.task-row');
+    const taskId = row?.dataset.taskId;
+    if (!taskId) return;
+
+    const listEl = panel.querySelector('.priority-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    const currentId = String(row.dataset.priorityId || row.dataset.priorityCode || '');
+
+    ORDER_DESC.forEach((id) => {
+      const m = MAP_BY_ID[id];
+      const li = document.createElement('li');
+      li.className = 'priority-list-item';
+      li.dataset.id = id;
+      li.innerHTML = `
+        <span class="priority-color-dot" style="background:${m.color}"></span>
+        <span class="priority-name">${m.label}</span>
+        ${id === currentId ? '<span class="priority-current">현재</span>' : ''}
+      `;
+      li.onclick = async () => {
+        try {
+          await api.setTaskPriority(taskId, Number(id)); // 서버는 숫자 사용
+          await setFromPanel(row, id); // data-* 업데이트 + 배지 즉시 갱신
+          closePanel(panel);
+        } catch (err) {
+          console.warn(err);
+          alert('우선순위 변경 실패');
+        }
+      };
+      listEl.appendChild(li);
+    });
+  }
+
+  // ===== 6) 초기/동적 렌더 모두 커버 =====
+  function applyAll() {
+    document.querySelectorAll('.task-row').forEach(applyBadge);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyAll, { once: true });
+  } else {
+    applyAll(); // DOM 이미 준비된 경우
+  }
+
+  // Ajax로 추가되는 행도 자동 반영
+  const mo = new MutationObserver((muts) => {
+    let touched = false;
+    muts.forEach((m) => {
+      m.addedNodes &&
+        m.addedNodes.forEach((n) => {
+          if (n.nodeType !== 1) return;
+          if (n.matches && n.matches('.task-row')) touched = true;
+          else if (n.querySelector && n.querySelector('.task-row')) touched = true;
+        });
+    });
+    if (touched) applyAll();
+  });
+  mo.observe(document.body, { childList: true, subtree: true });
+
+  // 필요 시 외부에서 강제 재적용할 수 있게 훅 제공
+  window.__applyAllPriorityBadges__ = applyAll;
+})();

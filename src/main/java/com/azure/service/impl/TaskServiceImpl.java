@@ -1,7 +1,9 @@
 package com.azure.service.impl;
 
 import com.azure.dto.GanttTaskDTO;
+import com.azure.dto.TaskUpdateDTO;
 import com.azure.event.TaskWorkflowChangedEvent;
+import com.azure.model.enums.PriorityCode;
 import com.azure.model.file.FileObject;
 import com.azure.model.task.Priority;
 import com.azure.model.task.Task;
@@ -15,6 +17,8 @@ import com.azure.repository.UserRepository;
 import com.azure.repository.WorkflowRepository;
 import com.azure.service.TaskService;
 import com.azure.service.exception.NotFoundException;
+
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
 import org.springframework.context.ApplicationEventPublisher;
@@ -284,6 +288,19 @@ public class TaskServiceImpl implements TaskService {
         }
         task.setWorkflow(workflow);
         return taskRepository.save(task);
+    }
+
+    @Override
+    public Task setPriority(Long taskId, Long priorityId){
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new EntityNotFoundException("Task not found: " + taskId));
+
+        Priority priority = priorityRepository.findById(priorityId.intValue())
+                .orElseThrow(() -> new EntityNotFoundException("Priority not found: " + priorityId));
+
+        task.setPriority(priority);
+
+        return task;
     }
 
     @Override
