@@ -2,27 +2,28 @@ package com.azure.model.calendar;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import com.azure.model.project.Project;
 import com.azure.model.user.User;
 
 @Data
 @Entity
-@Table(name = "event_attendees")
+@Table(name="event_attendees",
+       uniqueConstraints=@UniqueConstraint(columnNames={"event_id","user_id"}))
 public class EventAttendee {
-    @EmbeddedId
-    private EventAttendeeId id;
 
-    @ManyToOne(fetch = FetchType.LAZY) @MapsId("projectId")
-    @JoinColumn(name = "project_id")
-    private Project project;
+  @Id @GeneratedValue(strategy=GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY) @MapsId("userId")
-    @JoinColumn(name = "user_id")
-    private User user;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name="event_id", nullable=false)
+  private ProjectCalendar event;
 
-    @Column(length = 16)
-    private String role;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name="user_id", nullable=false)
+  private User user;
 
-    @Column(length = 16)
-    private String response;
+  @Column(length = 16)
+  private String role;      // ORGANIZER, MEMBER ...
+
+  @Column(length = 16)
+  private String response;  // ACCEPTED, DECLINED, TENTATIVE ...
 }

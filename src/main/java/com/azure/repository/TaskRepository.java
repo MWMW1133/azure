@@ -7,6 +7,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.azure.model.task.Task;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -103,4 +105,15 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     // ✅ Pageable -> Page<T> 로 수정
     @EntityGraph(attributePaths = {"assignee", "workflow", "priority"})
     Page<Task> findByProjectIdAndWorkflow_IsTerminalTrue(Long projectId, Pageable pageable);  
+
+    // 캘린더 겹침 조회
+    @Query("""
+    select t from Task t
+    where t.project.id = :projectId
+        and t.startDate is not null and t.dueDate is not null
+        and (t.startDate <= :toDate and t.dueDate >= :fromDate)
+    """)
+    List<Task> findByProjectAndDateRangeOverlap(@Param("projectId") Long projectId,
+                                                @Param("fromDate") LocalDate fromDate,
+                                                @Param("toDate") LocalDate toDate);
 }

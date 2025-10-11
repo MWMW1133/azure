@@ -33,37 +33,38 @@ public class ProjectPageController {
     /** 📌 카드 탭 */
     @GetMapping("/card")
     public String card(@PathVariable Long projectId) {
-        return "projects/fragments/card";
+        return "projects/card";
     }
 
     /** 📌 간트 차트 탭 */
     @GetMapping("/gantt")
     public String gantt(@PathVariable Long projectId) {
-        return "projects/fragments/gantt";
+        return "projects/gantt";
     }
 
     /** 📌 차트 탭 */
     @GetMapping("/chart")
     public String chart(@PathVariable Long projectId) {
-        return "projects/fragments/chart";
+        return "projects/chart";
     }
 
     /** 📌 캘린더 탭 */
     @GetMapping("/calendar")
-    public String calendar(@PathVariable Long projectId) {
-        return "projects/fragments/calendar";
+    public String calendar(@PathVariable Long projectId, Model model) {
+        model.addAttribute("projectId", projectId);
+        return "projects/project-calendar";
     }
 
     /** 📌 파일 탭 */
     @GetMapping("/files")
     public String files(@PathVariable Long projectId) {
-        return "projects/fragments/files";
+        return "projects/files";
     }
 
     /** 📌 멤버 탭 */
     @GetMapping("/members")
     public String members(@PathVariable Long projectId) {
-        return "projects/fragments/members";
+        return "projects/members";
     }
 
     @GetMapping("/table")

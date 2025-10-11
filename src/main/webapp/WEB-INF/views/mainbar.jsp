@@ -31,6 +31,13 @@
     <link href="${pageContext.request.contextPath}/css/home.css" rel="stylesheet">
     <link href="${pageContext.request.contextPath}/css/projects/mainTable.css" rel="stylesheet">
     <link href="${pageContext.request.contextPath}/css/projects/taskForm.css" rel="stylesheet">
+    <!-- ✅ FullCalendar 필수 CSS (CDN + 로컬 폴백) -->
+    <link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.css"
+      onerror="this.href='${pageContext.request.contextPath}/lib/fullcalendar/index.global.min.css'">
+
+    <!-- ✅ 프로젝트 캘린더 전용 CSS -->
+    <link href="${pageContext.request.contextPath}/css/projects/project-calendar.css" rel="stylesheet">
 
     <!-- ✅ 외부 컴포넌트 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
@@ -58,6 +65,8 @@
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
+<!-- ✅ 프로젝트 캘린더 전용 JS (전역 로드) -->
+<script defer src="${pageContext.request.contextPath}/js/projects/project-calendar.js"></script>
 
 <!-- ✅ 5. 프로젝트 공통 JS -->
 <script src="${pageContext.request.contextPath}/js/sidebar.js"></script>
