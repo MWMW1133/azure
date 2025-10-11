@@ -2,13 +2,14 @@ package com.azure.jspController;
 
 import com.azure.model.user.User;
 import com.azure.service.UserService;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+
+import static com.azure.security.SecurityUtil.requireUserId;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,13 +22,17 @@ public class pageController {
     private final UserService userService;
 
     @GetMapping("/profile")
-    public String viewProfile(Model model, HttpSession session) {
-        User loginUser = (User) session.getAttribute("loginUser");
-        if (loginUser == null) return "redirect:/login";
+    public String viewProfile(Model model) {
+        requireUserId();
 
         model.addAttribute("activePage", "profile");
         model.addAttribute("body", "viewProfile.jsp");
         return "mainbar";
+    }
+
+    @GetMapping("/")
+    public String defaultPage() {
+        return "redirect:/login";
     }
 
 

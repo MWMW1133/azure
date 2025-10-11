@@ -85,7 +85,7 @@ public class SecurityConfig {
                 ).authenticated()
 
                 // 그 밖의 모든 요청 허용(필요 시 더 엄격히 조이세요)
-                .anyRequest().permitAll()
+                .anyRequest().permitAll() 
             )
 
             // 인증 안 된 접근은 401 (API/보호구간)
@@ -117,7 +117,7 @@ public class SecurityConfig {
                 .loginPage("/login")
                 .usernameParameter("userId")
                 .passwordParameter("password")
-                .defaultSuccessUrl("/calendar", true) // 실제 존재하는 경로로
+                .defaultSuccessUrl("/home", true) // 실제 존재하는 경로로
                 .failureUrl("/login?error")
                 .permitAll()
             )
