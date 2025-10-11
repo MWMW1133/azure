@@ -111,18 +111,20 @@ document.addEventListener('DOMContentLoaded', function () {
           <span class="status-dot" style="background:${esc(t.workflowColor || '#e5e7eb')}"></span>
           <span class="status-text">${esc(t.workflowName || '-')}</span>
         </button>
-        <div class="status-panel" role="dialog" aria-modal="true" hidden>
-          <div class="status-search">
-            <i class="bi bi-search"></i>
-            <input type="text" class="status-search-input" placeholder="상태 검색" />
-          </div>
-          <ul class="status-list" aria-label="워크플로 목록"></ul>
-          <div class="status-footer">
-            <input class="status-new-name" type="text" placeholder="새 상태 이름" />
-            <input class="status-new-color" type="color" value="#e5e7eb" />
-            <button type="button" class="status-create-btn">추가</button>
-          </div>
+        <div class="status-panel" hidden>
+        <div class="status-panel-header">
+          <input type="text" class="status-search-input" placeholder="검색" />
+          <button type="button" class="status-edit-toggle">편집</button>
         </div>
+
+        <ul class="status-list"></ul>
+
+        <div class="status-panel-footer">
+          <input class="status-new-name" placeholder="새 상태명" />
+          <input class="status-new-color" type="color" value="#e5e7eb" />
+          <button type="button" class="status-create-btn">추가</button>
+        </div>
+      </div>
       </div>
       <div class="task-cell priority-cell">${esc(t.priority ?? '')}</div>
       <div class="task-cell progress-cell">

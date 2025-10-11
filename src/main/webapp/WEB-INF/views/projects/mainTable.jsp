@@ -17,7 +17,7 @@
   </div>
 
   <div  class="main-wrapper-body"
-        id="project-tab-view-root"           
+        id="project-tab-root"             
         data-project-id="${projectId}"
         data-ctx="${pageContext.request.contextPath}">
 

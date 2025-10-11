@@ -76,43 +76,54 @@
 
   <!-- 시작일 / 마감일 -->
   <div class="task-cell started-at-cell" data-cell="startDate">
-    <c:out value="${empty currentTask.startDate ? '-' : currentTask.startDate}" />
+      <c:choose>
+        <c:when test="${empty currentTask.startDate}">-</c:when>
+        <c:otherwise>
+          <c:out value="${fn:substring(currentTask.startDate, 2, 10)}"/>
+        </c:otherwise>
+      </c:choose>
   </div>
   <div class="task-cell duedate-cell" data-cell="dueDate">
-    <c:out value="${empty currentTask.dueDate ? '-' : currentTask.dueDate}" />
+      <c:choose>
+        <c:when test="${empty currentTask.dueDate}">-</c:when>
+        <c:otherwise>
+          <c:out value="${fn:substring(currentTask.dueDate, 2, 10)}"/>
+        </c:otherwise>
+      </c:choose>
   </div>
 
-  <!-- 상태(워크플로) : 내용은 비워두고 JS가 채움 -->
-  <div class="task-cell status-cell" data-cell="workflow">
-    <c:choose>
-      <c:when test="${not empty currentTask.workflow}">
-        <span class="status-badge">
-          <span class="status-dot" style="background:${currentTask.workflow.color};"></span>
-          <span class="status-text">${fn:escapeXml(currentTask.workflow.name)}</span>
-        </span>
-      </c:when>
-      <c:otherwise>
-        <span class="status-badge">
-          <span class="status-dot" style="background:#e5e7eb;"></span>
-          <span class="status-text">-</span>
-        </span>
-      </c:otherwise>
-    </c:choose>
 
-    <!-- 상태 패널 (숨김, JS가 열고 닫음) -->
-    <div class="status-panel" role="dialog" aria-modal="true" hidden>
-      <div class="status-search">
-        <i class="bi bi-search"></i>
-        <input type="text" class="status-search-input" placeholder="상태 검색" />
-      </div>
-      <ul class="status-list"></ul>
-      <div class="status-footer">
-        <input class="status-new-name" type="text" placeholder="새 상태명" />
-        <input class="status-new-color" type="color" value="#ffffff" />
-        <button class="status-create-btn" type="button">추가</button>
-      </div>
+<div class="task-cell status-cell" data-cell="workflow">
+  <c:choose>
+    <c:when test="${not empty currentTask.workflow}">
+      <span class="status-badge">
+        <span class="status-dot" style="background:${currentTask.workflow.color};"></span>
+        <span class="status-text">${fn:escapeXml(currentTask.workflow.name)}</span>
+      </span>
+    </c:when>
+    <c:otherwise>
+      <span class="status-badge">
+        <span class="status-dot" style="background:#e5e7eb;"></span>
+        <span class="status-text">-</span>
+      </span>
+    </c:otherwise>
+  </c:choose>
+
+  <div class="status-panel" hidden>
+    <div class="status-panel-header">
+      <input type="text" class="status-search-input" placeholder="검색" />
+      <button type="button" class="status-edit-toggle">편집</button>
+    </div>
+
+    <ul class="status-list"></ul>
+
+    <div class="status-panel-footer">
+      <input class="status-new-name" placeholder="새 상태명" />
+      <input class="status-new-color" type="color" value="#e5e7eb" />
+      <button type="button" class="status-create-btn">추가</button>
     </div>
   </div>
+</div>
 
   <!-- 우선순위 : 내용은 비워두고 JS가 채움 -->
   <div class="task-cell priority-cell" data-cell="priority"></div>
@@ -138,6 +149,6 @@
 
   <!-- 수정일 -->
   <div class="task-cell updated-at-cell" data-cell="updatedAt">
-    <span class="updated-at-text">${empty currentTask.updatedAt ? '-' : currentTask.updatedAt}</span>
+    <span class="updated-at-text">${empty currentTask.updatedAt ? '-' : fn:substring(currentTask.updatedAt, 0, 10)}</span>
   </div>
 </div>
