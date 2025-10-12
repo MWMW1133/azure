@@ -708,3 +708,194 @@
   // 필요 시 외부에서 강제 재적용할 수 있게 훅 제공
   window.__applyAllPriorityBadges__ = applyAll;
 })();
+
+/* --------------------- 수정내역(Audit) 모달 --------------------- */
+(function initAuditUI() {
+  // 이미 초기화 됐으면 재초기화 방지
+  if (window.__AUDIT_UI_INIT__) return;
+  window.__AUDIT_UI_INIT__ = true;
+
+  // 안전용 esc
+  if (typeof window.esc !== 'function') {
+    window.esc = function (s) {
+      if (s == null) return '';
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    };
+  }
+
+  // 네임스페이스
+  const AUD = (window.__AUDIT__ = window.__AUDIT__ || {});
+
+  // 설정 (이미 있으면 재사용해서 "already been declared" 회피)
+  AUD.HIDDEN_KEYS = AUD.HIDDEN_KEYS || new Set(['assigneeId', 'workflowId', 'priorityId', 'workflowColor', 'fileId']);
+
+  AUD.LABEL_MAP = AUD.LABEL_MAP || {
+    assigneeName: '담당자',
+    workflowName: '상태',
+    priorityName: '우선순위',
+    fileName: '파일명',
+    // 그 외 키는 원래 키 그대로 라벨 처리
+  };
+
+  // before/after 정규화
+  AUD.ba =
+    AUD.ba ||
+    function (v) {
+      if (!v || typeof v !== 'object') return { before: null, after: null };
+      return {
+        before: v.before ?? v.beforeValue ?? v.old ?? v.prev ?? null,
+        after: v.after ?? v.afterValue ?? v.new ?? v.next ?? null,
+      };
+    };
+
+  // 값 포맷
+  AUD.fmtValue =
+    AUD.fmtValue ||
+    function (x) {
+      if (x === null || x === undefined || String(x).trim() === '') return '<em>-</em>';
+      return esc(String(x));
+    };
+
+  // 액션 한글화
+  AUD.humanizeAction =
+    AUD.humanizeAction ||
+    function (a) {
+      const map = {
+        ASSIGNEE_CHANGED: '담당자 변경',
+        WORKFLOW_CHANGED: '상태 변경',
+        PRIORITY_CHANGED: '우선순위 변경',
+        FILE_ATTACHED: '파일 첨부',
+        FILE_REMOVED: '파일 제거',
+      };
+      return map[a] || a;
+    };
+
+  // 시간 포맷
+  AUD.formatKST =
+    AUD.formatKST ||
+    function (iso) {
+      try {
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return iso;
+        return d.toLocaleString(); // 필요시 'ko-KR', { timeZone:'Asia/Seoul' }
+      } catch {
+        return iso;
+      }
+    };
+
+  AUD.PRIORITY_KO = AUD.PRIORITY_KO || {
+    lowest: '매우 낮음',
+    low: '낮음',
+    normal: '보통',
+    medium: '보통',
+    mid: '보통',
+    high: '높음',
+    highest: '매우 높음',
+  };
+
+  AUD.translateValue =
+    AUD.translateValue ||
+    function (key, val) {
+      if (val == null) return val;
+      if (key === 'priorityName') {
+        const k = String(val).trim().toLowerCase();
+        return AUD.PRIORITY_KO[k] || val;
+      }
+      return val;
+    };
+
+  // diff 렌더
+  AUD.renderDiff = function (changes) {
+    if (!changes || typeof changes !== 'object') return '';
+    const rows = Object.entries(changes)
+      .filter(([k]) => !AUD.HIDDEN_KEYS.has(k))
+      .map(([k, v]) => {
+        const { before, after } = AUD.ba(v);
+        // 3) priorityName 값 한글 변환
+        const beforeT = AUD.translateValue(k, before);
+        const afterT = AUD.translateValue(k, after);
+
+        const label = esc(AUD.LABEL_MAP[k] || k);
+        const beforeV = AUD.fmtValue(beforeT);
+        const afterV = AUD.fmtValue(afterT);
+        return `
+          <dt>${label}</dt>
+          <dd><div class="fromto">${beforeV} → ${afterV}</div></dd>
+        `;
+      })
+      .join('');
+    return rows ? `<div class="audit-diff"><dl>${rows}</dl></div>` : '';
+  };
+
+  // 아이템 렌더
+  AUD.renderAuditItem = function (item) {
+    const ts = esc(AUD.formatKST(item.createdAt || item.created_at || ''));
+    const action = esc(AUD.humanizeAction(item.action || ''));
+
+    let changes = {};
+    try {
+      changes = item.diffJson ? JSON.parse(item.diffJson) : {};
+    } catch (e) {
+      console.warn('invalid diffJson', e);
+    }
+    const diffHtml = AUD.renderDiff(changes);
+
+    // 작성자 ID는 표시하지 않음
+    return `
+      <div class="audit-item">
+        <div class="audit-meta">${ts} · ${action}</div>
+        ${diffHtml}
+      </div>
+    `;
+  };
+
+  // 모달 열기
+  AUD.openModal = async function (taskId) {
+    const modal = document.getElementById('audit-modal');
+    if (!modal) return console.warn('[audit] #audit-modal not found');
+    const listEl = modal.querySelector('.audit-list');
+    if (!listEl) return console.warn('[audit] .audit-list not found');
+
+    listEl.innerHTML = '불러오는 중...';
+
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/audits`, { credentials: 'same-origin' });
+      if (!res.ok) throw new Error(`audit api fail (${res.status})`);
+      const items = await res.json();
+      listEl.innerHTML = items && items.length ? items.map(AUD.renderAuditItem).join('') : '<div>내역이 없습니다.</div>';
+    } catch (err) {
+      console.error(err);
+      listEl.innerHTML = '<div>수정 내역을 불러오지 못했습니다.</div>';
+    }
+
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+
+    const onClose = () => {
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+    };
+    const closeBtn = modal.querySelector('.audit-modal__close');
+    const backdrop = modal.querySelector('.audit-modal__backdrop');
+    if (closeBtn) closeBtn.onclick = onClose;
+    if (backdrop) backdrop.onclick = onClose;
+
+    const escClose = (ev) => {
+      if (ev.key === 'Escape') {
+        onClose();
+        document.removeEventListener('keydown', escClose);
+      }
+    };
+    document.addEventListener('keydown', escClose);
+  };
+
+  // ‘최근 수정일’ 셀 클릭 → 모달
+  document.addEventListener('click', function (e) {
+    const cell = e.target.closest('.task-row .updated-at-cell');
+    if (!cell) return;
+    const row = cell.closest('.task-row');
+    const taskId = row?.dataset.taskId;
+    if (!taskId) return;
+    AUD.openModal(taskId);
+  });
+})();

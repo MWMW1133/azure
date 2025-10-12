@@ -1220,3 +1220,266 @@ body {
     width: min(92vw, 360px);
   }
 }
+
+/* ===================== 최근 수정 로그 (리뉴얼) ===================== */
+
+/* 디자인 토큰 */
+.audit-modal {
+  --am-bg: #ffffff;
+  --am-text: #0f172a;
+  --am-muted: #64748b;
+  --am-border: #e5e7eb;
+  --am-soft: #f8fafc;
+  --am-accent: #3b82f6;
+  --am-shadow: 0 10px 30px rgba(2, 6, 23, 0.25);
+}
+
+@media (prefers-color-scheme: dark) {
+  .audit-modal {
+    --am-bg: #0b1220;
+    --am-text: #e5e7eb;
+    --am-muted: #93a3b8;
+    --am-border: #20304b;
+    --am-soft: #0f192c;
+    --am-accent: #60a5fa;
+    --am-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* 상태 */
+.audit-modal.hidden {
+  display: none;
+}
+
+/* 레이어 */
+.audit-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+/* 백드롭: 살짝 블러 + 페이드 */
+.audit-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.5);
+  backdrop-filter: blur(2px);
+  animation: am-fade-in 180ms ease-out;
+}
+
+/* 패널: 슬라이드 업 + 그림자 */
+.audit-modal__panel {
+  position: relative;
+  width: min(800px, 94vw);
+  max-height: 88vh;
+  margin: 6vh auto 0;
+  background: var(--am-bg);
+  color: var(--am-text);
+  border-radius: 14px;
+  box-shadow: var(--am-shadow);
+  overflow: hidden; /* 헤더 sticky 효과를 위해 */
+  animation: am-pop 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  border: 1px solid var(--am-border);
+}
+
+/* 헤더: sticky + 더 촘촘한 공간감 */
+.audit-modal__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--am-bg), transparent 0%), color-mix(in srgb, var(--am-bg), transparent 10%));
+  border-bottom: 1px solid var(--am-border);
+}
+
+.audit-modal__header h3 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+
+/* 닫기 버튼: 클릭 타깃 넓게 + 호버 피드백 */
+.audit-modal__close {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--am-muted);
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, transform 80ms ease;
+}
+.audit-modal__close:hover {
+  background: var(--am-soft);
+  color: var(--am-text);
+}
+.audit-modal__close:active {
+  transform: scale(0.96);
+}
+
+/* 바디: 스크롤 영역 + 타임라인 여백 */
+.audit-modal__body {
+  padding: 6px 6px 10px 14px;
+  max-height: calc(88vh - 56px);
+  overflow: auto;
+}
+
+/* 스크롤바 커스텀(지원 브라우저) */
+.audit-modal__body::-webkit-scrollbar {
+  width: 10px;
+}
+.audit-modal__body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--am-muted), transparent 55%);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.audit-modal__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 아이템: 타임라인 느낌 */
+.audit-item {
+  position: relative;
+  padding: 14px 14px 14px 28px;
+  border-bottom: 1px dashed color-mix(in srgb, var(--am-border), transparent 30%);
+}
+.audit-item:first-child {
+  padding-top: 8px;
+}
+.audit-item:last-child {
+  border-bottom: 0;
+}
+
+/* 타임라인 선 & 점 */
+.audit-item::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 0;
+  bottom: -1px;
+  width: 2px;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--am-accent), transparent 55%), transparent);
+}
+.audit-item::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 18px;
+  width: 12px;
+  height: 12px;
+  background: var(--am-bg);
+  border: 2px solid var(--am-accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--am-accent), transparent 75%);
+}
+
+/* 메타: 날짜 · 액션 */
+.audit-meta {
+  font-size: 12.5px;
+  color: var(--am-muted);
+  margin-bottom: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.audit-meta::before {
+  content: '•';
+  color: var(--am-accent);
+  font-weight: 700;
+}
+
+/* diff: 2단 그리드 + 칩 스타일 */
+.audit-diff {
+  background: var(--am-soft);
+  border: 1px solid var(--am-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.audit-diff dl {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px 14px;
+  margin: 0;
+}
+
+.audit-diff dt {
+  color: var(--am-text);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.audit-diff dd {
+  margin: 0;
+  color: var(--am-text);
+}
+
+/* before → after 표시 */
+.audit-diff .fromto {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--am-text);
+  flex-wrap: wrap;
+}
+
+/* 값 칩 */
+.audit-diff .fromto > * {
+  line-height: 1.9;
+}
+
+.audit-diff .fromto em {
+  font-style: normal;
+  opacity: 0.7;
+}
+
+/* 텍스트 전체를 칩처럼 보이게 */
+.audit-diff .fromto {
+  --chip-bg: #ffffff;
+  --chip-border: var(--am-border);
+}
+@media (prefers-color-scheme: dark) {
+  .audit-diff .fromto {
+    --chip-bg: #0b1220;
+  }
+}
+.audit-diff .fromto {
+  padding: 6px 10px;
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
+  border-radius: 8px;
+}
+
+/* 화살표 가독성 */
+.audit-diff .fromto::before,
+.audit-diff .fromto::after {
+  content: '';
+}
+
+/* 애니메이션 */
+@keyframes am-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes am-pop {
+  from {
+    transform: translateY(8px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
