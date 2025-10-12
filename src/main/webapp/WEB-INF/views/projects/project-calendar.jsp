@@ -7,7 +7,7 @@
 </div>
 
 <!-- 팝업 -->
-<div id="event-popup" class="event-popup" style="display:none">
+<div id="event-popup" class="event-popup" >
   <div class="popup-content">
     <button type="button" class="popup-close">&times;</button>
     <h5 id="modal-title">일정</h5>

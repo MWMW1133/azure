@@ -28,8 +28,16 @@ window.initProjectCalendar = function () {
       });
     }).catch(()=>{});
 
-  function openPopup(){ document.getElementById('event-popup').classList.add('is-open'); }
-    function closePopup(){ document.getElementById('event-popup').classList.remove('is-open'); }
+  function openPopup(){ 
+    const el = document.getElementById('event-popup');
+    el.style.display = 'flex';      // inline style로 보이게
+    el.classList.add('is-open');
+  }
+  function closePopup(){ 
+      const el = document.getElementById('event-popup');
+      el.classList.remove('is-open');
+      el.style.display = 'none';      // inline style로 숨기기
+    }
 
 
   const calendar = new FullCalendar.Calendar(calendarEl, {
@@ -178,8 +186,8 @@ window.initProjectCalendar = function () {
   });
 
   const popup = document.getElementById('event-popup');
-  document.querySelectorAll('.popup-close').forEach(b => b.addEventListener('click', () => popup.style.display='none'));
-  popup.addEventListener('click', (e)=>{ if (e.target===popup) popup.style.display='none'; });
+  document.querySelectorAll('.popup-close').forEach(b => b.addEventListener('click', closePopup));
+  popup.addEventListener('click', (e)=>{ if (e.target===popup) closePopup(); });
 
   function toPayloadFromEvent(e){
     return {
