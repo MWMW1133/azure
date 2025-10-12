@@ -45,6 +45,51 @@ document.addEventListener('DOMContentLoaded', function () {
       bar.style.width = Math.max(0, Math.min(100, progress)) + '%';
     });
   }
+  function fmtDateLikeList(isoish) {
+    if (isoish == null || isoish === '') return '-';
+    try {
+      let val = isoish;
+      if (typeof val === 'number') {
+        const ms = val > 1e12 ? val : val * 1000;
+        val = new Date(ms).toISOString();
+      }
+      if (typeof val === 'string' && val.includes(' ')) {
+        val = val.replace(' ', 'T');
+      }
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return '-';
+      const y = String(d.getFullYear()).slice(-2);
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${y}-${mm}-${dd}`;
+    } catch {
+      return '-';
+    }
+  }
+
+  function firstDefined(obj, keys) {
+    for (const k of keys) {
+      if (obj && obj[k] != null) return obj[k];
+    }
+    return null;
+  }
+
+  // 자식태스크의 최근 수정일 안전 추출
+  function resolveUpdatedAt(task) {
+    // 대표 후보 키들(카멜/스네이크 + modified/updated 계열)
+    let v = firstDefined(task, ['updatedAt', 'updated_at', 'modifiedAt', 'modified_at', 'lastModifiedAt', 'last_modified_at', 'lastUpdatedAt', 'last_updated_at']);
+
+    // 숫자 타임스탬프(초/밀리초)도 지원
+    if (typeof v === 'number') {
+      const ms = v > 1e12 ? v : v * 1000;
+      return new Date(ms).toISOString();
+    }
+    if (typeof v === 'string') {
+      // "YYYY-MM-DD HH:mm:ss" → Date가 파싱되도록 공백을 T로 보정
+      return v.includes(' ') ? v.replace(' ', 'T') : v;
+    }
+    return null;
+  }
 
   //하위태스크 생성
   function renderChildRow(t) {
@@ -64,6 +109,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const priorityName = (t.priorityName ?? (t.priority && t.priority.name) ?? '').toString().trim();
     const pct = t.progressPct ?? 0;
     const firstInitial = (s) => (s && s.length ? s[0] : 'U');
+
+    const updatedAt = resolveUpdatedAt(t);
 
     // 👉 표시 조건을 assigneeId "또는" (assigneeName/아바타)로 완화
     const hasAssigneeVisual = !!(assigneeId || assigneeName || avatarUrl);
@@ -149,7 +196,9 @@ document.addEventListener('DOMContentLoaded', function () {
       </div>
 
       <div class="task-cell file-cell"></div>
-      <div class="task-cell updated-at-cell"></div>
+      <div class="task-cell updated-at-cell" data-cell="updatedAt">
+        <span class="updated-at-text">${esc(fmtDateLikeList(updatedAt || t.updated_at))}</span>
+      </div>
     </div>
   `;
   }

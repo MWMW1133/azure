@@ -66,6 +66,7 @@ public class TaskController {
                     map.put("priorityId", t.getPriority() != null ? t.getPriority().getId() : null);
                     map.put("priorityName", t.getPriority() !=null ? t.getPriority().getName() : null);
                     map.put("childrenCount", t.getChildrenCount()); // 중첩된 하위 태스크를 위해 추가
+                    map.put("updatedAt", t.getUpdatedAt());
                     return map;
                 })
                 .collect(Collectors.toList());
