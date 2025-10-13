@@ -1483,3 +1483,106 @@ body {
     opacity: 1;
   }
 }
+
+#gantt-wrap {
+  min-height: 360px;
+  max-height: 90vh;
+  resize: vertical;
+  overflow: auto;
+}
+#gantt-wrap .gantt-container {
+  overflow: visible !important;
+}
+#gantt-wrap svg {
+  display: block;
+}
+/* ===== Chart Tab Layout ===== */
+.chart-wrapper {
+  --gap: 20px;
+  --card-radius: 14px;
+  --card-border: 1px solid #e5e7eb;
+  --card-shadow: 0 8px 24px rgba(2, 6, 23, 0.06);
+  --title-color: #0f172a; /* slate-900 */
+  --muted: #64748b; /* slate-500 */
+  --bg: #ffffff;
+
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--gap);
+}
+
+/* ===== Top counters (3 cards) ===== */
+.task-count-container {
+  grid-column: span 4; /* 3 equal cards in a 12-col grid */
+  background: var(--bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 260px;
+}
+
+.task-count-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid #eaeef3;
+  background: linear-gradient(180deg, #fbfdff 0%, #ffffff 100%);
+}
+
+.task-count-title {
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--title-color);
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.task-count-body {
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  height: 100%;
+}
+
+.task-count-body span {
+  font-weight: 800;
+  font-size: 48px;
+  line-height: 1;
+  color: #0b1220;
+}
+
+/* ===== Charts row ===== */
+.chart-graph-wrapper {
+  grid-column: span 4; /* 3 charts per row */
+  background: var(--bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: 16px;
+  min-height: 260px; /* 공간 확보 (그래프 라이브러리 렌더용) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 내부에 캔버스/SVG가 들어올 때 꽉 차게 */
+.chart-graph-wrapper canvas,
+.chart-graph-wrapper svg {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.chart-graph-wrapper::before {
+  content: none !important;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1200px) {
+  .task-count-container {
+    grid-column: span 4;
+  } /* still 3-wide */
+  .chart-graph-wrapper {
+    grid-column: span 6;
+  } /* 2-wide c*/
+}

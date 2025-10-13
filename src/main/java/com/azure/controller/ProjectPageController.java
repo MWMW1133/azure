@@ -30,22 +30,50 @@ public class ProjectPageController {
         return "mainbar";
     }
 
-    /** 📌 카드 탭 */
-    @GetMapping("/card")
-    public String card(@PathVariable Long projectId) {
-        return "projects/fragments/card";
-    }
-
     /** 📌 간트 차트 탭 */
     @GetMapping("/gantt")
-    public String gantt(@PathVariable Long projectId) {
-        return "projects/fragments/gantt";
+    public String gantt(@PathVariable Long projectId, Model model) {
+        var p = projectService.get(projectId);
+
+        // 진행중 태스크 (List)
+        var activeTasks = taskService.listByProject(projectId);
+
+        // 완료(아카이브) 태스크 (Page → List)
+        var archivedPage  = taskService.listCompletedTasksByProject(projectId, Pageable.unpaged());
+        var archivedTasks = (archivedPage != null) ? archivedPage.getContent() : java.util.List.of();
+
+        model.addAttribute("projectId", projectId);
+        model.addAttribute("projectName", p.getName());
+        model.addAttribute("activeTasks", activeTasks);
+        model.addAttribute("archivedTasks", archivedTasks); // ✅ 여기!
+
+        return "projects/fragments/ganttTab";
     }
 
     /** 📌 차트 탭 */
     @GetMapping("/chart")
-    public String chart(@PathVariable Long projectId) {
-        return "projects/fragments/chart";
+    public String chart(@PathVariable Long projectId, Model model) {
+    var all = taskService.getTasksForProject(projectId);  // 하위 포함
+
+    long total = all.size();
+
+    long completed = all.stream()
+            .filter(t -> t.getWorkflow() != null && Boolean.TRUE.equals(t.getWorkflow().getIsTerminal()))
+            .count();
+
+    if (completed == 0) {
+        completed = taskService
+            .listCompletedTasksByProject(projectId, org.springframework.data.domain.Pageable.unpaged())
+            .getTotalElements();
+    }
+
+    long active = Math.max(0, total - completed);
+
+    model.addAttribute("projectId", projectId);
+    model.addAttribute("totalTaskCount", total);
+    model.addAttribute("activeTaskCount", active);
+    model.addAttribute("archivedTaskCount", completed);
+        return "projects/fragments/chartTab";
     }
 
     /** 📌 캘린더 탭 */

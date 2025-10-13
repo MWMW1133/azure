@@ -108,35 +108,62 @@
   };
 
   // ------- Router -------
-const Router = {
-  go(name) {
-    const projectId = PROJECT_ID;  // 이미 위쪽에서 설정되어 있음
-    const ctx = APP_CONTEXT;       // /azure 혹은 ''
+  const Router = {
+    go(name) {
+      const projectId = PROJECT_ID; // 이미 위쪽에서 설정되어 있음
+      const ctx = APP_CONTEXT; // /azure 혹은 ''
 
-    const map = {
-      table: `${ctx}/projects/${projectId}/table`,   // ✅ 수정
-      card: `${ctx}/projects/${projectId}/card`,
-      gantt: `${ctx}/projects/${projectId}/gantt`,
-      chart: `${ctx}/projects/${projectId}/chart`,
-      calendar: `${ctx}/projects/${projectId}/calendar`,
-      files: `${ctx}/projects/${projectId}/files`,
-      members: `${ctx}/projects/${projectId}/members`,
-    };
+      const map = {
+        table: `${ctx}/projects/${projectId}/table`,
+        card: `${ctx}/projects/${projectId}/card`,
+        gantt: `${ctx}/projects/${projectId}/gantt`,
+        chart: `${ctx}/projects/${projectId}/chart`,
+        calendar: `${ctx}/projects/${projectId}/calendar`,
+        files: `${ctx}/projects/${projectId}/files`,
+        members: `${ctx}/projects/${projectId}/members`,
+      };
 
-    const url = map[name];
-    if (!url) return render('<h1>Not Found</h1>');
+      const url = map[name];
+      if (!url) return render('<h1>Not Found</h1>');
 
-    fetch(url, { cache: 'no-cache' })
-      .then((r) => r.text())
-      .then(render)
-      .catch((err) => {
-        console.error('[Router] error:', err);
-        render('<h1>Load Error</h1>');
-      });
-  },
-};
+      fetch(url, { cache: 'no-cache' })
+        .then((r) => r.text())
+        .then((html) => {
+          render(html);
 
+          // ====== 간트 ======
+          if (name === 'gantt' && typeof window.initGantt === 'function') {
+            raf2(() => {
+              const sel = '.project-body #gantt-wrap';
+              if (!document.querySelector(sel)) {
+                console.warn('[GANTT] container not found yet');
+                return;
+              }
+              if (typeof Gantt === 'undefined') {
+                console.error('[GANTT] library not loaded');
+                return;
+              }
+              window.initGantt(APP_CONTEXT, PROJECT_ID, { container: sel });
+            });
+          }
 
+          // ====== 차트 ======
+          if (name === 'chart') {
+            raf2(() => {
+              if (typeof window.initChartTab === 'function') {
+                window.initChartTab(APP_CONTEXT, PROJECT_ID);
+              } else {
+                console.error('[CHART] initChartTab is not loaded');
+              }
+            });
+          }
+        })
+        .catch((err) => {
+          console.error('[Router] error:', err);
+          render('<h1>Load Error</h1>');
+        });
+    },
+  };
 
   function render(html) {
     if (main) main.innerHTML = html;
@@ -349,6 +376,19 @@ const Router = {
         console.warn('invite failed', err);
       }
     });
+  }
+
+  function raf2(fn) {
+    requestAnimationFrame(() => requestAnimationFrame(fn));
+  }
+
+  async function waitForContainers(idList, tries = 40, delayMs = 25) {
+    for (let i = 0; i < tries; i++) {
+      const ok = idList.every((id) => document.getElementById(id));
+      if (ok) return true;
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+    return false;
   }
 
   // ------- boot -------
