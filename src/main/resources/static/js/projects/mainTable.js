@@ -319,7 +319,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function handleSaveTask(event) {
     const form = event.target.closest('.task-form-row');
-    if (!form) return alert('저장 폼을 찾을 수 없습니다.');
+    if (!form) return showToast('저장 폼을 찾을 수 없습니다', 'error');
 
     const titleEl = form.querySelector('input[name="title"]');
     const startEl = form.querySelector('input[name="startedAt"]');
@@ -575,7 +575,7 @@ document.addEventListener('DOMContentLoaded', function () {
       syncDeleteButtonState();
     } catch (err) {
       console.error(err);
-      alert(err.message || '삭제 중 오류가 발생했습니다.');
+      showToast('삭제 중 오류가 발생했습니다', 'error');
     }
   }
 
@@ -652,6 +652,25 @@ document.addEventListener('DOMContentLoaded', function () {
     rows.forEach(applyPriorityToRow);
   }
 
+  function showToast(message = '완료되었습니다.', type = 'success', opts = {}) {
+    const el = document.getElementById('planToast');
+    if (!el) return;
+    const container = el.closest('.toast-container');
+    const pos = opts.position || 'top-end';
+    container.className = `toast-container position-fixed p-3 ` + `${pos.includes('bottom') ? 'bottom-0' : 'top-0'} ` + `${pos.includes('start') ? 'start-0' : 'end-0'}`;
+
+    el.className = 'toast clean-toast';
+    el.classList.add(`toast-${type}`);
+    el.querySelector('.toast-body').textContent = message;
+
+    const iconEl = el.querySelector('.toast-icon');
+    const icons = { success: '✔', error: '✖', warning: '!', info: 'ℹ' };
+    if (iconEl) iconEl.textContent = icons[type] ?? 'ℹ';
+
+    const delay = Number(opts.duration || 2200);
+    const t = bootstrap.Toast.getOrCreateInstance(el, { autohide: true, delay });
+    t.show();
+  }
   // ---------- 초기화 ----------
   syncDeleteButtonState();
   updateAllProgressBars();

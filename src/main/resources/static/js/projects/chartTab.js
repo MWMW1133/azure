@@ -9,15 +9,16 @@
     // ECharts 로드 보장
     await ensureEcharts();
 
-    // 데이터
-    const tasks = await fetch(`${ctx}/api/projects/${projectId}/tasks`, { cache: 'no-cache' }).then((r) => r.json());
+    //   데이터
+    const parents = await fetch(`${ctx}/api/projects/${projectId}/tasks`, { cache: 'no-cache' }).then((r) => r.json());
+    const rows = await loadTasksDeep(ctx, projectId, parents);
 
-    // 집계
-    const byAssignee = countBy(tasks, (t) => t.assigneeName || '미지정');
-    const byDueDate = countBy(tasks, (t) => normalizeYmd(t.dueDate), { excludeNull: true, sort: 'asc' });
-    const byStatus = countBy(tasks, (t) => t.workflowName || '미지정');
+    //   집계
+    const byAssignee = countBy(rows, (t) => t.assigneeName || '미지정');
+    const byDueDate = countBy(rows, (t) => normalizeYmd(t.dueDate), { excludeNull: true, sort: 'asc' });
+    const byStatus = countBy(rows, (t) => t.workflowName || '미지정');
 
-    // 렌더 (제목 포함)
+    //   렌더
     const charts = [];
     charts.push(renderBar('graphByAssignee', byAssignee, '직원 별 담당 태스크'));
     charts.push(renderBar('graphByDueDate', byDueDate, '태스크 마감일', { xLabelRotate: 45 }));
@@ -27,7 +28,37 @@
     window.addEventListener('resize', () => charts.forEach((c) => c?.resize()), { passive: true });
   }
 
-  // ------- helpers (모두 내부) -------
+  // 자식 태스크 로딩
+  async function loadTasksDeep(ctx, projectId, parents) {
+    const out = [];
+    const seen = new Set();
+    const MAX_DEPTH = 3;
+
+    async function pushWithChildren(task, depth) {
+      if (!task || seen.has(task.id)) return;
+      seen.add(task.id);
+      out.push(task);
+
+      const count = Number(task.childrenCount || 0);
+      if (depth >= MAX_DEPTH || count <= 0) return;
+
+      try {
+        const kids = await fetch(`${ctx}/api/projects/${projectId}/tasks/${task.id}/children`, { cache: 'no-cache' }).then((r) => r.json());
+        for (const ch of kids || []) {
+          await pushWithChildren(ch, depth + 1);
+        }
+      } catch (e) {
+        console.warn('[chart] children load failed for', task.id, e);
+      }
+    }
+
+    for (const p of parents || []) {
+      await pushWithChildren(p, 0);
+    }
+    return out;
+  }
+
+  // ------- helpers -------
   async function ensureEcharts() {
     if (global.echarts) return;
     await new Promise((res, rej) => {
@@ -61,6 +92,7 @@
     }
     return false;
   }
+
   function countBy(arr, keyFn, opts = {}) {
     const m = new Map();
     for (const it of arr || []) {
@@ -74,6 +106,7 @@
     if (opts.sort === 'desc') ent.sort((a, b) => String(b[0]).localeCompare(String(a[0])));
     return ent;
   }
+
   function normalizeYmd(s) {
     if (!s) return null;
     s = String(s).trim();
@@ -101,7 +134,7 @@
     el.__echarts__ = chart;
     chart.setOption({
       title: { text: title || '', left: 'center', top: 8, textStyle: { fontWeight: 700, fontSize: 14 } },
-      grid: { left: 40, right: 10, top: 48, bottom: 40 }, // 제목만큼 여백
+      grid: { left: 40, right: 10, top: 48, bottom: 40 },
       tooltip: { trigger: 'axis' },
       xAxis: { type: 'category', data: data.map((d) => d[0]), axisLabel: { rotate: opts.xLabelRotate || 0 } },
       yAxis: { type: 'value', minInterval: 1 },
@@ -109,6 +142,7 @@
     });
     return chart;
   }
+
   function renderPie(elId, data, title) {
     const el = document.getElementById(elId);
     if (!el) return null;
@@ -137,6 +171,6 @@
     return chart;
   }
 
-  // 전역에 초기화 함수만 노출
+  // 전역 노출
   global.initChartTab = initChartTab;
 })(window);

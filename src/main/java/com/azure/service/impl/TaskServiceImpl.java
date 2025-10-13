@@ -17,6 +17,7 @@ import com.azure.repository.ProjectRepository;
 import com.azure.repository.TaskRepository;
 import com.azure.repository.UserRepository;
 import com.azure.repository.WorkflowRepository;
+import com.azure.security.SecurityUtil;
 import com.azure.service.AuditService;
 import com.azure.service.TaskService;
 import com.azure.service.exception.NotFoundException;
@@ -587,8 +588,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private User actor() {
-        //Long id = SecurityUtil.getCurrentUserId(); 
-        Long id = 1L; //로그인쪽 머지하면 위에걸로 바꾸면될듯????
+        Long id = SecurityUtil.getCurrentUserId(); 
         return userRepository.findById(id).orElse(null);
     }
 }
