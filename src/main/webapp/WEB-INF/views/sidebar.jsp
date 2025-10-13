@@ -60,18 +60,16 @@
           </div>
 
             <div class="proj-list">
-                <c:forEach var="proj" items="${projects}">
-                    <c:set var="projKey" value="project${proj.id}"/>
-                    <a class="proj-row ${activePage eq projKey ? 'active' : ''}"
-                    href="${pageContext.request.contextPath}/projects/${proj.id}/tasks">
-                        <span class="ic elbow">
+              <c:forEach var="proj" items="${projects}">
+                <a class="proj-row ${activePage eq 'project' and activeProjectId == proj.id ? 'active' : ''}"
+                  href="${pageContext.request.contextPath}/projects/${proj.id}">
+                  <span class="ic elbow"> 
                         <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
                             <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>
-                        </svg>
-                        </span>
-                        <span>${proj.name}</span>
-                    </a>
-                </c:forEach>
+                        </svg> </span>
+                  <span>${proj.name}</span>
+                </a>
+              </c:forEach>
             </div>
 
           <a class="proj-row proj-plan ${activePage eq 'plan' ? 'active' : ''}"

@@ -17,16 +17,18 @@ public class ProjectPageController {
     private final TaskService taskService;
 
     /** 📌 프로젝트 메인 페이지 (사이드바 + 탭 진입) */
-    @GetMapping
+      @GetMapping
     public String projectMain(@PathVariable Long projectId, Model model) {
         var p = projectService.get(projectId);
-
         model.addAttribute("projectId", p.getId());
         model.addAttribute("projectName", p.getName());
+
+        // ✅ 사이드바 키는 'project' 고정 + 어떤 프로젝트인지 별도 제공
         model.addAttribute("activePage", "project");
         model.addAttribute("activeProjectId", projectId);
-        model.addAttribute("body", "/WEB-INF/views/project-tab.jsp");
 
+        // ✅ mainbar.jsp가 <jsp:include page="${body}"/> 라면 파일명만
+        model.addAttribute("body", "project-tab.jsp");
         return "mainbar";
     }
 
