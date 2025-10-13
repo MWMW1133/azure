@@ -734,7 +734,8 @@
     workflowName: '상태',
     priorityName: '우선순위',
     fileName: '파일명',
-    // 그 외 키는 원래 키 그대로 라벨 처리
+    startDate: '시작일',
+    dueDate: '마감일',
   };
 
   // before/after 정규화
@@ -766,6 +767,7 @@
         PRIORITY_CHANGED: '우선순위 변경',
         FILE_ATTACHED: '파일 첨부',
         FILE_REMOVED: '파일 제거',
+        DATES_CHANGED: '일정 변경',
       };
       return map[a] || a;
     };

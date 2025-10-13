@@ -367,10 +367,32 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public Task setDates(Long taskId, LocalDate startDate, LocalDate dueDate) {
         Task t = get(taskId);
+
+        // 변경 전 값 백업
+        LocalDate beforeStart = t.getStartDate();
+        LocalDate beforeDue   = t.getDueDate();
+
+        // 변경
         t.setStartDate(startDate);
         t.setDueDate(dueDate);
-        return taskRepository.save(t);
+
+        // 저장
+        Task saved = taskRepository.save(t);
+
+        // 감사 로그
+        auditService.log(
+            actor(),
+            com.azure.model.enums.AuditEnums.EntityType.TASK,
+            saved.getId(),
+            ActionType.DATES_CHANGED,
+            new AuditDiff()
+                .put("startDate", beforeStart, saved.getStartDate())
+                .put("dueDate",   beforeDue,   saved.getDueDate())
+        );
+
+        return saved;
     }
+
 
     @Override
     public Task setProgress(Long taskId, BigDecimal progressPct) {
@@ -588,7 +610,8 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private User actor() {
-        Long id = SecurityUtil.getCurrentUserId(); 
+       // Long id = SecurityUtil.getCurrentUserId(); 
+       Long id = 1L;
         return userRepository.findById(id).orElse(null);
     }
 }

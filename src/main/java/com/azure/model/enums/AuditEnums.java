@@ -9,6 +9,7 @@ public final class AuditEnums {
     WORKFLOW_CHANGED,     // 상태(워크플로우) 변경
     PRIORITY_CHANGED,     // 우선순위 변경
     FILE_ATTACHED,        // 파일 업로드
-    FILE_REMOVED         // 파일 삭제
+    FILE_REMOVED,         // 파일 삭제
+    DATES_CHANGED         // 날짜 변경
   }
 }

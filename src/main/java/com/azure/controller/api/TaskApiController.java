@@ -76,4 +76,28 @@ public class TaskApiController {
 
     @Data
     static class PriorityReq { Long priorityId; }
+
+    @PatchMapping("/{taskId}")
+    public TaskUpdateDTO setDates(@PathVariable Long taskId, @RequestBody DatesReq req) {
+        if (req.getStartDate() == null || req.getDueDate() == null) {
+            throw new IllegalArgumentException("startDate/dueDate는 필수입니다.");
+        }
+        if (req.getDueDate().isBefore(req.getStartDate())) {
+            throw new IllegalArgumentException("dueDate는 startDate 이후여야 합니다.");
+        }
+
+        Task t = taskService.setDates(taskId, req.getStartDate(), req.getDueDate());
+
+        TaskUpdateDTO dto = new TaskUpdateDTO();
+        dto.setId(t.getId());
+        dto.setStartDate(t.getStartDate());
+        dto.setDueDate(t.getDueDate());
+        return dto;
+    }
+
+  @Data
+  static class DatesReq {
+      private java.time.LocalDate startDate;
+      private java.time.LocalDate dueDate;
+  }
 }

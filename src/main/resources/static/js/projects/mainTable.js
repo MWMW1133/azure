@@ -328,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const title = titleEl?.value?.trim() || '';
     if (!title) {
-      alert('제목을 입력하세요.');
+      showToast('제목을 입력하세요.', 'error');
       titleEl?.focus();
       return;
     }
@@ -354,14 +354,14 @@ document.addEventListener('DOMContentLoaded', function () {
           const j = await res.json();
           if (j?.message) msg += `: ${j.message}`;
         } catch {}
-        alert(msg);
+        showToast(msg, 'error');
         return;
       }
-      alert('저장 완료');
+      showToast('저장 완료', 'success');
       window.location.reload();
     } catch (e) {
       console.error(e);
-      alert('저장 중 오류가 발생했습니다.');
+      showToast('저장 중 오류가 발생했습니다.', 'error');
     }
   }
 
@@ -439,7 +439,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.key !== 'Enter') return;
         const newStatusName = e.target.value.trim();
         if (!newStatusName) return;
-        alert(`'${newStatusName}' 상태가 추가되었습니다.`);
+        showToast(`'${newStatusName}' 상태가 추가되었습니다.`, 'success');
         e.target.value = '';
         await populateStatusList(taskId, cell);
       };
@@ -496,7 +496,7 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error(err);
             hideEl(container);
             toggleIcon.classList.remove('open');
-            alert(err.message || '하위 태스크를 불러오지 못했습니다.');
+            showToast('하위 태스크를 불러오지 못했습니다.', 'error');
           }
         })();
       } else {
@@ -532,7 +532,7 @@ document.addEventListener('DOMContentLoaded', function () {
         console.error(err);
         hideEl(container);
         row.querySelector('.js-toggle-subtasks')?.classList.remove('open');
-        alert(err.message || '하위 태스크를 불러오지 못했습니다.');
+        showToast('하위 태스크를 불러오지 못했습니다.', 'error');
       }
     })();
   });
@@ -553,7 +553,7 @@ document.addEventListener('DOMContentLoaded', function () {
   async function handleDeleteTask() {
     const selectedIds = [...document.querySelectorAll('.task-row input[type="checkbox"]:checked')].map((cb) => cb.closest('.task-row')?.dataset.taskId).filter(Boolean);
 
-    if (selectedIds.length === 0) return alert('삭제할 태스크를 선택하세요.');
+    if (selectedIds.length === 0) return showToast('삭제할 태스크를 선택하세요.', 'error');
     if (!confirm(`${selectedIds.length}개의 태스크를 삭제할까요?`)) return;
 
     try {
