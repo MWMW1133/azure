@@ -17,7 +17,7 @@
   </div>
 
   <div  class="main-wrapper-body"
-        id="project-tab-root"               <%-- ★ JS와 id 통일(원래 project-root -> project-tab-root) --%>
+        id="project-tab-root"             
         data-project-id="${projectId}"
         data-ctx="${pageContext.request.contextPath}">
 

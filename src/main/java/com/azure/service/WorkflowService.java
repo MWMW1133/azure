@@ -21,4 +21,6 @@ public interface WorkflowService {
     List<Workflow> listByProjectOrdered(Long projectId);
     // 기본 워크플로우 조회 (is_default = true)
     Optional<Workflow> findDefaultWorkflow(Long projectId);
+    // 기본 워크플로우가 없으면 생성
+    void ensureDefaultStages(Long projectId);
 }

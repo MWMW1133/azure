@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +22,7 @@ import java.util.stream.Collectors;
 public class TaskController {
 
     private final TaskService taskService;
-
+    private static final DateTimeFormatter YYMMDD = DateTimeFormatter.ofPattern("yy-MM-dd");
     /** ✅ 목록 조회 */
     @GetMapping
     public List<Map<String, Object>> list(@PathVariable Long projectId) {
@@ -30,14 +31,14 @@ public class TaskController {
                     Map<String, Object> map = new LinkedHashMap<>();
                     map.put("id", t.getId());
                     map.put("title", t.getTitle());
-                    map.put("assignee",
-                            (t.getAssignee() != null && t.getAssignee().getName() != null)
-                                    ? t.getAssignee().getName() : "-");
-                    map.put("startDate", t.getStartDate());
-                    map.put("dueDate", t.getDueDate());
-                    map.put("status",
-                            (t.getWorkflow() != null && t.getWorkflow().getName() != null)
-                                    ? t.getWorkflow().getName() : "-");
+                    map.put("assigneeId",     t.getAssignee() != null ? t.getAssignee().getId() : null);
+                    map.put("assigneeName",   t.getAssignee() != null ? t.getAssignee().getName() : null);
+                    map.put("assigneeAvatarUrl", (t.getAssignee()!=null)? t.getAssignee().getAvatarUrl() : null);
+                    map.put("startDate", t.getStartDate().format(YYMMDD));
+                    map.put("dueDate", t.getDueDate().format(YYMMDD));
+                    map.put("workflowId",    t.getWorkflow()!=null ? t.getWorkflow().getId()    : null);
+                    map.put("workflowName",  t.getWorkflow()!=null ? t.getWorkflow().getName()  : null);
+                    map.put("workflowColor", t.getWorkflow()!=null ? t.getWorkflow().getColor() : null);
                     map.put("priority",
                             (t.getPriority() != null && t.getPriority().getName() != null)
                                     ? t.getPriority().getName() : "-");
@@ -55,10 +56,14 @@ public class TaskController {
                     Map<String, Object> map = new LinkedHashMap<>();
                     map.put("id", t.getId());
                     map.put("title", t.getTitle());
-                    map.put("assignee", (t.getAssignee() != null) ? t.getAssignee().getName() : "-");
-                    map.put("startDate", t.getStartDate());
-                    map.put("dueDate", t.getDueDate());
-                    map.put("status", (t.getWorkflow() != null) ? t.getWorkflow().getName() : "-");
+                    map.put("assigneeId",     t.getAssignee() != null ? t.getAssignee().getId() : null);
+                    map.put("assigneeName",   t.getAssignee() != null ? t.getAssignee().getName() : null);
+                    map.put("assigneeAvatarUrl", (t.getAssignee()!=null)? t.getAssignee().getAvatarUrl() : null);
+                    map.put("startDate", t.getStartDate().format(YYMMDD));
+                    map.put("dueDate", t.getDueDate().format(YYMMDD));
+                    map.put("workflowId",    t.getWorkflow()!=null ? t.getWorkflow().getId()    : null);
+                    map.put("workflowName",  t.getWorkflow()!=null ? t.getWorkflow().getName()  : null);
+                    map.put("workflowColor", t.getWorkflow()!=null ? t.getWorkflow().getColor() : null);
                     map.put("priority", (t.getPriority() != null) ? t.getPriority().getName() : "-");
                     map.put("childrenCount", t.getChildrenCount()); // 중첩된 하위 태스크를 위해 추가
                     return map;
@@ -109,5 +114,13 @@ public ResponseEntity<TaskResponseDTO> create(
         taskService.deleteTasks(ids);
     }
 
+    @lombok.Data
+    public static class AssignReq { private Long userId; }
+
+    @PatchMapping("/{taskId}/assignee")
+    public ResponseEntity<Void> assign(@PathVariable Long taskId, @RequestBody AssignReq req) {
+        taskService.assign(taskId, req.getUserId()); // null 처리 규칙은 서비스가 수행
+        return ResponseEntity.noContent().build();
+    }
     
 }

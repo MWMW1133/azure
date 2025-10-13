@@ -231,3 +231,10 @@
   border: 1px solid var(--border-color);
   border-radius: 4px;
 }
+
+.assignee-cell {
+  position: relative;
+}
+.assignee-panel[hidden] {
+  display: none !important;
+}
