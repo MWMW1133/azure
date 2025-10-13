@@ -11,7 +11,7 @@ public class CustomUserDetails implements UserDetails {
 
     private final User user;
 
-    // 생성자
+    // 생성자  
     public CustomUserDetails(User user) {
         this.user = user;
     }
@@ -48,7 +48,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return user.getWorkStatus() == User.WorkStatus.WORKING;
+    return user.getWorkStatus() == User.WorkStatus.WORKING;
     }
 
 }

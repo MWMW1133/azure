@@ -106,14 +106,19 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @EntityGraph(attributePaths = {"assignee", "workflow", "priority"})
     Page<Task> findByProjectIdAndWorkflow_IsTerminalTrue(Long projectId, Pageable pageable);  
 
-    // 캘린더 겹침 조회
+        // 캘린더 겹침(기간) 조회 + 프로젝트 제한
     @Query("""
-    select t from Task t
-    where t.project.id = :projectId
-        and t.startDate is not null and t.dueDate is not null
-        and (t.startDate <= :toDate and t.dueDate >= :fromDate)
+        select t from Task t
+        where t.project.id = :projectId
+          and t.startDate is not null and t.dueDate is not null
+          and t.startDate <= :to and t.dueDate >= :from
     """)
-    List<Task> findByProjectAndDateRangeOverlap(@Param("projectId") Long projectId,
-                                                @Param("fromDate") LocalDate fromDate,
-                                                @Param("toDate") LocalDate toDate);
+    List<Task> findByProjectAndDateRangeOverlap(
+            @Param("projectId") Long projectId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to
+    );
+
+    // 드롭다운(관련 태스크 선택)용 — 프로젝트 제한
+    List<Task> findByProject_Id(Long projectId);
 }

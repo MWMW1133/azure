@@ -20,42 +20,42 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class WebUserAdvice {
 
-    private final UserService userService;
-    private final OrganizationMemberRepository organizationMemberRepository;
-    private final ProjectService projectService;
+  private final UserService userService;
+  private final OrganizationMemberRepository organizationMemberRepository;
+  private final ProjectService projectService; 
 
-    @ModelAttribute("user")
-    public User addUserToModel(HttpSession session) {
-        User loginUser = (User) session.getAttribute("loginUser");
-        if (loginUser == null) return null;
-        try { return userService.get(loginUser.getId()); }
-        catch (Exception e) { return null; }
-    }
+  @ModelAttribute("user")
+  public User addUserToModel(HttpSession session) {
+    User loginUser = (User) session.getAttribute("loginUser");
+    if (loginUser == null) return null;
+    try { return userService.get(loginUser.getId()); }
+    catch (Exception e) { return null; }
+  }
 
-    @ModelAttribute("org")
-    public OrganizationMember addOrganizationToModel(HttpSession session) {
-        User loginUser = (User) session.getAttribute("loginUser");
-        if (loginUser == null) return null;
-        try {
-            return organizationMemberRepository.findByUserIdFetchOrganization(loginUser.getId())
-                    .stream().findFirst().orElse(null);
-        } catch (Exception e) { return null; }
-    }
+  @ModelAttribute("org")
+  public OrganizationMember addOrganizationToModel(HttpSession session) {
+    User loginUser = (User) session.getAttribute("loginUser");
+    if (loginUser == null) return null;
+    try {
+      return organizationMemberRepository.findByUserIdFetchOrganization(loginUser.getId())
+          .stream().findFirst().orElse(null);
+    } catch (Exception e) { return null; }
+  }
 
-    @ModelAttribute("currentUserId")
-    public Long currentUserId(HttpSession session) {
-        User loginUser = (User) session.getAttribute("loginUser");
-        return (loginUser != null) ? loginUser.getId() : null;
-    }
+  @ModelAttribute("currentUserId")
+  public Long currentUserId(HttpSession session) {
+    User loginUser = (User) session.getAttribute("loginUser");
+    return (loginUser != null) ? loginUser.getId() : null;
+  }
 
-    // ✅ 사이드바 프로젝트 목록 전역 주입
-    @ModelAttribute("projects")
-    public java.util.List<com.azure.model.project.Project> sidebarProjects(HttpSession session) {
-        User loginUser = (User) session.getAttribute("loginUser");
-        if (loginUser == null) return java.util.List.of();
-        // 필요에 따라 page 크기/정렬 조정
-        var page = projectService.listByUser(loginUser.getId(),
-                org.springframework.data.domain.PageRequest.of(0, 200));
-        return page.getContent();
-    }
+  // ✅ 사이드바 프로젝트 목록 전역 주입
+  @ModelAttribute("projects")
+  public java.util.List<com.azure.model.project.Project> sidebarProjects(HttpSession session) {
+    User loginUser = (User) session.getAttribute("loginUser");
+    if (loginUser == null) return java.util.List.of();
+    // 필요에 따라 page 크기/정렬 조정
+    var page = projectService.listByUser(loginUser.getId(),
+        org.springframework.data.domain.PageRequest.of(0, 200));
+    return page.getContent();
+  }
 }

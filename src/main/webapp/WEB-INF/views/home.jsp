@@ -5,7 +5,7 @@
 <div class="container">
   <div class="container-body">
     <div class="container-body-top">
-      <h2>안녕하세요, ${empty user ? '사용자' : user.name}님.</h2>
+      <h2>안녕하세요, ${user.name}님.</h2>
     </div>
     <div class="kanban-board">
       <!-- TO DO -->

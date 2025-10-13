@@ -7,7 +7,6 @@ import com.azure.model.tag.Tag;
 import com.azure.model.user.User;
 import com.azure.service.ProjectService;
 import com.azure.service.TagService;
-import static com.azure.security.SecurityUtil.getCurrentUserId;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
@@ -28,6 +27,22 @@ public class ProjectApiController {
     private final ProjectService projectService;
     private final TagService tagService;
     
+    @GetMapping("/{projectId}")
+  public ProjectDTO get(@PathVariable Long projectId) {
+    var p = projectService.get(projectId);
+    var dto = new ProjectDTO();
+    dto.setId(p.getId());
+    dto.setName(p.getName());
+    dto.setDescription(p.getDescription());
+    dto.setOwnerId(p.getOwner()!=null ? p.getOwner().getId() : null);
+    dto.setOrganizationId(p.getOrganization()!=null ? p.getOrganization().getId() : null);
+    dto.setStartDate(p.getStartDate());
+    dto.setDueDate(p.getDueDate());
+    dto.setCreatedAt(p.getCreatedAt());
+    return dto;
+  }
+
+
     @Data
     public static class CreateTagReq {
         private String name;
@@ -35,8 +50,9 @@ public class ProjectApiController {
 
     // 프로젝트 리스트
     @GetMapping("/list")
-    public List<ProjectDTO> myProjects() {
-      Long meId = getCurrentUserId();
+    public List<ProjectDTO> myProjects(@ModelAttribute("currentUserId") Long meId) {
+      if (meId == null) throw new org.springframework.web.server.ResponseStatusException(
+            org.springframework.http.HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
 
       var page = projectService.listByUser(
           meId,
