@@ -49,9 +49,4 @@ public class User {
     this.createdAt = LocalDateTime.now();
     }
 
-    // com.azure.model.user.User
-    public Long getOrganizationId() {
-        // 네이밍은 organization, org 등 프로젝트에 맞게 조정
-        return (this.organization != null) ? this.organization.getId() : null;
-    }
 }

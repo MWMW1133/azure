@@ -5,7 +5,6 @@ import com.azure.model.calendar.ProjectCalendar;
 import com.azure.model.task.Task;
 import com.azure.repository.ProjectCalendarRepository;
 import com.azure.repository.TaskRepository;
-import com.azure.security.CurrentUserId;
 import com.azure.service.CalendarService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -52,7 +51,7 @@ public class ProjectCalendarApiController {
 
     /** 생성 */
     @PostMapping("/events")
-    public EventDto create(@CurrentUserId Long uid,
+    public EventDto create(Long uid,
                            @PathVariable Long projectId,
                            @RequestBody EventDto in) {
 

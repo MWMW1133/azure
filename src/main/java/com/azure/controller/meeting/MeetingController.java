@@ -11,15 +11,18 @@ import org.springframework.web.bind.annotation.*;
 public class MeetingController {
     private final MeetingService meetingService;
 
-    @PostMapping("/{eventId}/start")
-    public Meeting start(@PathVariable Long eventId,
-                         @RequestParam Long organizationId,
-                         @RequestParam Long projectId) {
-        return meetingService.startMeeting(eventId, organizationId, projectId);
+    @PostMapping("/start")
+    public StartResp start(@RequestParam Long organizationId,
+                           @RequestParam Long projectId) {
+        Meeting m = meetingService.startMeeting(organizationId, projectId);
+        String channel = "org_%d_proj_%d".formatted(organizationId, projectId);
+        return new StartResp(m.getId(), channel);
     }
 
     @PostMapping("/{meetingId}/end")
     public Meeting end(@PathVariable Long meetingId) {
         return meetingService.endMeeting(meetingId);
     }
+
+    public record StartResp(Long meetingId, String channel) {}
 }

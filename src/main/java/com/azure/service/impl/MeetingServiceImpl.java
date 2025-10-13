@@ -2,15 +2,12 @@ package com.azure.service.impl;
 
 import com.azure.model.Organization;
 import com.azure.model.project.Project;
-import com.azure.model.calendar.ProjectCalendar;
 import com.azure.model.meeting.Meeting;
 import com.azure.repository.MeetingRepository;
-import com.azure.repository.ProjectCalendarRepository;
 import com.azure.service.MeetingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 
 @Service
@@ -19,14 +16,10 @@ import java.time.LocalDateTime;
 public class MeetingServiceImpl implements MeetingService {
 
     private final MeetingRepository meetingRepository;
-    private final ProjectCalendarRepository projectCalendarRepository;
 
     @Override
-    public Meeting startMeeting(Long eventId, Long organizationId, Long projectId) {
-        ProjectCalendar event = projectCalendarRepository.findById(eventId).orElseThrow();
-
+    public Meeting startMeeting(Long organizationId, Long projectId) {
         Meeting m = new Meeting();
-        m.setEvent(event);
         if (organizationId != null) { var o = new Organization(); o.setId(organizationId); m.setOrganization(o); }
         if (projectId != null)      { var p = new Project();      p.setId(projectId);      m.setProject(p); }
         m.setStartedAt(LocalDateTime.now());

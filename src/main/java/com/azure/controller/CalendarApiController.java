@@ -7,7 +7,6 @@ import com.azure.service.CalendarService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.azure.security.CurrentUserId;         
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -26,7 +25,7 @@ public class CalendarApiController {
 
     // ───────────── 조회 ─────────────
     @GetMapping("/events")
-        public List<EventDto> getEvents(@CurrentUserId Long uid, @RequestParam(required = false) String start, @RequestParam(required = false) String end) {
+        public List<EventDto> getEvents(Long uid, @RequestParam(required = false) String start, @RequestParam(required = false) String end) {
 
         LocalDateTime from = (start != null && !start.isBlank())
                 ? parseFlexibleForAllDay(start, false, false)
@@ -44,7 +43,7 @@ public class CalendarApiController {
 
     // ───────────── 생성 ─────────────
     @PostMapping("/events")
-    public EventDto createEvent(@CurrentUserId Long uid, @RequestBody EventDto in) {
+    public EventDto createEvent(Long uid, @RequestBody EventDto in) {
 
         boolean allDay = in.isAllDay();
         LocalDateTime startAt = parseFlexibleForAllDay(in.getStart(), false, allDay);
@@ -79,7 +78,7 @@ public class CalendarApiController {
 
     // ───────────── 수정 ─────────────
     @PutMapping("/events/{id}")
-    public EventDto updateEvent(@CurrentUserId Long uid, @PathVariable("id") String id, @RequestBody EventDto in) {
+    public EventDto updateEvent(Long uid, @PathVariable("id") String id, @RequestBody EventDto in) {
         Long eid = Long.valueOf(id);
         PersonalCalendar e = personalCalendarRepository.findById(eid)
                 .orElseThrow(() -> new RuntimeException("Event not found: " + id));
@@ -106,7 +105,7 @@ public class CalendarApiController {
 
     // ───────────── 삭제 ─────────────
     @DeleteMapping("/events/{id}")
-    public ResponseEntity<Void> deleteEvent(@CurrentUserId Long uid, @PathVariable("id") String id) {
+    public ResponseEntity<Void> deleteEvent(Long uid, @PathVariable("id") String id) {
         calendarService.deletePersonalEvent(Long.valueOf(id));
         return ResponseEntity.ok().build();
     }
