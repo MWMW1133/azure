@@ -1,16 +1,17 @@
+// /js/meeting.js
 (function (w) {
-  'use strict';
-  if (w.__meetingLoaded) return;
-  w.__meetingLoaded = true;
+    'use strict';
+    if (w.__meetingLoaded) return;
+    w.__meetingLoaded = true;
 
-  /* ===========================
-   * 1) Styles
-   * =========================== */
-  function ensureRoomStyles() {
-    if (document.getElementById('meeting-hud-styles')) return;
-    const st = document.createElement('style');
-    st.id = 'meeting-hud-styles';
-    st.textContent = `
+    /* ===========================
+     * 1) Styles
+     * =========================== */
+    function ensureRoomStyles() {
+        if (document.getElementById('meeting-hud-styles')) return;
+        const st = document.createElement('style');
+        st.id = 'meeting-hud-styles';
+        st.textContent = `
 :root{
   --border:#e6ebf3; --muted:#5b6b83; --ink:#0f172a; --ink2:#1f2937; --ink3:#334155;
 }
@@ -339,14 +340,14 @@
 
 @keyframes cc-in{ from{ transform:translateY(6px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
 `;
-    document.head.appendChild(st);
-  }
+        document.head.appendChild(st);
+    }
 
-  /* ===========================
-   * 2) HTML
-   * =========================== */
-  function roomHTML() {
-    return `
+    /* ===========================
+     * 2) HTML
+     * =========================== */
+    function roomHTML() {
+        return `
 <section class="room-wrap">
 
   <!-- 로비(수락/거절) -->
@@ -434,209 +435,188 @@
       </div>
     </div>
     </section>`;
-  }
+    }
 
     /* ===========================
-     * 3) Events & Logic  (UI/UX 변경 없음, 로직만 보강)
+     * 3) Events & Logic
      * =========================== */
-
-// 서버 컨텍스트
-    const CTX = (window.pageContextPath || (window.APP_CTX || '${pageContext && pageContext.request && pageContext.request.contextPath || ""}')).replace(/\/$/, '');
-
-    async function apiStartMeeting(eventId, { organizationId=1, projectId=1 } = {}){
-        const r = await fetch(`${CTX}/api/meetings/${eventId}/start?organizationId=${organizationId}&projectId=${projectId}`, { method:'POST' });
-        if (!r.ok) throw new Error('startMeeting failed'); return r.json();
-    }
-    async function apiEndMeeting(meetingId){
-        const r = await fetch(`${CTX}/api/meetings/${meetingId}/end`, { method:'POST' });
-        if (!r.ok) throw new Error('endMeeting failed'); return r.json();
-    }
-    async function apiRtcToken(channel, uid){
-        const r = await fetch(`${CTX}/api/rtc/token`, {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ channel, uid })
-        });
-        if (!r.ok) throw new Error('token failed'); return r.json(); // {token}
-    }
-    async function apiRecordingStart(eventId, uid){
-        const r = await fetch(`${CTX}/api/recordings/start`, {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ eventId, uid })
-        });
-        if (!r.ok) throw new Error('recording start failed'); return r.json(); // {resourceId,sid,channel}
-    }
-    async function apiRecordingStop({ meetingId, channel, uid, resourceId, sid }){
-        const r = await fetch(`${CTX}/api/recordings/stop`, {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ meetingId, channel, uid, resourceId, sid })
-        });
-        if (!r.ok) throw new Error('recording stop failed');
-    }
-    async function apiSttStart(meetingId){
-        const r = await fetch(`${CTX}/api/meet/stt/start`,{
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ meetingId })
-        });
-        if (!r.ok) throw new Error('stt start failed');
-    }
-    async function apiSttStop(meetingId){
-        const r = await fetch(`${CTX}/api/meet/stt/stop`,{
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ meetingId })
-        });
-        if (!r.ok) throw new Error('stt stop failed');
-    }
-
-    const CURRENT = { meetingId:null, eventId:null, channel:null,
-        rtc:{joined:false, uid:null, client:null, localTrack:null},
-        rec:{resourceId:null, sid:null} };
-    function channelOf(eventId){ return `meeting-${eventId}`; }
-
-    const RTC = {
-        async join(channel, token, uid, micDeviceId){
-            const client = AgoraRTC.createClient({ mode:'rtc', codec:'vp8' });
-            await client.join(null, channel, token, uid);
-            const localTrack = await AgoraRTC.createMicrophoneAudioTrack(
-                micDeviceId ? { microphoneId: micDeviceId } : {}
-            );
-            await client.publish([localTrack]);
-            CURRENT.rtc = { joined:true, uid, client, localTrack };
-        },
-        async leave(){
-            const { client, localTrack } = CURRENT.rtc || {};
-            if (localTrack){ try{ await client.unpublish([localTrack]); }catch(e){} try{ localTrack.close(); }catch(e){} }
-            if (client){ try{ await client.leave(); }catch(e){} }
-            CURRENT.rtc = { joined:false, uid:null, client:null, localTrack:null };
-        }
-    };
-
     function bindRoomEvents(root){
+        // HUD
         const startBtn = root.querySelector('#hud-notes-start');
         const stopBtn  = root.querySelector('#hud-notes-stop');
         const openBtn  = root.querySelector('#hud-open-notes');
         const endBtn   = root.querySelector('#hud-end');
         const micSel   = root.querySelector('#hud-mic');
 
-        async function beginNotes(){
-            const eventId = (typeof getCurrentProjectId === 'function') ? getCurrentProjectId() : null;
-            if (!eventId) return alert('프로젝트를 먼저 선택하세요.');
-            CURRENT.eventId = eventId; CURRENT.channel = channelOf(eventId);
+        // 모달
+        const notesModal  = document.getElementById('notes-modal');
+        const notesBody   = document.getElementById('notes-body');
+        const closeNotes  = document.getElementById('btn-close-notes');
+        const clearNotes  = document.getElementById('btn-clear-notes');
+        const exportNotes = document.getElementById('btn-export-notes');
 
-            const meeting = await apiStartMeeting(eventId, { organizationId:1, projectId:1 });
-            CURRENT.meetingId = meeting.id;
+        function openNotes(){
+            notesModal.setAttribute('aria-hidden','false');
+        }
+        function closeNotesFn(){
+            notesModal.setAttribute('aria-hidden','true');
+        }
 
-            const uid = String(window.currentUserId || Math.floor(Math.random()*1e9));
-            const { token } = await apiRtcToken(CURRENT.channel, uid);
-            const micId = micSel?.value;
-            await RTC.join(CURRENT.channel, token, uid, micId);
+        openBtn?.addEventListener('click', openNotes);
+        closeNotes?.addEventListener('click', closeNotesFn);
+        clearNotes?.addEventListener('click', ()=> notesBody.textContent = '(아직 내용이 없습니다)');
+        exportNotes?.addEventListener('click', ()=>{
+            const blob = new Blob([notesBody.textContent||''], {type:'text/plain;charset=utf-8'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'meeting-notes.txt'; a.click();
+            URL.revokeObjectURL(a.href);
+        });
 
-            try{
-                const rec = await apiRecordingStart(eventId, uid);
-                CURRENT.rec.resourceId = rec.resourceId; CURRENT.rec.sid = rec.sid;
-            }catch(e){ console.warn('recording start failed', e); }
-
-            try{ await apiSttStart(CURRENT.meetingId); }catch(e){}
-
+        // 회의록 작성 시작/종료
+        function beginNotes(){
             startBtn.disabled = true; stopBtn.disabled = false;
-            openBtn.classList.remove('show');
-            root.classList.add('rec-on');
-            (document.querySelector('.room-wrap') || document).classList.add('in-call');
+            openBtn.classList.remove('show'); // 작성 중에는 숨김
+            Speech.start();
+            root.classList.add('rec-on');     // 네온 링 ON
         }
-
-        async function endNotes(){
-            try{ if (CURRENT.meetingId) await apiSttStop(CURRENT.meetingId); }catch(e){}
-            try{
-                const { meetingId, channel } = CURRENT;
-                const { uid } = CURRENT.rtc || {};
-                const { resourceId, sid } = CURRENT.rec || {};
-                if (meetingId && channel && uid && resourceId && sid){
-                    await apiRecordingStop({ meetingId, channel, uid, resourceId, sid });
-                }
-            }catch(e){ console.warn('recording stop failed', e); }
-            try{ await RTC.leave(); }catch(e){}
-            try{ if (CURRENT.meetingId) await apiEndMeeting(CURRENT.meetingId); }catch(e){}
-
+        function endNotes(){
             startBtn.disabled = false; stopBtn.disabled = true;
-            root.classList.remove('rec-on');
-            requestAnimationFrame(()=> openBtn.classList.add('show'));
-            (document.querySelector('.room-wrap') || document).classList.remove('in-call');
+            Speech.stop();
+            root.classList.remove('rec-on');  // 네온 링 OFF
+            requestAnimationFrame(()=> openBtn.classList.add('show')); // 회의록 버튼 등장
         }
 
+        // 회의록 시작
         startBtn?.addEventListener('click', async (e) => {
             e.preventDefault();
-            // (기존) 멤버십 가드 유지
-            const pid = (typeof getCurrentProjectId === 'function') ? getCurrentProjectId() : null;
+
+            // (선택) 프로젝트 멤버십 가드 — 멤버 아니면 프로젝트 참여 수락 모달 열고 종료
+            const pid = getCurrentProjectId?.(); // 너희가 쓰는 선택값 반환 함수
             if (pid) {
                 const ids = await apiListProjectMemberIds(pid);
                 const isAdmin = currentUserId === COMPANY_ADMIN_ID;
-                if (!isAdmin && !ids.includes(currentUserId)) { gateAccessForCurrentUser(document, pid); return; }
+                if (!isAdmin && !ids.includes(currentUserId)) {
+                    gateAccessForCurrentUser(document, pid);
+                    return;
+                }
             }
-            try { await beginNotes(); } catch (err) {
-                console.error(err); alert('회의 시작 중 오류가 발생했습니다.');
-                startBtn.disabled = false; stopBtn.disabled = true; root.classList.remove('rec-on');
-            }
+
+            // 진짜 시작
+            beginNotes();
+            (document.querySelector('.room-wrap') || document).classList.add('in-call');
         });
 
-        stopBtn ?.addEventListener('click', async () => { try{ await endNotes(); }catch(e){} });
-        endBtn  ?.addEventListener('click', async () => {
-            if (startBtn.disabled) { try{ await endNotes(); }catch(e){} }
+        stopBtn ?.addEventListener('click', endNotes);
+
+        // 통화 종료 → 버튼 오른쪽 토스트
+        endBtn?.addEventListener('click', () => {
+            if (!startBtn.disabled) { /* 작성 중 아님 */ } else { endNotes(); }
             showEndToastAtHangup('회의가 종료되었습니다.', endBtn);
         });
+
+        // 마이크 리스트(가능하면 채우기)
+        try{
+            if (navigator.mediaDevices?.enumerateDevices) {
+                navigator.mediaDevices.enumerateDevices().then(list=>{
+                    const mics = list.filter(d=>d.kind==='audioinput');
+                    if (mics.length && micSel){
+                        micSel.innerHTML = mics.map(d=>`<option value="${d.deviceId}">${d.label || '마이크'}</option>`).join('');
+                    }
+                });
+            }
+        }catch(e){}
     }
 
-
-
-  /* ===========================
-   * 4) Speech (Web Speech API – 라이트)
-   * =========================== */
-  const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
-  const Speech = (function(){
-    let recog=null, running=false;
-    function ensure(){
-      if (recog) return recog;
-      if (!SR){ console.warn('이 브라우저는 음성 인식을 지원하지 않습니다.'); return null; }
-      recog = new SR();
-      recog.lang = 'ko-KR';
-      recog.continuous = true;
-      recog.interimResults = true;
-      recog.onresult = (e)=>{
-        let s=''; for (let i=e.resultIndex; i<e.results.length; i++) s += e.results[i][0].transcript;
-        const body = document.getElementById('notes-body');
-        if (body){
-          if (body.textContent==='(아직 내용이 없습니다)') body.textContent = s;
-          else body.textContent += s;
+    // 통화 종료 토스트 (버튼 오른쪽에 앵커)
+    function showEndToastAtHangup(message, anchorBtn){
+        let toast = document.getElementById('end-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'end-toast';
+            toast.className = 'end-toast';
+            document.body.appendChild(toast);
         }
-      };
-      recog.onend = ()=>{ running=false; };
-      return recog;
+        toast.textContent = message;
+
+        // 앵커 모드
+        toast.classList.add('anchored');
+        toast.style.right = ''; toast.style.bottom = '';
+
+        // 버튼 기준 위치 계산 (fixed 좌표계 = viewport 기준)
+        const btn = anchorBtn || document.querySelector('#hud-end') || document.querySelector('.hud-btn.danger');
+        if (btn) {
+            const r = btn.getBoundingClientRect();
+            // 먼저 임시로 보이게 해서 높이 측정
+            toast.style.left = (r.right + 28) + 'px';
+            toast.style.top  = r.top + 'px';
+            requestAnimationFrame(() => {
+                const h = toast.offsetHeight || 40;
+                toast.style.top = Math.round(r.top + (r.height - h) / 2) + 'px';
+                toast.classList.add('in');
+            });
+        } else {
+            // 폴백: 우하단
+            toast.classList.remove('anchored');
+            toast.style.right = '24px'; toast.style.bottom = '24px';
+            requestAnimationFrame(() => toast.classList.add('in'));
+        }
+
+        clearTimeout(showEndToastAtHangup._timer);
+        showEndToastAtHangup._timer = setTimeout(() => {
+            toast.classList.remove('in');
+        }, 1800);
     }
-    return {
-      start(){ const r = ensure(); if (!r || running) return; r.start(); running=true; },
-      stop(){ if (!recog || !running) return; try{ recog.stop(); }catch(e){} running=false; }
+
+    /* ===========================
+     * 4) Speech (Web Speech API – 라이트)
+     * =========================== */
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
+    const Speech = (function(){
+        let recog=null, running=false;
+        function ensure(){
+            if (recog) return recog;
+            if (!SR){ console.warn('이 브라우저는 음성 인식을 지원하지 않습니다.'); return null; }
+            recog = new SR();
+            recog.lang = 'ko-KR';
+            recog.continuous = true;
+            recog.interimResults = true;
+            recog.onresult = (e)=>{
+                let s=''; for (let i=e.resultIndex; i<e.results.length; i++) s += e.results[i][0].transcript;
+                const body = document.getElementById('notes-body');
+                if (body){
+                    if (body.textContent==='(아직 내용이 없습니다)') body.textContent = s;
+                    else body.textContent += s;
+                }
+            };
+            recog.onend = ()=>{ running=false; };
+            return recog;
+        }
+        return {
+            start(){ const r = ensure(); if (!r || running) return; r.start(); running=true; },
+            stop(){ if (!recog || !running) return; try{ recog.stop(); }catch(e){} running=false; }
+        };
+    })();
+
+    /* ===========================
+     * 5) Public API
+     * =========================== */
+    const Meeting = {
+        mount(target){
+            if (w.__meetingMounted) return;
+            w.__meetingMounted = true;
+
+            const el = (typeof target === 'string') ? document.querySelector(target) : target;
+            if (!el) return;
+            ensureRoomStyles();
+            el.innerHTML = roomHTML();
+
+            const wrap = el.querySelector('.room-wrap');
+            bindRoomEvents(wrap);
+
+            // ★ 프로젝트 스위처 + 참가자 패널 초기화
+            initProjectSwitcher(wrap);
+        }
     };
-  })();
-
-  /* ===========================
-   * 5) Public API
-   * =========================== */
-  const Meeting = {
-    mount(target){
-      if (w.__meetingMounted) return;
-      w.__meetingMounted = true;
-
-      const el = (typeof target === 'string') ? document.querySelector(target) : target;
-      if (!el) return;
-      ensureRoomStyles();
-      el.innerHTML = roomHTML();
-
-      const wrap = el.querySelector('.room-wrap');
-      bindRoomEvents(wrap);
-
-      // ★ 프로젝트 스위처 + 참가자 패널 초기화
-      initProjectSwitcher(wrap);
-    }
-  };
-  w.Meeting = Meeting;
+    w.Meeting = Meeting;
 })(window);
 
 // ─────────────────────────────────────────────────────────────
@@ -645,11 +625,11 @@ const currentUserId = 1; // 이재환
 // TODO: [API] GET /api/me → { id, name, role: 'admin' | 'member', companyId }
 
 const USERS = [
-  { id: 1, name: '이재환' },
-  { id: 2, name: '박소현' },
-  { id: 3, name: '김형욱' },
-  { id: 4, name: '양수빈' },
-  { id: 5, name: '이민우' },
+    { id: 1, name: '이재환' },
+    { id: 2, name: '박소현' },
+    { id: 3, name: '김형욱' },
+    { id: 4, name: '양수빈' },
+    { id: 5, name: '이민우' },
 ];
 // TODO: [API] GET /api/users?companyId=...
 
@@ -659,18 +639,18 @@ const COMPANY_ADMIN_ID = 2; // 박소현(예시)
 
 // 프로젝트들(관리자는 공통이므로 별도 필드 없이 members만 둠)
 const PROJECTS = [
-  { id: 1, name: '프로젝트 1', members: [3,5] },  // 지금 우리는 미초대 상태 예시
-  { id: 2, name: '프로젝트 2', members: [1,3] },    // 여기엔 우리가 초대되어 있음 예시
-  { id: 3, name: '프로젝트 3', members: [] },
+    { id: 1, name: '프로젝트 1', members: [3,5] },  // 지금 우리는 미초대 상태 예시
+    { id: 2, name: '프로젝트 2', members: [1,3] },    // 여기엔 우리가 초대되어 있음 예시
+    { id: 3, name: '프로젝트 3', members: [] },
 ];
 // TODO: [API] GET /api/projects?companyId=...
 
 // 초대함(프로젝트별 대기중 초대)
 // key: projectId, value: userId[]
 const INVITATIONS = {
-  1: [1],  // 우리는 프로젝트1에 '초대받은 상태'
-  2: [],   // 이미 멤버
-  3: [],   // 미초대
+    1: [1],  // 우리는 프로젝트1에 '초대받은 상태'
+    2: [],   // 이미 멤버
+    3: [],   // 미초대
 };
 // TODO: [API] GET /api/projects/:id/invitations
 
@@ -682,88 +662,88 @@ async function apiListProjects(){ return state.projects; }      // TODO: [API]
 async function apiListUsers(){ return state.users; }            // TODO: [API]
 // 멤버 = 관리자 + 해당 프로젝트 members (초대/현재유저 끼워넣지 않음)
 async function apiListProjectMemberIds(projectId){
-  const p = state.projects.find(x => x.id === Number(projectId));
-  const base = (p && Array.isArray(p.members)) ? p.members : [];
-  // ★ 현재 유저, 초대 등은 절대 끼우지 않음
-  return Array.from(new Set([COMPANY_ADMIN_ID, ...base]));
+    const p = state.projects.find(x => x.id === Number(projectId));
+    const base = (p && Array.isArray(p.members)) ? p.members : [];
+    // ★ 현재 유저, 초대 등은 절대 끼우지 않음
+    return Array.from(new Set([COMPANY_ADMIN_ID, ...base]));
 } // TODO: [API] GET /api/projects/:id/members (+ admin merge on server)
 
 // 관리자 + 프로젝트 members만 반환 (현재 유저/초대 등 절대 끼우지 않음)
 async function apiListProjectMembers(projectId){
-  const ids   = await apiListProjectMemberIds(projectId); // 이미 관리자 포함되어 옴
-  const users = await apiListUsers();
-  const uniq  = Array.from(new Set(ids));
-  return users.filter(u => uniq.includes(u.id));
+    const ids   = await apiListProjectMemberIds(projectId); // 이미 관리자 포함되어 옴
+    const users = await apiListUsers();
+    const uniq  = Array.from(new Set(ids));
+    return users.filter(u => uniq.includes(u.id));
 }
 
 async function apiListInvitations(projectId){
-  return state.invitations[projectId] || [];
+    return state.invitations[projectId] || [];
 } // TODO: [API] GET /api/projects/:id/invitations
 
 async function apiInvite(projectId, userId){
-  // 관리자만 가능: 서버에서 검증 예정
-  state.invitations[projectId] = Array.from(new Set([...(state.invitations[projectId]||[]), Number(userId)]));
-  return { ok:true };
+    // 관리자만 가능: 서버에서 검증 예정
+    state.invitations[projectId] = Array.from(new Set([...(state.invitations[projectId]||[]), Number(userId)]));
+    return { ok:true };
 } // TODO: [API] POST /api/projects/:id/invitations
 
 async function apiAccept(projectId, userId){
-  // 초대 수락 → 멤버 편입
-  const p = state.projects.find(x => x.id === Number(projectId));
-  if (p){
-    p.members = Array.from(new Set([...(p.members||[]), Number(userId)]));
-  }
-  state.invitations[projectId] = (state.invitations[projectId]||[]).filter(id => id!==Number(userId));
-  return { ok:true };
+    // 초대 수락 → 멤버 편입
+    const p = state.projects.find(x => x.id === Number(projectId));
+    if (p){
+        p.members = Array.from(new Set([...(p.members||[]), Number(userId)]));
+    }
+    state.invitations[projectId] = (state.invitations[projectId]||[]).filter(id => id!==Number(userId));
+    return { ok:true };
 } // TODO: [API] POST /api/projects/:id/members (from invitation)
 
 async function apiDecline(projectId, userId){
-  state.invitations[projectId] = (state.invitations[projectId]||[]).filter(id => id!==Number(userId));
-  return { ok:true };
+    state.invitations[projectId] = (state.invitations[projectId]||[]).filter(id => id!==Number(userId));
+    return { ok:true };
 } // TODO: [API] DELETE /api/projects/:id/invitations/:userId
 
 async function apiRemove(projectId, userId){
-  const p = state.projects.find(x => x.id === Number(projectId));
-  if (p){
-    p.members = (p.members||[]).filter(id => id !== Number(userId));
-  }
-  return { ok:true };
+    const p = state.projects.find(x => x.id === Number(projectId));
+    if (p){
+        p.members = (p.members||[]).filter(id => id !== Number(userId));
+    }
+    return { ok:true };
 } // TODO: [API] DELETE /api/projects/:id/members/:userId
 
 // URL/Router에서 초기 프로젝트 결정
 function getInitialProjectId() {
-  const q = new URLSearchParams(location.search);
-  return q.has('project') ? Number(q.get('project')) : null;
+    const q = new URLSearchParams(location.search);
+    return q.has('project') ? Number(q.get('project')) : null;
 }
 
 
 // 셀렉트 박스 동기화
 function setProjectUI(pid, root = document) {
-  const sel = root.querySelector('#projectSelect');
-  const exists = state.projects.find(p => p.id === Number(pid));
-  if (sel && exists && sel.value !== String(pid)) sel.value = String(pid);
+    const sel = root.querySelector('#projectSelect');
+    const exists = state.projects.find(p => p.id === Number(pid));
+    if (sel && exists && sel.value !== String(pid)) sel.value = String(pid);
 }
 
 // 참가자 패널 렌더: "관리자 + 실제 멤버"만 표시 (현재 유저를 임의로 끼우지 않음)
 window.renderPeoplePanel = async function renderPeoplePanel(root = document, projectId){
-  const listEl = root.querySelector('.rp-list');                 // 회의실 DOM이 아닐 수 있으니
-  const cntEl  = root.querySelector('.rp-count, #rp-count');     // 없으면 바로 종료
-  if (!listEl) return;
+    const listEl = root.querySelector('.rp-list');                 // 회의실 DOM이 아닐 수 있으니
+    const cntEl  = root.querySelector('.rp-count, #rp-count');     // 없으면 바로 종료
+    if (!listEl) return;
 
-  // 1) 멤버 아이디는 "회사 관리자 + 프로젝트 members"만
-  const [ids, users] = await Promise.all([
-    apiListProjectMemberIds(projectId),  // => [2,3,5] (예시)
-    apiListUsers()
-  ]);
-  // 혹시라도 중복 제거
-  const memberIds = Array.from(new Set(ids));
-  const members   = users.filter(u => memberIds.includes(u.id));
+    // 1) 멤버 아이디는 "회사 관리자 + 프로젝트 members"만
+    const [ids, users] = await Promise.all([
+        apiListProjectMemberIds(projectId),  // => [2,3,5] (예시)
+        apiListUsers()
+    ]);
+    // 혹시라도 중복 제거
+    const memberIds = Array.from(new Set(ids));
+    const members   = users.filter(u => memberIds.includes(u.id));
 
-  // (선택) 관리자 UI 토글
-  const panel = root.querySelector('.room-people');
-  if (panel) panel.classList.toggle('is-manager', currentUserId === COMPANY_ADMIN_ID);
+    // (선택) 관리자 UI 토글
+    const panel = root.querySelector('.room-people');
+    if (panel) panel.classList.toggle('is-manager', currentUserId === COMPANY_ADMIN_ID);
 
-  // 2) 목록 렌더 (현재 유저라고 해서 따로 끼워 넣지 않음)
-  listEl.innerHTML = members.map(u => `
+    // 2) 목록 렌더 (현재 유저라고 해서 따로 끼워 넣지 않음)
+    listEl.innerHTML = members.map(u => `
       <li class="person" data-id="${u.id}">
         <div class="avatar">${u.name[0]}</div>
         <div class="p-main">
@@ -773,17 +753,17 @@ window.renderPeoplePanel = async function renderPeoplePanel(root = document, pro
           <div class="p-sub">온라인</div>
         </div>
         ${(currentUserId === COMPANY_ADMIN_ID && u.id !== COMPANY_ADMIN_ID)
-      ? `<button class="chip" data-action="remove" data-id="${u.id}">제외</button>` : ''}
+        ? `<button class="chip" data-action="remove" data-id="${u.id}">제외</button>` : ''}
       </li>
     `).join('');
 
-  if (cntEl) cntEl.textContent = String(members.length);
+    if (cntEl) cntEl.textContent = String(members.length);
 
-  // 3) (관리자일 때만) 초대 섹션
-  if (currentUserId === COMPANY_ADMIN_ID){
-    const candidates = users.filter(u => u.id !== COMPANY_ADMIN_ID && !memberIds.includes(u.id));
-    if (candidates.length){
-      listEl.insertAdjacentHTML('beforeend', `
+    // 3) (관리자일 때만) 초대 섹션
+    if (currentUserId === COMPANY_ADMIN_ID){
+        const candidates = users.filter(u => u.id !== COMPANY_ADMIN_ID && !memberIds.includes(u.id));
+        if (candidates.length){
+            listEl.insertAdjacentHTML('beforeend', `
         <li class="list-sep">초대 가능</li>
         ${candidates.map(u => `
           <li class="person candidate" data-id="${u.id}">
@@ -796,198 +776,198 @@ window.renderPeoplePanel = async function renderPeoplePanel(root = document, pro
           </li>
         `).join('')}
       `);
-    }
+        }
 
-    // 초대/제외 버튼 핸들러
-    listEl.onclick = async (e) => {
-      const btn = e.target.closest('.chip');
-      if (!btn) return;
-      const uid = Number(btn.dataset.id);
-      const action = btn.dataset.action;
-      if (action === 'invite')      await apiInvite(projectId, uid);
-      else if (action === 'remove') await apiRemove(projectId, uid);
-      renderPeoplePanel(root, projectId); // 갱신
-    };
-  }
+        // 초대/제외 버튼 핸들러
+        listEl.onclick = async (e) => {
+            const btn = e.target.closest('.chip');
+            if (!btn) return;
+            const uid = Number(btn.dataset.id);
+            const action = btn.dataset.action;
+            if (action === 'invite')      await apiInvite(projectId, uid);
+            else if (action === 'remove') await apiRemove(projectId, uid);
+            renderPeoplePanel(root, projectId); // 갱신
+        };
+    }
 };
 
 // === [UPDATE] 프로젝트 스위처 초기화 ===
 function initProjectSwitcher(root = document){
-  const sel = root.querySelector('#projectSelect');
+    const sel = root.querySelector('#projectSelect');
 
-  // (옵션) 서버에서 옵션 채우기
-  // apiListProjects().then(list => {
-  //   sel.innerHTML = list.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-  // });
+    // (옵션) 서버에서 옵션 채우기
+    // apiListProjects().then(list => {
+    //   sel.innerHTML = list.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    // });
 
-  // URL 파라미터로 들어온 경우만 즉시 세팅, 그 외엔 '프로젝트 선택' 상태 유지
-  const initialId = getInitialProjectId();
-  if (initialId){
-    setProjectUI(initialId, root);
-    renderPeoplePanel(root, initialId);
-    gateAccessForCurrentUser(root, initialId); // 선택된 경우에만 게이트 체크
-  }else{
-    // 아무것도 선택 안 한 초기 상태
-    setProjectUI(null, root);        // 제목을 '프로젝트 선택' 등으로 표시하고
-    clearPeoplePanel(root);          // 우측 참가자 목록 비우고
-    hideLobby(root);                 // 초대 모달/로비는 숨김
-  }
-
-  if (!sel) return;
-  sel.addEventListener('change', (e) => {
-    const pid = Number(e.target.value);
-    setProjectUI(pid, root);
-    renderPeoplePanel(root, pid);
-    gateAccessForCurrentUser(root, pid); // ▶ 여기서만 프로젝트 참여 수락 모달을 검사/노출
-
-    // URL 업데이트(라우터 없으면 쿼리만)
-    if (window.Router && typeof Router.go === 'function') {
-      Router.go('meeting', { projectId: pid });
-    } else {
-      const url = new URL(location.href);
-      url.searchParams.set('project', String(pid));
-      history.pushState({}, '', url);
+    // URL 파라미터로 들어온 경우만 즉시 세팅, 그 외엔 '프로젝트 선택' 상태 유지
+    const initialId = getInitialProjectId();
+    if (initialId){
+        setProjectUI(initialId, root);
+        renderPeoplePanel(root, initialId);
+        gateAccessForCurrentUser(root, initialId); // 선택된 경우에만 게이트 체크
+    }else{
+        // 아무것도 선택 안 한 초기 상태
+        setProjectUI(null, root);        // 제목을 '프로젝트 선택' 등으로 표시하고
+        clearPeoplePanel(root);          // 우측 참가자 목록 비우고
+        hideLobby(root);                 // 초대 모달/로비는 숨김
     }
-  });
+
+    if (!sel) return;
+    sel.addEventListener('change', (e) => {
+        const pid = Number(e.target.value);
+        setProjectUI(pid, root);
+        renderPeoplePanel(root, pid);
+        gateAccessForCurrentUser(root, pid); // ▶ 여기서만 프로젝트 참여 수락 모달을 검사/노출
+
+        // URL 업데이트(라우터 없으면 쿼리만)
+        if (window.Router && typeof Router.go === 'function') {
+            Router.go('meeting', { projectId: pid });
+        } else {
+            const url = new URL(location.href);
+            url.searchParams.set('project', String(pid));
+            history.pushState({}, '', url);
+        }
+    });
 }
 
 // 보조들(없으면 추가)
 function clearPeoplePanel(root=document){
-  const list = root.querySelector('.rp-list, .room-people-list');
-  const cnt  = root.querySelector('.rp-count, #rp-count');
-  if (list) list.innerHTML = '';
-  if (cnt)  cnt.textContent = '0';
+    const list = root.querySelector('.rp-list, .room-people-list');
+    const cnt  = root.querySelector('.rp-count, #rp-count');
+    if (list) list.innerHTML = '';
+    if (cnt)  cnt.textContent = '0';
 }
 function hideLobby(root=document){
-  const lobby = root.querySelector('#lobby-view');
-  if (lobby) lobby.style.display = 'none';
+    const lobby = root.querySelector('#lobby-view');
+    if (lobby) lobby.style.display = 'none';
 }
 
 function resetStubStore(){
-  // 원본 상수로 되감기
-  state.projects    = JSON.parse(JSON.stringify(PROJECTS));
-  state.invitations = JSON.parse(JSON.stringify(INVITATIONS));
+    // 원본 상수로 되감기
+    state.projects    = JSON.parse(JSON.stringify(PROJECTS));
+    state.invitations = JSON.parse(JSON.stringify(INVITATIONS));
 }
 
 window.resetStubStore = function(){
-  state.projects = [
-    { id: 1, name: '프로젝트 1', members: [3, 5] }, // 우리는 멤버 아님
-    { id: 2, name: '프로젝트 2', members: [1, 3] }, // 우리는 멤버
-    { id: 3, name: '프로젝트 3', members: [] }
-  ];
-  state.invitations = { 1: [1], 2: [], 3: [] };     // 프로젝트1은 '초대 대기' 상태
+    state.projects = [
+        { id: 1, name: '프로젝트 1', members: [3, 5] }, // 우리는 멤버 아님
+        { id: 2, name: '프로젝트 2', members: [1, 3] }, // 우리는 멤버
+        { id: 3, name: '프로젝트 3', members: [] }
+    ];
+    state.invitations = { 1: [1], 2: [], 3: [] };     // 프로젝트1은 '초대 대기' 상태
 };
 
 function resetMeetingUI(root = document){
-  const lobby  = root.querySelector('#lobby-view');
-  const listEl = root.querySelector('.rp-list, .room-people-list')
-  if (lobby)  lobby.style.display = 'none';
-  if (listEl) listEl.innerHTML = '';
+    const lobby  = root.querySelector('#lobby-view');
+    const listEl = root.querySelector('.rp-list, .room-people-list')
+    if (lobby)  lobby.style.display = 'none';
+    if (listEl) listEl.innerHTML = '';
 }
 
 function openLobby(root, {
-  title = '확인', desc = '', acceptLabel = '확인', declineLabel = '취소',
-  onAccept = () => {}, onDecline = () => {}, acceptDisabled = false
+    title = '확인', desc = '', acceptLabel = '확인', declineLabel = '취소',
+    onAccept = () => {}, onDecline = () => {}, acceptDisabled = false
 } = {}) {
-  const lobby = root.querySelector('#lobby-view');
-  if (!lobby) return;
+    const lobby = root.querySelector('#lobby-view');
+    if (!lobby) return;
 
-  const t  = lobby.querySelector('.lobby-title');
-  const d  = lobby.querySelector('.lobby-desc');
-  let ok   = lobby.querySelector('#btn-join');
-  let no   = lobby.querySelector('#btn-decline');
+    const t  = lobby.querySelector('.lobby-title');
+    const d  = lobby.querySelector('.lobby-desc');
+    let ok   = lobby.querySelector('#btn-join');
+    let no   = lobby.querySelector('#btn-decline');
 
-  // 텍스트/상태
-  t.textContent = title;
-  d.textContent = desc;
+    // 텍스트/상태
+    t.textContent = title;
+    d.textContent = desc;
 
-  // 🔁 버튼을 "클론 → 교체"해서 과거 핸들러 싹 제거
-  const okNew = ok.cloneNode(true);
-  const noNew = no.cloneNode(true);
-  ok.replaceWith(okNew);
-  no.replaceWith(noNew);
-  ok = okNew;
-  no = noNew;
+    // 🔁 버튼을 "클론 → 교체"해서 과거 핸들러 싹 제거
+    const okNew = ok.cloneNode(true);
+    const noNew = no.cloneNode(true);
+    ok.replaceWith(okNew);
+    no.replaceWith(noNew);
+    ok = okNew;
+    no = noNew;
 
-  ok.textContent = acceptLabel;
-  no.textContent = declineLabel;
-  ok.disabled = !!acceptDisabled;
+    ok.textContent = acceptLabel;
+    no.textContent = declineLabel;
+    ok.disabled = !!acceptDisabled;
 
-  // 새 핸들러 연결
-  ok.addEventListener('click', async () => {
-    lobby.style.display = 'none';
-    try { await onAccept(); } catch(e) {}
-  });
-  no.addEventListener('click', async () => {
-    // ⬇️ 먼저 로비를 숨겨 카드가 위에 보이도록
-    lobby.style.display = 'none';
-    try { await onDecline(); } catch(e) {}
-  });
+    // 새 핸들러 연결
+    ok.addEventListener('click', async () => {
+        lobby.style.display = 'none';
+        try { await onAccept(); } catch(e) {}
+    });
+    no.addEventListener('click', async () => {
+        // ⬇️ 먼저 로비를 숨겨 카드가 위에 보이도록
+        lobby.style.display = 'none';
+        try { await onDecline(); } catch(e) {}
+    });
 
-  // 표시
-  lobby.style.display = 'flex';
+    // 표시
+    lobby.style.display = 'flex';
 }
 // 초대 게이트: 멤버가 아니고 초대받은 사람에게만 수락/거절 표시
 async function gateAccessForCurrentUser(root, projectId){
-  const lobby = root.querySelector('#lobby-view');
-  if (!lobby) return;
+    const lobby = root.querySelector('#lobby-view');
+    if (!lobby) return;
 
-  // 회사 단일 관리자 구조 (COMPANY_ADMIN_ID)
-  const memberIds  = await apiListProjectMemberIds(projectId);
-  const invitedIds = await apiListInvitations(projectId);
-  const isAdmin    = (currentUserId === COMPANY_ADMIN_ID);
-  const invited    = invitedIds.includes(currentUserId);  // ← 선언을 위로!
+    // 회사 단일 관리자 구조 (COMPANY_ADMIN_ID)
+    const memberIds  = await apiListProjectMemberIds(projectId);
+    const invitedIds = await apiListInvitations(projectId);
+    const isAdmin    = (currentUserId === COMPANY_ADMIN_ID);
+    const invited    = invitedIds.includes(currentUserId);  // ← 선언을 위로!
 
-  // 1) 관리자이거나 이미 멤버면 로비 숨김
-  if (isAdmin || memberIds.includes(currentUserId)) {
-    lobby.style.display = 'none';
-    return;
-  }
+    // 1) 관리자이거나 이미 멤버면 로비 숨김
+    if (isAdmin || memberIds.includes(currentUserId)) {
+        lobby.style.display = 'none';
+        return;
+    }
 
-  // 2) 초대 받은 경우 → "프로젝트 참여 수락" 모달
-  if (invited) {
-    openLobby(root, {
-      title: '프로젝트 참여 수락',
-      desc:  '관리자가 보낸 초대를 수락하면 이 프로젝트 회의실을 사용할 수 있어요.',
-      acceptLabel: '수락',
-      declineLabel: '닫기',
-      acceptDisabled: false, // ← 버튼 비활성화 풀기
-      onAccept: async () => {
-        await apiAccept(projectId, currentUserId);   // 멤버 편입
-        renderPeoplePanel(root, projectId);          // 우측 패널 갱신
-      },
-      onDecline: async () => {
-        await apiDecline(projectId, currentUserId);  // 초대 제거
-        showCancelCard('참가 요청이 취소되었습니다.');
-      }
-    });
-  } else {
-    // 3) 초대도 아닌 경우 → "초대 필요"
-    openLobby(root, {
-      title: '초대 필요',
-      desc:  '회사 관리자에게 초대를 요청하세요.',
-      acceptLabel: '확인',
-      declineLabel: '닫기',
-      acceptDisabled: true
-    });
-  }
+    // 2) 초대 받은 경우 → "프로젝트 참여 수락" 모달
+    if (invited) {
+        openLobby(root, {
+            title: '프로젝트 참여 수락',
+            desc:  '관리자가 보낸 초대를 수락하면 이 프로젝트 회의실을 사용할 수 있어요.',
+            acceptLabel: '수락',
+            declineLabel: '닫기',
+            acceptDisabled: false, // ← 버튼 비활성화 풀기
+            onAccept: async () => {
+                await apiAccept(projectId, currentUserId);   // 멤버 편입
+                renderPeoplePanel(root, projectId);          // 우측 패널 갱신
+            },
+            onDecline: async () => {
+                await apiDecline(projectId, currentUserId);  // 초대 제거
+                showCancelCard('참가 요청이 취소되었습니다.');
+            }
+        });
+    } else {
+        // 3) 초대도 아닌 경우 → "초대 필요"
+        openLobby(root, {
+            title: '초대 필요',
+            desc:  '회사 관리자에게 초대를 요청하세요.',
+            acceptLabel: '확인',
+            declineLabel: '닫기',
+            acceptDisabled: true
+        });
+    }
 }
 function confirmJoinMeeting(root){
-  openLobby(root, {
-    title: '회의실 입장',
-    desc:  '이 회의에 지금 입장하시겠습니까?',
-    acceptLabel: '입장',
-    declineLabel: '취소',
-    onAccept: () => {
-      // 기존 입장 처리 (예: beginNotes(); root.classList.add('in-call'); 등)
-    },
-    onDecline: () => {
-      // ✅ 취소 토스트
-      showCancelCard('입장이 취소되었습니다.');
-      // (선택) 홈으로 돌려보내고 싶으면 아래 한 줄 추가
-      // setTimeout(() => location.href = (window.APP_CTX || '') + '/mainbar', 800);
-    }
-  });
+    openLobby(root, {
+        title: '회의실 입장',
+        desc:  '이 회의에 지금 입장하시겠습니까?',
+        acceptLabel: '입장',
+        declineLabel: '취소',
+        onAccept: () => {
+            // 기존 입장 처리 (예: beginNotes(); root.classList.add('in-call'); 등)
+        },
+        onDecline: () => {
+            // ✅ 취소 토스트
+            showCancelCard('입장이 취소되었습니다.');
+            // (선택) 홈으로 돌려보내고 싶으면 아래 한 줄 추가
+            // setTimeout(() => location.href = (window.APP_CTX || '') + '/mainbar', 800);
+        }
+    });
 }
 
 // 전역 노출(기존 호출부 호환)
@@ -995,30 +975,30 @@ window.confirmJoinMeeting = confirmJoinMeeting;
 
 // Dev helpers (콘솔에서 사용)
 window.Dev = {
-  // 초대 필요 상태로 초기화
-  reset(pid){
-    const p = state.projects.find(x => x.id === Number(pid));
-    if (p){
-      p.members = (p.members || []).filter(id => id !== currentUserId);
+    // 초대 필요 상태로 초기화
+    reset(pid){
+        const p = state.projects.find(x => x.id === Number(pid));
+        if (p){
+            p.members = (p.members || []).filter(id => id !== currentUserId);
+        }
+        state.invitations[pid] = (state.invitations[pid] || []).filter(id => id !== currentUserId);
+        const wrap = document.querySelector('.room-wrap');
+        renderPeoplePanel(wrap, pid);
+        gateAccessForCurrentUser(wrap, pid);
+    },
+    // 관리자 초대 시뮬레이션
+    inviteSelf(pid){
+        state.invitations[pid] = Array.from(new Set([...(state.invitations[pid]||[]), currentUserId]));
+        const wrap = document.querySelector('.room-wrap');
+        gateAccessForCurrentUser(wrap, pid);
     }
-    state.invitations[pid] = (state.invitations[pid] || []).filter(id => id !== currentUserId);
-    const wrap = document.querySelector('.room-wrap');
-    renderPeoplePanel(wrap, pid);
-    gateAccessForCurrentUser(wrap, pid);
-  },
-  // 관리자 초대 시뮬레이션
-  inviteSelf(pid){
-    state.invitations[pid] = Array.from(new Set([...(state.invitations[pid]||[]), currentUserId]));
-    const wrap = document.querySelector('.room-wrap');
-    gateAccessForCurrentUser(wrap, pid);
-  }
 };
 
 // === [공통] 취소 상태 카드 스타일 주입 IIFE ===
 (function setupCancelCard(){
-  function ensureCancelStyles() {
-    if (document.getElementById('cancel-card-style')) return;
-    const css = `
+    function ensureCancelStyles() {
+        if (document.getElementById('cancel-card-style')) return;
+        const css = `
 /* === 거절 시 빈 화면 안내 (polish) === */
 .cancel-state{
   display:grid; place-items:center;
@@ -1038,68 +1018,68 @@ window.Dev = {
   from{ transform:translateY(6px); opacity:0; }
   to{   transform:translateY(0);   opacity:1; }
 }`;
-    const s = document.createElement('style');
-    s.id = 'cancel-card-style';
-    s.textContent = css;
-    document.head.appendChild(s);
-  }
+        const s = document.createElement('style');
+        s.id = 'cancel-card-style';
+        s.textContent = css;
+        document.head.appendChild(s);
+    }
 // 전역에서 부를 수 있게 노출
-  window.__ensureCancelStyles__ = ensureCancelStyles;
+    window.__ensureCancelStyles__ = ensureCancelStyles;
 })();
 // 아이콘은 ::before 대신 실제 엘리먼트로 만들어 준다.
 window.showCancelCard = function showCancelCard(message = '입장이 취소되었습니다.') {
-  (window.__ensureCancelStyles__ || function(){})();
+    (window.__ensureCancelStyles__ || function(){})();
 
-  // 중복 방지: 기존 레이어 제거
-  document.querySelectorAll('.cancel-layer').forEach(n => n.remove());
+    // 중복 방지: 기존 레이어 제거
+    document.querySelectorAll('.cancel-layer').forEach(n => n.remove());
 
-  // ① 전체화면 오버레이
-  const layer = document.createElement('div');
-  layer.className = 'cancel-layer';
+    // ① 전체화면 오버레이
+    const layer = document.createElement('div');
+    layer.className = 'cancel-layer';
 
-  // ② 가운데 카드 영역(기존 스타일 재사용)
-  const state = document.createElement('div');
-  state.className = 'cancel-state';
+    // ② 가운데 카드 영역(기존 스타일 재사용)
+    const state = document.createElement('div');
+    state.className = 'cancel-state';
 
-  const card = document.createElement('div');
-  card.className = 'cancel-card';
+    const card = document.createElement('div');
+    card.className = 'cancel-card';
 
-  // 아이콘(실제 엘리먼트)
-  const ico = document.createElement('div');
-  Object.assign(ico.style, {
-    display: 'grid',
-    placeItems: 'center',
-    width: '40px', height: '40px',
-    borderRadius: '999px',
-    background: 'linear-gradient(180deg,#fca5a5,#ef4444)',
-    color: '#fff', fontSize: '18px',
-    boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.35)'
-  });
-  ico.textContent = '⛔';
+    // 아이콘(실제 엘리먼트)
+    const ico = document.createElement('div');
+    Object.assign(ico.style, {
+        display: 'grid',
+        placeItems: 'center',
+        width: '40px', height: '40px',
+        borderRadius: '999px',
+        background: 'linear-gradient(180deg,#fca5a5,#ef4444)',
+        color: '#fff', fontSize: '18px',
+        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.35)'
+    });
+    ico.textContent = '⛔';
 
-  const txt = document.createElement('div');
-  txt.textContent = message;
+    const txt = document.createElement('div');
+    txt.textContent = message;
 
-  card.appendChild(ico);
-  card.appendChild(txt);
-  state.appendChild(card);
-  layer.appendChild(state);
+    card.appendChild(ico);
+    card.appendChild(txt);
+    state.appendChild(card);
+    layer.appendChild(state);
 
-  // ★ body 최상단에 붙인다(내부 컨테이너 사용 X)
-  document.body.appendChild(layer);
+    // ★ body 최상단에 붙인다(내부 컨테이너 사용 X)
+    document.body.appendChild(layer);
 
-  // 1.6초 뒤 페이드아웃 후 제거
-  setTimeout(() => {
-    layer.classList.add('hide');
-    setTimeout(() => layer.remove(), 220);
-  }, 1600);
+    // 1.6초 뒤 페이드아웃 후 제거
+    setTimeout(() => {
+        layer.classList.add('hide');
+        setTimeout(() => layer.remove(), 220);
+    }, 1600);
 
-  return layer;
+    return layer;
 };
 
 // (이 아래 이벤트 위임 코드는 그대로 사용해도 OK)
 document.addEventListener('click', (e) => {
-  const declineBtn = e.target.closest('[data-action="decline"], .btn-decline, .btn-cancel, #btn-invite-decline');
-  if (!declineBtn) return;
-  showCancelCard?.('참가 요청이 취소되었습니다.');
+    const declineBtn = e.target.closest('[data-action="decline"], .btn-decline, .btn-cancel, #btn-invite-decline');
+    if (!declineBtn) return;
+    showCancelCard?.('참가 요청이 취소되었습니다.');
 });
