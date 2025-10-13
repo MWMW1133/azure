@@ -31,6 +31,7 @@
     <link href="${pageContext.request.contextPath}/css/home.css" rel="stylesheet">
     <link href="${pageContext.request.contextPath}/css/projects/mainTable.css" rel="stylesheet">
     <link href="${pageContext.request.contextPath}/css/projects/taskForm.css" rel="stylesheet">
+    <link href="${pageContext.request.contextPath}/css/files.css" rel="stylesheet">
 
     <!-- ✅ 외부 컴포넌트 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
@@ -76,40 +77,120 @@
 <script src="${pageContext.request.contextPath}/js/projects/mainTable.js"></script>
 <script src="${pageContext.request.contextPath}/js/projects/taskRow.js"></script>
 
+<script src="${pageContext.request.contextPath}/js/files.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        // 전역 연결 함수가 존재하고, 로그인된 사용자 ID가 설정되어 있다면
+        if (typeof connectNotificationSocket === "function" && typeof CURRENT_USER_ID !== "undefined") {
+            console.log("[topbar] connecting notification socket for user:", CURRENT_USER_ID);
+            connectNotificationSocket(CURRENT_USER_ID);
+        } else {
+            console.warn("[topbar] Notification socket function or CURRENT_USER_ID not found");
+        }
+    });
+</script>
+
 <!-- ✅ 6. 채팅방 생성 모달 -->
 <jsp:include page="chat/createModal.jsp"/>
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
-        if (typeof connectNotificationSocket === "function" && window.userId) {
-            connectNotificationSocket(window.userId);
-        }
-    });
+        let openMenu = null;
 
-    (function () {
-        function purgeOrphans() {
-            document.querySelectorAll('a.proj-row.room').forEach(function (n) {
-                if (!n.closest('.sidebar')) n.remove(); // 사이드바 밖이면 제거
+        const forceCloseAll = () => {
+            document.querySelectorAll(".dropdown-menu.show").forEach(m => m.classList.remove("show"));
+            openMenu = null;
+        };
+
+        // 트리거(벨/투두/프로필) 기준으로 메뉴 좌표 계산
+        const positionMenu = (trigger, menu) => {
+            const r = trigger.getBoundingClientRect();
+            const top  = r.bottom + 8;
+            const right = window.innerWidth - r.right;
+            menu.style.position = "fixed";
+            menu.style.left = "auto";
+            menu.style.right = `${right}px`;
+            menu.style.top = `${top}px`;
+            menu.style.transform = "none";
+            menu.style.zIndex = "10000";
+        };
+
+        const bindDropdowns = () => {
+            forceCloseAll();
+
+            document.querySelectorAll("[data-bs-toggle='dropdown']").forEach(trigger => {
+                if (trigger._azuraBound) return;
+                trigger._azuraBound = true;
+
+                // Bootstrap 기본 dropdown 기능 완전히 비활성화
+                trigger.removeAttribute("data-bs-toggle");
+
+                const menu = trigger.nextElementSibling;
+                if (!menu) return;
+
+                //  Bootstrap 내부 이벤트 차단
+                ["hide.bs.dropdown","hidden.bs.dropdown","show.bs.dropdown","shown.bs.dropdown"]
+                    .forEach(ev => menu.addEventListener(ev, e => e.preventDefault()));
+
+                // 클릭 시 열기/닫기 토글
+                const onClick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const willOpen = !menu.classList.contains("show");
+
+                    // 다른 메뉴 닫기
+                    if (openMenu && openMenu !== menu) openMenu.classList.remove("show");
+
+                    if (willOpen) {
+                        positionMenu(trigger, menu);
+                        menu.classList.add("show");
+                        openMenu = menu;
+                        console.log("[Azura] OPEN:", trigger.id);
+                    } else {
+                        menu.classList.remove("show");
+                        openMenu = null;
+                        console.log("[Azura] CLOSE:", trigger.id);
+                    }
+                };
+
+                // 실제 연결 (onDown → onClick 교체)
+                trigger.addEventListener("click", onClick);
             });
-        }
+        };
 
-        // 초기 1회 정리
-        purgeOrphans();
-
-        // 이후 동적 삽입까지 감시해서 즉시 제거
-        var obs = new MutationObserver(function (mutations) {
-            for (var i = 0; i < mutations.length; i++) {
-                if (mutations[i].addedNodes && mutations[i].addedNodes.length) {
-                    purgeOrphans();
-                    break;
+        // 문서 아무 곳 클릭 시 닫기
+        document.addEventListener("click", (e) => {
+            if (!openMenu) return;
+            setTimeout(() => {
+                const isInside = e.target.closest(".dropdown-menu") || e.target.closest("[data-bs-toggle='dropdown']");
+                if (!isInside) {
+                    openMenu.classList.remove("show");
+                    openMenu = null;
+                    console.log("[Azura] CLOSE: outside");
                 }
+            }, 50);
+        });
+
+        // 초기 1회 + 프래그먼트 교체 때마다
+        bindDropdowns();
+        const obs = new MutationObserver((muts) => {
+            for (const m of muts) {
+                if (m.addedNodes.length) { bindDropdowns(); break; }
             }
         });
-        obs.observe(document.body, { childList: true, subtree: true });
-        window.addEventListener('beforeunload', function(){ obs.disconnect(); });
-    })();
+        obs.observe(document.querySelector(".main-content") || document.body, { childList: true, subtree: true });
+        window.addEventListener("beforeunload", () => obs.disconnect());
+    });
 </script>
-
+<!-- 삭제하지마세요 유저아이디 세팅중입니다 -->
+<c:if test="${not empty user}">
+    <script>
+        window.USER_ID = ${user.id};
+        window.APP_CONTEXT = '${pageContext.request.contextPath}';
+    </script>
+</c:if>
 </body>
 </html>
 

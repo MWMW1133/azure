@@ -11,7 +11,7 @@
 
             <!-- To-do -->
             <div class="dropdown">
-                <i class="bi bi-check2-square fs-5" role="button" id="todoDropdown" data-bs-toggle="dropdown"></i>
+                <i class="bi bi-check2-square fs-5" role="button" id="todoDropdown" data-bs-toggle="dropdown" data-bs-display="static"></i>
                 <div class="dropdown-menu dropdown-menu-end p-3 todo-panel" aria-labelledby="todoDropdown"
                      style="max-height:400px; overflow-y:auto;">
                     <div class="fw-bold mb-2">To-do List</div>
@@ -33,7 +33,7 @@
 
             <!-- 알림 드롭다운 -->
             <div class="dropdown">
-                <i class="bi bi-bell fs-5" role="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false"></i>
+                <i class="bi bi-bell fs-5" role="button" id="notifDropdown" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false"></i>
 
                 <div class="dropdown-menu dropdown-menu-end p-3 notif-panel" aria-labelledby="notifDropdown">
                     <div class="fw-bold mb-2">Notification</div>
@@ -66,7 +66,7 @@
             <div class="dropdown">
                 <img src="${pageContext.request.contextPath}${user.avatarUrl}"
                      alt="Profile" class="profile dropdown-toggle" id="profileDropdown"
-                     data-bs-toggle="dropdown" aria-expanded="false">
+                     data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
 
                 <ul class="dropdown-menu dropdown-menu-end profile-menu" aria-labelledby="profileDropdown">
                     <li class="profile-header">
@@ -331,10 +331,9 @@
         // 전역 컨텍스트 경로 (예: "/azure")
         window.APP_CTX = '${pageContext.request.contextPath}';
         const userRole = "${org.role}";
-        const CURRENT_USER_ID = ${user.id};
-        // document.addEventListener("DOMContentLoaded", () => {
-        //     connectNotificationSocket(CURRENT_USER_ID);
-        // })
+        const CURRENT_USER_ID = ${user.id}
+
+
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>

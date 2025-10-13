@@ -119,14 +119,14 @@ const Router = {
       gantt: `${ctx}/projects/${projectId}/gantt`,
       chart: `${ctx}/projects/${projectId}/chart`,
       calendar: `${ctx}/projects/${projectId}/calendar`,
-      files: `${ctx}/projects/${projectId}/files`,
+      files: `${ctx}/projects/${projectId}/documents`,
       members: `${ctx}/projects/${projectId}/members`,
     };
 
     const url = map[name];
     if (!url) return render('<h1>Not Found</h1>');
 
-    fetch(url, { cache: 'no-cache' })
+    fetch(url, { cache: 'no-cache', credentials: 'include' }) // credentialㄴ 추가
       .then((r) => r.text())
       .then(render)
       .catch((err) => {
