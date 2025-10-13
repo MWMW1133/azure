@@ -45,6 +45,51 @@ document.addEventListener('DOMContentLoaded', function () {
       bar.style.width = Math.max(0, Math.min(100, progress)) + '%';
     });
   }
+  function fmtDateLikeList(isoish) {
+    if (isoish == null || isoish === '') return '-';
+    try {
+      let val = isoish;
+      if (typeof val === 'number') {
+        const ms = val > 1e12 ? val : val * 1000;
+        val = new Date(ms).toISOString();
+      }
+      if (typeof val === 'string' && val.includes(' ')) {
+        val = val.replace(' ', 'T');
+      }
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return '-';
+      const y = String(d.getFullYear()).slice(-2);
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${y}-${mm}-${dd}`;
+    } catch {
+      return '-';
+    }
+  }
+
+  function firstDefined(obj, keys) {
+    for (const k of keys) {
+      if (obj && obj[k] != null) return obj[k];
+    }
+    return null;
+  }
+
+  // 자식태스크의 최근 수정일 안전 추출
+  function resolveUpdatedAt(task) {
+    // 대표 후보 키들(카멜/스네이크 + modified/updated 계열)
+    let v = firstDefined(task, ['updatedAt', 'updated_at', 'modifiedAt', 'modified_at', 'lastModifiedAt', 'last_modified_at', 'lastUpdatedAt', 'last_updated_at']);
+
+    // 숫자 타임스탬프(초/밀리초)도 지원
+    if (typeof v === 'number') {
+      const ms = v > 1e12 ? v : v * 1000;
+      return new Date(ms).toISOString();
+    }
+    if (typeof v === 'string') {
+      // "YYYY-MM-DD HH:mm:ss" → Date가 파싱되도록 공백을 T로 보정
+      return v.includes(' ') ? v.replace(' ', 'T') : v;
+    }
+    return null;
+  }
 
   //하위태스크 생성
   function renderChildRow(t) {
@@ -61,8 +106,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const workflowId = t.workflowId ?? (t.workflow && t.workflow.id) ?? '';
     const priorityId = t.priorityId ?? (t.priority && t.priority.id) ?? '';
+    const priorityName = (t.priorityName ?? (t.priority && t.priority.name) ?? '').toString().trim();
     const pct = t.progressPct ?? 0;
     const firstInitial = (s) => (s && s.length ? s[0] : 'U');
+
+    const updatedAt = resolveUpdatedAt(t);
 
     // 👉 표시 조건을 assigneeId "또는" (assigneeName/아바타)로 완화
     const hasAssigneeVisual = !!(assigneeId || assigneeName || avatarUrl);
@@ -73,6 +121,7 @@ document.addEventListener('DOMContentLoaded', function () {
          data-assignee-id="${assigneeId ?? ''}"
          data-workflow-id="${workflowId}"
          data-priority-id="${priorityId}"
+         data-priority-name="${esc(priorityName)}"
          data-progress="${pct}">
       <div class="task-cell task-actions-cell">
         <div class="icon-wrapper">
@@ -126,7 +175,17 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
       </div>
       </div>
-      <div class="task-cell priority-cell">${esc(t.priority ?? '')}</div>
+       <div class="task-cell priority-cell" data-cell="priority">
+         <span class="priority-badge"
+               data-id="${priorityId ?? ''}"
+               data-name="${esc(priorityName)}">
+          <span class="priority-dot" style="background:#e5e7eb;"></span>
+          <span class="priority-text">-</span>
+        </span>
+        <div class="priority-panel" hidden>
+          <ul class="priority-list"></ul>
+        </div>
+      </div>
       <div class="task-cell progress-cell">
         <div class="progress-cell-wrapper">
           <span class="progress-value">${esc(pct)}%</span>
@@ -137,7 +196,9 @@ document.addEventListener('DOMContentLoaded', function () {
       </div>
 
       <div class="task-cell file-cell"></div>
-      <div class="task-cell updated-at-cell"></div>
+      <div class="task-cell updated-at-cell" data-cell="updatedAt">
+        <span class="updated-at-text">${esc(fmtDateLikeList(updatedAt || t.updated_at))}</span>
+      </div>
     </div>
   `;
   }
@@ -196,6 +257,11 @@ document.addEventListener('DOMContentLoaded', function () {
       const list = await res.json();
       const body = container.querySelector('.sub-task-body') || container;
       body.innerHTML = list.map(renderChildRow).join('');
+      if (typeof window.__applyAllPriorityBadges__ === 'function') {
+        window.__applyAllPriorityBadges__();
+      } else {
+        applyPriorityBadgesFor(body);
+      }
       container.dataset.loaded = '1';
       updateAllProgressBars();
     } finally {
@@ -253,7 +319,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function handleSaveTask(event) {
     const form = event.target.closest('.task-form-row');
-    if (!form) return alert('저장 폼을 찾을 수 없습니다.');
+    if (!form) return showToast('저장 폼을 찾을 수 없습니다', 'error');
 
     const titleEl = form.querySelector('input[name="title"]');
     const startEl = form.querySelector('input[name="startedAt"]');
@@ -509,7 +575,7 @@ document.addEventListener('DOMContentLoaded', function () {
       syncDeleteButtonState();
     } catch (err) {
       console.error(err);
-      alert(err.message || '삭제 중 오류가 발생했습니다.');
+      showToast('삭제 중 오류가 발생했습니다', 'error');
     }
   }
 
@@ -519,9 +585,96 @@ document.addEventListener('DOMContentLoaded', function () {
     if (delBtn) delBtn.disabled = !anyChecked;
   }
 
+  // 단일 행에 우선순위를 적용하는 함수 ===
+  function applyPriorityToRow(row) {
+    const badge = row.querySelector('.priority-cell .priority-badge');
+    if (!badge) return;
+
+    // 5단계 고정 매핑
+    const MAP_BY_ID = {
+      5: { label: '매우 높음', color: '#ef4444', name: 'HIGHEST' },
+      4: { label: '높음', color: '#f59e0b', name: 'HIGH' },
+      3: { label: '보통', color: '#22c55e', name: 'MEDIUM' },
+      2: { label: '낮음', color: '#3b82f6', name: 'LOW' },
+      1: { label: '매우 낮음', color: '#64748b', name: 'LOWEST' },
+    };
+
+    const COLOR_FALLBACK = '#e5e7eb';
+
+    // 1) 행 dataset
+    let idKey = (row.dataset.priorityId || row.dataset.priorityCode || '').toString().trim();
+    let nameKey = (row.dataset.priorityName || '').toString().trim();
+
+    // 2) 배지 dataset(행이 비어있을 때 폴백)
+    if (!idKey && badge.dataset.id) idKey = badge.dataset.id.toString().trim();
+    if (!nameKey && badge.dataset.name) nameKey = badge.dataset.name.toString().trim();
+
+    // 3) 현재 표시 텍스트(마지막 폴백)
+    const nowTxt = (badge.querySelector('.priority-text')?.textContent || '').trim();
+
+    // 숫자 보정: "5.0" / 5 / " 3 " 등 → "5","3"
+    if (idKey) {
+      const n = parseInt(idKey, 10);
+      if (!Number.isNaN(n)) idKey = String(Math.max(1, Math.min(5, n))); // 1~5로 클램프
+    }
+
+    // 이름 정규화
+    const normName = alias(nameKey) || alias(nowTxt);
+
+    // 메타 찾기
+    let meta = null;
+    if (!meta && idKey && MAP_BY_ID[idKey]) meta = MAP_BY_ID[idKey];
+    if (!meta && normName) {
+      meta = Object.values(MAP_BY_ID).find((m) => m.name === normName) || null;
+    }
+
+    const textEl = badge.querySelector('.priority-text');
+    const dotEl = badge.querySelector('.priority-dot');
+
+    if (meta) {
+      if (textEl) textEl.textContent = meta.label;
+      if (dotEl) {
+        // 일부 테마에서 background 가 우선되기도 하므로 둘 다 지정
+        dotEl.style.setProperty('background', meta.color, 'important');
+        dotEl.style.setProperty('background-color', meta.color, 'important');
+      }
+    } else {
+      if (textEl) textEl.textContent = '-';
+      if (dotEl) {
+        dotEl.style.setProperty('background', COLOR_FALLBACK, 'important');
+        dotEl.style.setProperty('background-color', COLOR_FALLBACK, 'important');
+      }
+    }
+  }
+
+  function applyPriorityBadgesFor(scopeEl) {
+    const rows = (scopeEl || document).querySelectorAll('.task-row');
+    rows.forEach(applyPriorityToRow);
+  }
+
+  function showToast(message = '완료되었습니다.', type = 'success', opts = {}) {
+    const el = document.getElementById('planToast');
+    if (!el) return;
+    const container = el.closest('.toast-container');
+    const pos = opts.position || 'top-end';
+    container.className = `toast-container position-fixed p-3 ` + `${pos.includes('bottom') ? 'bottom-0' : 'top-0'} ` + `${pos.includes('start') ? 'start-0' : 'end-0'}`;
+
+    el.className = 'toast clean-toast';
+    el.classList.add(`toast-${type}`);
+    el.querySelector('.toast-body').textContent = message;
+
+    const iconEl = el.querySelector('.toast-icon');
+    const icons = { success: '✔', error: '✖', warning: '!', info: 'ℹ' };
+    if (iconEl) iconEl.textContent = icons[type] ?? 'ℹ';
+
+    const delay = Number(opts.duration || 2200);
+    const t = bootstrap.Toast.getOrCreateInstance(el, { autohide: true, delay });
+    t.show();
+  }
   // ---------- 초기화 ----------
   syncDeleteButtonState();
   updateAllProgressBars();
+  applyPriorityBadgesFor(document);
   const observer = new MutationObserver(updateAllProgressBars);
   observer.observe(document.querySelector('.main-wrapper-body') || document.body, { childList: true, subtree: true });
 });

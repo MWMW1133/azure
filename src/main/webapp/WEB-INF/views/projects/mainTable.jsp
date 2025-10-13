@@ -45,7 +45,7 @@
       </div>
 
       <div class="task-list-body">
-        <c:if test="${not empty activeTasks}">  <%-- ★ 안전 가드 --%>
+        <c:if test="${not empty activeTasks}">  
           <c:forEach var="taskItem" items="${activeTasks}">
             <c:set var="task" value="${taskItem}" scope="request" />
             <jsp:include page="/WEB-INF/views/projects/taskRow.jsp" />
@@ -72,7 +72,7 @@
       </div>
 
       <div class="task-list-body">
-        <c:if test="${not empty archivedTasks}"> <%-- ★ 안전 가드 --%>
+        <c:if test="${not empty archivedTasks}"> 
           <c:forEach var="taskItem" items="${archivedTasks}">
             <c:set var="task" value="${taskItem}" scope="request" />
             <jsp:include page="/WEB-INF/views/projects/taskRow.jsp" />

@@ -12,12 +12,12 @@ import java.time.LocalDateTime;
        uniqueConstraints = @UniqueConstraint(name = "uq_event_user",
                                              columnNames = {"event_id", "user_id"}))
 public class EventAttendee {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @EmbeddedId
+    private EventAttendeeId id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
-    private ProjectCalendar event;
+    @ManyToOne(fetch = FetchType.LAZY) @MapsId("projectId")
+    @JoinColumn(name = "project_id")
+    private Project project;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

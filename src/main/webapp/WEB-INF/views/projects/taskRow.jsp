@@ -14,6 +14,7 @@
      data-workflow-name="${empty currentTask.workflow ? '' : fn:escapeXml(currentTask.workflow.name)}"
      data-workflow-color="${empty currentTask.workflow ? '' : currentTask.workflow.color}"
      data-priority-id="${empty currentTask.priority ? '' : currentTask.priority.id}"
+     data-priority-name="${empty currentTask.priority ? '' : fn:escapeXml(currentTask.priority.name)}"
      data-progress="${empty currentTask.progressPct ? 0 : currentTask.progressPct}"
 >
   <!-- 선택/토글 -->
@@ -125,8 +126,16 @@
   </div>
 </div>
 
-  <!-- 우선순위 : 내용은 비워두고 JS가 채움 -->
-  <div class="task-cell priority-cell" data-cell="priority"></div>
+<!-- 우선순위 -->
+<div class="task-cell priority-cell" data-cell="priority">
+  <span class="priority-badge">
+    <span class="priority-dot" style="background:#e5e7eb;"></span>
+    <span class="priority-text">-</span>
+  </span>
+  <div class="priority-panel" hidden>
+    <ul class="priority-list"></ul>
+  </div>
+</div>
 
   <!-- 진행률 -->
   <div class="task-cell progress-cell" data-cell="progress">
@@ -149,6 +158,18 @@
 
   <!-- 수정일 -->
   <div class="task-cell updated-at-cell" data-cell="updatedAt">
-    <span class="updated-at-text">${empty currentTask.updatedAt ? '-' : fn:substring(currentTask.updatedAt, 0, 10)}</span>
+    <span class="updated-at-text">${empty currentTask.updatedAt ? '-' : fn:substring(currentTask.updatedAt, 2, 10)}</span>
+  </div>
+</div>
+<div id="audit-modal" class="audit-modal hidden" aria-hidden="true">
+  <div class="audit-modal__backdrop"></div>
+  <div class="audit-modal__panel" role="dialog" aria-modal="true" aria-labelledby="audit-modal-title">
+    <div class="audit-modal__header">
+      <h3 id="audit-modal-title">수정 내역</h3>
+      <button type="button" class="audit-modal__close" aria-label="닫기">&times;</button>
+    </div>
+    <div class="audit-modal__body">
+      <div class="audit-list"></div>
+    </div>
   </div>
 </div>
