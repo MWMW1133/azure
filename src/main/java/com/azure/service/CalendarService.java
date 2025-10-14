@@ -65,4 +65,7 @@ public interface CalendarService {
 
     /** 참석자 일괄 설정(교체): 전달된 userId 목록만 남기고 나머지는 제거 */
     List<EventAttendee> replaceEventAttendees(Long eventId, List<Long> userIds);
+
+    /** 특정 유저의 개인일정: [start,end] 구간과 겹치는 모든 일정 */
+    List<PersonalCalendar> listPersonalEventsBetween(Long userId, LocalDateTime start, LocalDateTime end);
 }

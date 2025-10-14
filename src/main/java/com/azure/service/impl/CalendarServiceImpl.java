@@ -282,4 +282,14 @@ public class CalendarServiceImpl implements CalendarService {
 
         return eventAttendeeRepository.findByEvent_Id(eventId);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PersonalCalendar> listPersonalEventsBetween(Long userId,
+                                                            LocalDateTime start,
+                                                            LocalDateTime end) {
+        if (userId == null) throw new BadRequestException("userId는 필수입니다.");
+        if (start == null || end == null) throw new BadRequestException("start/end는 필수입니다.");
+        return personalCalendarRepository.findOverlappingForUser(userId, start, end);
+    }
 }

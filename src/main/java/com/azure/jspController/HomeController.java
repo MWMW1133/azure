@@ -1,30 +1,58 @@
 package com.azure.jspController;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import com.azure.dto.HomeTaskCard;
+import com.azure.dto.TodoItem;
+import com.azure.model.calendar.PersonalCalendar;
 import com.azure.model.user.User;
-import com.azure.service.UserService;
+import com.azure.service.CalendarService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
-import com.azure.dto.TodoItem;
-import com.azure.dto.HomeTaskCard; // ★ 추가
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 @Controller
+@RequiredArgsConstructor
 public class HomeController {
 
+        private final CalendarService calendarService;
 
     @GetMapping("/home")
     public String home(Model model, HttpSession session) {
 
-        // 기존 더미 데이터=====================
+        User loginUser = (User) session.getAttribute("loginUser");
+        Long userId = (loginUser != null) ? loginUser.getId() : null;
+
+        // ===== [A] 오늘 일정 → TO DO 카드 =====
         List<TodoItem> todoList = new ArrayList<>();
-        todoList.add(new TodoItem("레퍼런스 찾기", "15:00 - 16:00", "미완료", "시각 자료 위주"));
-        todoList.add(new TodoItem("클라이언트 원격", "16:30 - 17:30", "미완료", "내용 정리하기"));
+        if (userId != null) {
+            LocalDate today = LocalDate.now();
+            LocalDateTime start = today.atStartOfDay();
+            LocalDateTime end = today.atTime(LocalTime.MAX);
+
+            List<PersonalCalendar> events =
+                calendarService.listPersonalEventsBetween(userId, start, end);
+
+            for (PersonalCalendar e : events) {
+                String timeText = e.getAllDay() != null && e.getAllDay()
+                        ? "종일"
+                        : fmtTime(e.getStartAt(), e.getEndAt());
+
+                todoList.add(new TodoItem(
+                        e.getTitle(),
+                        timeText,
+                        Boolean.TRUE.equals(e.getIsDone()) ? "완료" : "미완료",
+                        e.getDescription() == null ? "" : e.getDescription()
+                ));
+            }
+        }
         model.addAttribute("todoList", todoList);
 
         // IN-PROGRESS
@@ -56,4 +84,10 @@ public class HomeController {
 
         return "mainbar";
     }
+        private static String fmtTime(LocalDateTime start, LocalDateTime end) {
+        if (start == null || end == null) return "";
+        DateTimeFormatter f = DateTimeFormatter.ofPattern("HH:mm");
+        return start.format(f) + " - " + end.format(f);
+    }
 }
+        
