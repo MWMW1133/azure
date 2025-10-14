@@ -1,10 +1,9 @@
-// project-plan.js (최종 저장 연동 버전 - 작성일 날짜만 표시)
+/* Project Plan – 등록/승인/거절 */
 (function () {
   let durationPicker = null;
   let clickHandler = null;
 
-  // ───────────────────────────────────────────────
-  // Util : Toast
+  // ───────── Toast
   function showToast(message = '완료되었습니다.', type = 'success', opts = {}) {
     const el = document.getElementById('planToast');
     if (!el) return;
@@ -28,8 +27,7 @@
     t.show();
   }
 
-  // ───────────────────────────────────────────────
-  // Util : Flatpickr
+  // ───────── Flatpickr
   function ensurePicker(root = document) {
     const el = root.querySelector('#pplan-duration');
     if (durationPicker && durationPicker.input !== el) {
@@ -45,8 +43,7 @@
     }
   }
 
-  // ───────────────────────────────────────────────
-  // Util : 날짜 포맷 (YYYY-MM-DD)
+  // ───────── Util
   function formatDate(iso) {
     if (!iso) return '';
     const d = new Date(iso);
@@ -55,8 +52,15 @@
       String(d.getDate()).padStart(2, '0');
   }
 
-  // ───────────────────────────────────────────────
-  // Modal (등록/수정)
+  function getInjectedIds() {
+    const root = document.getElementById('pplan-root');
+    return {
+      organizationId: root?.dataset.organizationId?.trim() || '',
+      currentUserId: root?.dataset.currentUserId?.trim() || '',
+    };
+  }
+
+  // ───────── Modal
   function openPopup() {
     const modal = document.getElementById('pplan-modal-overlay');
     const form = document.getElementById('project-pplan-form');
@@ -70,14 +74,12 @@
     if (modal) modal.style.display = 'none';
   }
 
-  // ───────────────────────────────────────────────
-  // Viewer (읽기 전용)
+  // ───────── Viewer
   function openViewer(data) {
     const $ = (id) => document.getElementById(id);
     $('pv-title') && ($('pv-title').textContent = data.title || '-');
     $('pv-proposer') && ($('pv-proposer').textContent = data.proposer || '-');
-    $('pv-duration') &&
-      ($('pv-duration').textContent = (data.start || '-') + ' ~ ' + (data.end || '-'));
+    $('pv-duration') && ($('pv-duration').textContent = (data.start || '-') + ' ~ ' + (data.end || '-'));
     $('pv-created') && ($('pv-created').textContent = formatDate(data.createdAt));
     $('pv-description') && ($('pv-description').textContent = data.description || '-');
     applyStatusToViewer(data.status || 'PENDING');
@@ -105,8 +107,7 @@
     if (overlay) overlay.style.display = 'none';
   }
 
-  // ───────────────────────────────────────────────
-  // 상태 표시 적용
+  // ───────── 상태 표시
   function applyStatusToViewer(status) {
     const badge = document.getElementById('pv-status-badge');
     if (!badge) return;
@@ -132,15 +133,13 @@
         : '검토 전';
     }
 
-    // 작성일 업데이트 (날짜만)
     const createdCell = row.querySelector('.pplan-created-at-cell');
     if (createdCell && row.dataset.createdAt) {
       createdCell.textContent = formatDate(row.dataset.createdAt);
     }
   }
 
-  // ───────────────────────────────────────────────
-  // API 호출
+  // ───────── API
   function updatePlanStatus(planId, status) {
     const url = `/api/project-plan/${encodeURIComponent(planId)}/status?status=${status}`;
     return fetch(url, { method: 'PUT' })
@@ -150,8 +149,7 @@
       });
   }
 
-  // ───────────────────────────────────────────────
-  // 이벤트 바인딩
+  // ───────── 이벤트 바인딩
   function bindDelegated(rootEl) {
     if (clickHandler) document.removeEventListener('click', clickHandler);
 
@@ -167,56 +165,73 @@
       if (e.target.closest('#btn-save')) {
         e.preventDefault();
         ensurePicker(document);
+
+        const { organizationId } = getInjectedIds();
+        if (!organizationId) {
+          showToast('회사(워크스페이스) 정보를 찾을 수 없습니다.', 'error');
+          return;
+        }
+
         const sel = durationPicker ? durationPicker.selectedDates : [];
         const toYMD = (d) => (d ? d.toISOString().slice(0, 10) : null);
 
-        const payload = {
-          proposerId: 1,
-          organizationId: 1,
-          name: document.getElementById('pplan-title')?.value || '',
-          description: document.getElementById('pplan-description')?.value || '',
-          startDate: toYMD(sel[0]),
-          dueDate: toYMD(sel[1])
-        };
+        const startYmd = toYMD(sel[0]);
+        const dueYmd   = toYMD(sel[1]);
+        if (!startYmd || !dueYmd) {
+          showToast('기간을 선택해주세요.', 'warning');
+          return;
+        }
+
+        const name = document.getElementById('pplan-title')?.value?.trim() || '';
+        if (!name) { showToast('프로젝트명을 입력해주세요.', 'warning'); return; }
+        const description = document.getElementById('pplan-description')?.value?.trim() || '';
+
+        // URLSearchParams에 확실히 키를 채워 넣는다 (undefined 금지)
+        const form = new URLSearchParams();
+        form.append('organizationId', String(organizationId));
+        form.append('name', name);
+        form.append('description', description);
+        form.append('startDate', startYmd);
+        form.append('dueDate', dueYmd);
 
         fetch('/api/project-plan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams(payload).toString(),
+          body: form.toString(),
         })
-          .then((res) => {
-            if (!res.ok) throw new Error('등록 실패');
-            return res.json();
-          })
-          .then((data) => {
-            closePopup();
-            showToast('계획이 등록되었습니다.', 'success');
+        .then((res) => {
+          if (!res.ok) throw new Error('등록 실패');
+          return res.json();
+        })
+        .then((data) => {
+          closePopup();
+          showToast('계획이 등록되었습니다.', 'success');
 
-            // 즉시 UI 반영 (새 row 추가)
-            const listBody = document.querySelector('.new-pplan-container .pplan-list-body');
-            if (listBody) {
-              const div = document.createElement('div');
-              div.className = 'pplan-row';
-              div.dataset.id = data.id;
-              div.dataset.title = data.name;
-              div.dataset.proposer = data.proposerName;
-              div.dataset.createdAt = data.createdAt;
-              div.dataset.status = data.status;
-              div.dataset.start = data.startDate;
-              div.dataset.end = data.dueDate;
-              div.dataset.description = data.description;
-              div.innerHTML = `
-                <div class="pplan-cell pplan-title-cell">${data.name}</div>
-                <div class="pplan-cell pplan-proposer-cell">${data.proposerName}</div>
-                <div class="pplan-cell pplan-created-at-cell">${formatDate(data.createdAt)}</div>
-                <div class="pplan-cell pplan-status-cell"><span class="pplan-status new">검토 전</span></div>
-                <div class="pplan-cell pplan-description-cell">${data.description}</div>
-                <div class="pplan-cell pplan-duration-cell">${data.startDate} ~ ${data.dueDate}</div>
-              `;
-              listBody.prepend(div);
-            }
-          })
-          .catch(() => showToast('계획 등록 실패', 'error'));
+          const listBody = document.querySelector('.new-pplan-container .pplan-list-body');
+          if (listBody) {
+            const div = document.createElement('div');
+            div.className = 'pplan-row';
+            div.dataset.id = data.id;
+            div.dataset.title = data.name;
+            div.dataset.proposer = data.proposerName;
+            div.dataset.createdAt = data.createdAt;
+            div.dataset.status = data.status;
+            div.dataset.start = data.startDate;
+            div.dataset.end = data.dueDate;
+            div.dataset.description = data.description;
+            div.innerHTML = `
+              <div class="pplan-cell pplan-title-cell">${data.name}</div>
+              <div class="pplan-cell pplan-proposer-cell">${data.proposerName}</div>
+              <div class="pplan-cell pplan-created-at-cell">${formatDate(data.createdAt)}</div>
+              <div class="pplan-cell pplan-status-cell"><span class="pplan-status new">검토 전</span></div>
+              <div class="pplan-cell pplan-description-cell">${data.description}</div>
+              <div class="pplan-cell pplan-duration-cell">${data.startDate} ~ ${data.dueDate}</div>
+            `;
+            listBody.prepend(div);
+          }
+        })
+        .catch(() => showToast('계획 등록 실패', 'error'));
+
         return;
       }
 
@@ -225,7 +240,7 @@
         e.preventDefault(); closePopup(); return;
       }
 
-      // 행 클릭 → 뷰어 열기
+      // 행 클릭 → 뷰어
       const row = e.target.closest('.pplan-row');
       if (row) {
         e.preventDefault();
@@ -243,7 +258,7 @@
         e.preventDefault(); closeViewer(); return;
       }
 
-      // 승인 버튼
+      // 승인
       if (e.target.closest('#btn-approved')) {
         e.preventDefault();
         const overlay = document.getElementById('pplan-viewer-overlay');
@@ -265,7 +280,7 @@
         return;
       }
 
-      // 거절 버튼
+      // 거절
       if (e.target.closest('#btn-rejected')) {
         e.preventDefault();
         const overlay = document.getElementById('pplan-viewer-overlay');
@@ -291,8 +306,7 @@
     document.addEventListener('click', clickHandler);
   }
 
-  // ───────────────────────────────────────────────
-  // Public API
+  // ───────── Public API
   window.ProjectPlan = {
     mount(rootEl) { ensurePicker(rootEl || document); bindDelegated(rootEl || document); },
     unmount() {
