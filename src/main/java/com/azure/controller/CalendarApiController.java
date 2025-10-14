@@ -4,10 +4,10 @@ import com.azure.dto.EventDto;
 import com.azure.model.calendar.PersonalCalendar;
 import com.azure.repository.PersonalCalendarRepository;
 import com.azure.service.CalendarService;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+   
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -21,20 +21,18 @@ public class CalendarApiController {
 
     private final CalendarService calendarService;
     private final PersonalCalendarRepository personalCalendarRepository;
-    private final HttpSession httpSession;
 
-    /** 실제 환경에 맞게 교체(예: Spring Security) */
-    private Long currentUserId() {
-        Object v = Optional.ofNullable(httpSession.getAttribute("id"))
-                .orElse(httpSession.getAttribute("idKey"));
-        return (v != null) ? Long.valueOf(v.toString()) : 1L; // 임시
-    }
+
 
     // ───────────── 조회 ─────────────
     @GetMapping("/events")
-    public List<EventDto> getEvents(@RequestParam(required = false) String start,
-                                    @RequestParam(required = false) String end) {
-        Long uid = currentUserId();
+    public List<EventDto> getEvents(
+        @ModelAttribute("currentUserId") Long uid,
+        @RequestParam(required = false) String start,
+        @RequestParam(required = false) String end) {
+
+        if (uid == null) throw new org.springframework.web.server.ResponseStatusException(
+            org.springframework.http.HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
 
         LocalDateTime from = (start != null && !start.isBlank())
                 ? parseFlexibleForAllDay(start, false, false)
@@ -52,8 +50,10 @@ public class CalendarApiController {
 
     // ───────────── 생성 ─────────────
     @PostMapping("/events")
-    public EventDto createEvent(@RequestBody EventDto in) {
-        Long uid = currentUserId();
+    public EventDto createEvent(@ModelAttribute("currentUserId") Long uid,
+                                @RequestBody EventDto in) {
+        if (uid == null) throw new org.springframework.web.server.ResponseStatusException(
+            org.springframework.http.HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
 
         boolean allDay = in.isAllDay();
         LocalDateTime startAt = parseFlexibleForAllDay(in.getStart(), false, allDay);
@@ -88,7 +88,7 @@ public class CalendarApiController {
 
     // ───────────── 수정 ─────────────
     @PutMapping("/events/{id}")
-    public EventDto updateEvent(@PathVariable("id") String id, @RequestBody EventDto in) {
+    public EventDto updateEvent(@ModelAttribute("currentUserId") long uid, @PathVariable("id") String id, @RequestBody EventDto in) {
         Long eid = Long.valueOf(id);
         PersonalCalendar e = personalCalendarRepository.findById(eid)
                 .orElseThrow(() -> new RuntimeException("Event not found: " + id));
@@ -115,7 +115,7 @@ public class CalendarApiController {
 
     // ───────────── 삭제 ─────────────
     @DeleteMapping("/events/{id}")
-    public ResponseEntity<Void> deleteEvent(@PathVariable("id") String id) {
+    public ResponseEntity<Void> deleteEvent(@ModelAttribute("currentUserId") Long uid, @PathVariable("id") String id) {
         calendarService.deletePersonalEvent(Long.valueOf(id));
         return ResponseEntity.ok().build();
     }

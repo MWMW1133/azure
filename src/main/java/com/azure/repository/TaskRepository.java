@@ -7,6 +7,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.azure.model.task.Task;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -89,4 +91,34 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
         GROUP BY t.parentTask.id
     """)
     List<Map<String, Object>> countChildrenByParentIds(@Param("parentIds") List<Long> parentIds);
+
+    @EntityGraph(attributePaths = {"assignee", "workflow", "priority"})
+    List<Task> findByProjectIdAndWorkflow_IsTerminalFalseOrderByIdAsc(Long projectId);
+
+    @EntityGraph(attributePaths = {"assignee", "workflow", "priority"})
+    List<Task> findByProjectIdAndWorkflow_IsTerminalTrueOrderByIdAsc(Long projectId);
+
+    // ✅ Pageable -> Page<T> 로 수정
+    @EntityGraph(attributePaths = {"assignee", "workflow", "priority"})
+    Page<Task> findByProjectIdAndWorkflow_IsTerminalFalse(Long projectId, Pageable pageable);
+
+    // ✅ Pageable -> Page<T> 로 수정
+    @EntityGraph(attributePaths = {"assignee", "workflow", "priority"})
+    Page<Task> findByProjectIdAndWorkflow_IsTerminalTrue(Long projectId, Pageable pageable);  
+
+        // 캘린더 겹침(기간) 조회 + 프로젝트 제한
+    @Query("""
+        select t from Task t
+        where t.project.id = :projectId
+          and t.startDate is not null and t.dueDate is not null
+          and t.startDate <= :to and t.dueDate >= :from
+    """)
+    List<Task> findByProjectAndDateRangeOverlap(
+            @Param("projectId") Long projectId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to
+    );
+
+    // 드롭다운(관련 태스크 선택)용 — 프로젝트 제한
+    List<Task> findByProject_Id(Long projectId);
 }

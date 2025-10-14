@@ -1,6 +1,5 @@
 package com.azure.service.impl;
 
-// import com.azure.dto.UserRole;
 import com.azure.event.ProjectMemberAddedEvent;
 import com.azure.event.ProjectMemberRemovedEvent;
 import com.azure.model.Organization;
@@ -8,12 +7,15 @@ import com.azure.model.project.Project;
 import com.azure.model.project.ProjectMember;
 import com.azure.model.project.ProjectMemberId;
 import com.azure.model.user.User;
-import com.azure.model.workflow.Workflow;
-import com.azure.repository.*;
+import com.azure.repository.OrganizationMemberRepository;
+import com.azure.repository.OrganizationRepository;
+import com.azure.repository.ProjectMemberRepository;
+import com.azure.repository.ProjectRepository;
+import com.azure.repository.UserRepository;
 import com.azure.service.ProjectService;
+import com.azure.service.WorkflowService;
 import com.azure.service.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,8 +32,12 @@ public class ProjectServiceImpl implements ProjectService {
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
     private final UserRepository userRepository;
-    private final WorkflowRepository workflowRepository; // ✅ 추가
-        private final ApplicationEventPublisher publisher; // 📢 이벤트 퍼블리셔 추가
+
+    // ✅ 워크플로우 생성 책임은 전담 서비스에 위임
+    private final WorkflowService workflowService;
+
+    // 📢 프로젝트 멤버 추가/삭제 이벤트 발행
+    private final ApplicationEventPublisher publisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -39,16 +45,6 @@ public class ProjectServiceImpl implements ProjectService {
         return projectRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Project not found: " + id));
     }
-
-//    @Override
-//    @Transactional(readOnly = true)
-//    public Page<Project> listByUser(Long userId, Pageable pageable) {
-//        var orgs = organizationRepository.findAllByUserId(userId);
-//        if (orgs.isEmpty()) return Page.empty(pageable);
-//
-//        var orgIds = orgs.stream().map(Organization::getId).toList();
-//        return projectRepository.findByOrganizationIdIn(orgIds, pageable);
-//    }
 
     @Override
     @Transactional(readOnly = true)
@@ -63,8 +59,6 @@ public class ProjectServiceImpl implements ProjectService {
 
         return projectRepository.findByOrganizationIdIn(orgIds, pageable);
     }
-
-
 
     @Override
     public Project create(Long organizationId, Long ownerId, String name, String description) {
@@ -81,42 +75,21 @@ public class ProjectServiceImpl implements ProjectService {
 
         Project saved = projectRepository.save(p);
 
-        // ✅ 기본 워크플로우 자동 생성
-        Workflow wf1 = new Workflow();
-        wf1.setProject(saved);
-        wf1.setName("Assignments");
-        wf1.setSortOrder(1);
-        wf1.setIsBlocking(false);
-        wf1.setIsTerminal(false);
-        wf1.setColor("#95a5a6"); // 회색
-        workflowRepository.save(wf1);
+        // ✅ 기본 워크플로우 4단계를 보장(없으면 생성, 있으면 스킵)
+        workflowService.ensureDefaultStages(saved.getId());
 
-        Workflow wf2 = new Workflow();
-        wf2.setProject(saved);
-        wf2.setName("In-progress");
-        wf2.setSortOrder(2);
-        wf2.setIsBlocking(false);
-        wf2.setIsTerminal(false);
-        wf2.setColor("#9fd7f8ff"); // 하늘색
-        workflowRepository.save(wf2);
-
-        Workflow wf3 = new Workflow();
-        wf3.setProject(saved);
-        wf3.setName("Reviewing");
-        wf3.setSortOrder(3);
-        wf3.setIsBlocking(false);
-        wf3.setIsTerminal(false);
-        wf3.setColor("#12d1f3ff"); // 하늘과 파랑 그 어딘가...
-        workflowRepository.save(wf3);
-
-        Workflow wf4 = new Workflow();
-        wf4.setProject(saved);
-        wf4.setName("Completed");
-        wf4.setSortOrder(4);
-        wf4.setIsBlocking(false);
-        wf4.setIsTerminal(true);
-        wf4.setColor("#267cfdff"); // 파랑색
-        workflowRepository.save(wf4);
+        // ✅ 소유자를 프로젝트 멤버로 자동 등록 (없을 때만)
+        if (!projectMemberRepository.existsById_ProjectIdAndId_UserId(saved.getId(), owner.getId())) {
+            ProjectMember pm = new ProjectMember();
+            ProjectMemberId pmId = new ProjectMemberId();
+            pmId.setProjectId(saved.getId());
+            pmId.setUserId(owner.getId());
+            pm.setId(pmId);
+            pm.setProject(saved);
+            pm.setUser(owner);
+            projectMemberRepository.save(pm);
+            publisher.publishEvent(new ProjectMemberAddedEvent(saved.getId(), owner.getId(), owner.getId()));
+        }
 
         return saved;
     }
@@ -135,31 +108,27 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-//    public ProjectMember addMember(Long projectId, Long userId, UserRole role) {
     public ProjectMember addMember(Long projectId, Long userId) {
         Project project = get(projectId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
 
-        // ✅ WorkStatus 확인 (장기휴가면 추가 불가)
+        // 장기 휴가자는 등록 불가 (정책)
         if (user.getWorkStatus() == User.WorkStatus.LONG_LEAVE) {
             throw new IllegalArgumentException("장기 휴가 중인 사용자는 프로젝트에 추가할 수 없습니다: " + user.getName());
         }
 
         ProjectMember pm = new ProjectMember();
-        pm.setId(new ProjectMemberId());
-        pm.getId().setProjectId(project.getId());
-        pm.getId().setUserId(user.getId());
+        ProjectMemberId id = new ProjectMemberId();
+        id.setProjectId(project.getId());
+        id.setUserId(user.getId());
+        pm.setId(id);
         pm.setProject(project);
         pm.setUser(user);
-//        pm.setRole(role);
-//                ProjectMember saved = projectMemberRepository.save(pm);
 
         ProjectMember saved = projectMemberRepository.save(pm);
 
-        // 📢 이벤트 발행 (멤버 추가 알림)
         publisher.publishEvent(new ProjectMemberAddedEvent(projectId, userId, project.getOwner().getId()));
-
         return saved;
     }
 
@@ -169,11 +138,10 @@ public class ProjectServiceImpl implements ProjectService {
         id.setProjectId(projectId);
         id.setUserId(userId);
         projectMemberRepository.deleteById(id);
-        // 📢 이벤트 발행 (멤버 제거 알림)
+
         publisher.publishEvent(new ProjectMemberRemovedEvent(projectId, userId, get(projectId).getOwner().getId()));
-        
-    }   
-    
+    }
+
     @Override
     @Transactional(readOnly = true)
     public boolean existsMember(Long projectId, Long userId) {
