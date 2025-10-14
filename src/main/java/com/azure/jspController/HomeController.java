@@ -44,7 +44,7 @@ public class HomeController {
 
         LocalDate today = LocalDate.now();
         LocalDate until = today.plusDays(DUE_SOON_DAYS);
-
+                
         // 마감일 다되어가는 태스크들
         List<HomeTaskCard> inprogressTasks = myTasks.stream()
                 .filter(t -> t.getWorkflow() == null || !Boolean.TRUE.equals(t.getWorkflow().getIsTerminal()))
