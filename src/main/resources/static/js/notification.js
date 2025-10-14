@@ -12,6 +12,8 @@ function renderNotifs(data) {
     const notifList = document.getElementById("notifList");
     if (!notifList) return;
     notifList.innerHTML = "";
+
+    // 다른 알림 오면 렌더링 확장 가능
     data.forEach(n => {
         let actionsHtml = "";
         if (n.type === "INVITE_ORGANIZATION") {
@@ -58,6 +60,7 @@ window.connectNotificationSocket = function (userId) {
         reconnectDelay: 5000,
     });
 
+    // 소켓으로 연결하는 데이터는 확인이 안돼서 로그 남겨둡니다
     client.onConnect = () => {
         console.log("Notification WebSocket connected");
         client.subscribe(`/topic/notifications/${userId}`, (msg) => {
@@ -68,10 +71,12 @@ window.connectNotificationSocket = function (userId) {
             console.log("[STEP3] payload content:", data.payload);
 
             const payload = data.payload;
+
+            // 알림 추가하실분.. 여기서 switch문으로 분기 추가하시면 될겁니다
             const newNotif = {
                 id: data.id || Date.now(),
                 type: data.type,
-                payload: payload,  // ✅ 원본 payload 전체를 저장
+                payload: payload,  // 원본 payload 전체를 저장
                 title:
                     data.type === "INVITE_ORGANIZATION"
                         ? "조직 초대 알림"
@@ -86,22 +91,7 @@ window.connectNotificationSocket = function (userId) {
                 isRead: false
             };
 
-            // const newNotif = {
-            //     id: data.id || Date.now(),
-            //     type: data.type,
-            //     title:
-            //         data.type === "INVITE_ORGANIZATION"
-            //             ? "조직 초대 알림"
-            //             : "새 알림",
-            //     message:
-            //         data.type === "INVITE_ORGANIZATION"
-            //             ? `${payload.sender}님이 ${payload.organization} 조직에 초대했습니다.`
-            //             : payload.message || "새로운 알림이 있습니다.",
-            //     organizationId: payload.organizationId,
-            //     link: payload.link || "#",
-            //     createdAt: new Date().toLocaleString(),
-            //     isRead: false
-            // };
+
             window.notifications.unshift(newNotif);
             renderNotifs(window.notifications);
 
@@ -131,6 +121,8 @@ window.connectNotificationSocket = function (userId) {
 /** ======================================
  *  [5] 초대 수락/거절 처리
  * ====================================== */
+// 클릭 시 다른 api랑 연동 및 insert 되어야 하므로
+// 일반적인 알람은 이렇게안해도됨
 window.handleInviteAction = function (notifId, action) {
     const notif = window.notifications.find(n => n.id === notifId);
     if (!notif) return;
@@ -149,9 +141,9 @@ window.handleInviteAction = function (notifId, action) {
     fetch(`/api/invite/${action}`, {
         method: "POST",
         headers: {
-            "Content-Type": "application/json",  // ✅ 이 헤더 반드시 필요
+            "Content-Type": "application/json",
         },
-        body: JSON.stringify(bodyData)           // ✅ JSON으로 직렬화
+        body: JSON.stringify(bodyData)
     })
         .then(res => res.json())
         .then(data => {
