@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List; // ❗️ List import 추가
 
 @Service
 @Transactional
@@ -33,47 +34,63 @@ public class MeetingServiceImpl implements MeetingService {
 
     @Override
     public Meeting startMeeting(Long organizationId, Long projectId) {
-        // 1) 세션에서 현재 사용자 ID 확보
-        Long uid = WebUserAdvice.currentUserId();
-        if (uid == null) throw new UnauthorizedException();
 
-        // 2) 프로젝트 로드
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException("project"));
 
-        // 3) 대표 캘린더 이벤트 생성 (중복 방지 로직 없이 단순 생성; created_by 필수 세팅)
-        User creator = userRepository.getReferenceById(uid);
+        String roomTitle = String.format(PERMANENT_MEETING_ROOM_TITLE_FORMAT, project.getName());
 
-        ProjectCalendar ev = new ProjectCalendar();
-        ev.setProject(project);
-        ev.setTitle(String.format(PERMANENT_MEETING_ROOM_TITLE_FORMAT, project.getName()));
-        ev.setStartAt(LocalDateTime.now());
-        ev.setEndAt(LocalDateTime.now());
-        ev.setAllDay(false);
-        ev.setCreatedBy(creator); // ⬅️ created_by NOT NULL 해결
-        ev = calendarRepository.save(ev);
+        // 1. 대표 일정을 List로 조회합니다.
+        List<ProjectCalendar> existingEvents = calendarRepository.findByProjectIdAndTitle(projectId, roomTitle);
 
-        // 4) 회의 엔티티 저장 (Meeting에는 startedBy 필드가 없음)
-        Meeting m = new Meeting();
-        if (organizationId != null) {
-            Organization org = new Organization();
-            org.setId(organizationId);
-            m.setOrganization(org);
+        ProjectCalendar representativeEvent;
+        if (existingEvents.isEmpty()) {
+            // 2. 결과가 없으면 새로 생성합니다.
+            System.out.println("대표 일정이 없어 새로 생성합니다: " + roomTitle);
+
+            Long currentUserId = WebUserAdvice.currentUserId();
+            if (currentUserId == null) {
+                throw new UnauthorizedException();
+            }
+
+            User currentUser = userRepository.findById(currentUserId)
+                    .orElseThrow(() -> new NotFoundException("user"));
+
+            ProjectCalendar newEvent = new ProjectCalendar();
+            newEvent.setProject(project);
+            newEvent.setTitle(roomTitle);
+            newEvent.setStartAt(LocalDateTime.now());
+            newEvent.setEndAt(LocalDateTime.now());
+            newEvent.setCreatedBy(currentUser);
+
+            representativeEvent = calendarRepository.save(newEvent);
+        } else {
+            // 3. 결과가 있으면, 목록의 첫 번째 항목을 사용합니다.
+            representativeEvent = existingEvents.get(0);
         }
-        m.setProject(project);
-        m.setStartedAt(LocalDateTime.now());
-        m.setEvent(ev); // Meeting 엔티티에 event 필드가 있음
 
-        return meetingRepository.save(m);
+        Meeting newMeeting = new Meeting();
+        if (organizationId != null) {
+            var o = new Organization();
+            o.setId(organizationId);
+            newMeeting.setOrganization(o);
+        }
+        newMeeting.setProject(project);
+        newMeeting.setStartedAt(LocalDateTime.now());
+        newMeeting.setEvent(representativeEvent);
+
+        return meetingRepository.save(newMeeting);
     }
 
     @Override
     public Meeting endMeeting(Long meetingId) {
-        Meeting m = meetingRepository.findById(meetingId)
+        Meeting m = meetingRepository.findByIdWithEvent(meetingId)
                 .orElseThrow(() -> new NotFoundException("meeting"));
+
         if (m.getEndedAt() == null) {
             m.setEndedAt(LocalDateTime.now());
         }
         return meetingRepository.save(m);
     }
 }
+

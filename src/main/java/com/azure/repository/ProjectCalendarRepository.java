@@ -24,6 +24,6 @@ public interface ProjectCalendarRepository extends JpaRepository<ProjectCalendar
                                                          @Param("from") LocalDateTime from,
                                                          @Param("to") LocalDateTime to);
 
-    // 표준 명명 규칙에 맞게 수정 (기능은 동일)
-    Optional<ProjectCalendar> findByProjectIdAndTitle(Long projectId, String title);
+    // 👇 Optional<...> 대신 List<...>를 반환하도록 수정
+    List<ProjectCalendar> findByProjectIdAndTitle(Long projectId, String title);
 }
