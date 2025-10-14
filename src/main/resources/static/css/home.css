@@ -1,5 +1,5 @@
 /* --- 기본 & 전체 레이아웃 --- */
-@import url("https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css");
+@import url('https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css');
 
 * {
   box-sizing: border-box;
@@ -112,7 +112,6 @@
   font-weight: 500;
 }
 
-/* IN PROGRESS, DONE 카드의 상태/우선순위 태그 공통 스타일 */
 .card-task-status,
 .card-task-priority {
   padding: 4px 12px;
@@ -121,26 +120,33 @@
   font-weight: 500;
 }
 
-/* 상태(status)별 색상 */
-.card-task-status.in-progress {
-  background-color: #cffafe;
-  color: #0891b2;
-}
-.card-task-status.completed {
-  background-color: #e0e7ff;
-  color: #4f46e5;
+/* 우선순위별 색상  */
+.card-task-priority.highest {
+  color: #fee2e2;
+  background-color: #ef4444;
+  border: 1px solid #fecaca;
 }
 
-/* 우선순위(priority)별 색상 */
 .card-task-priority.high {
-  background-color: #fee2e2;
-  color: #dc2626;
+  color: #fff7ed;
+  background-color: #f59e0b;
+  border: 1px solid #fed7aa;
 }
+
 .card-task-priority.normal {
-  background-color: #fef9c3;
-  color: #ca8a04;
+  color: #ecfdf5;
+  background-color: #22c55e;
+  border: 1px solid #a7f3d0;
 }
+
 .card-task-priority.low {
-  background-color: #dcfce7;
-  color: #16a34a;
+  color: #eff6ff;
+  background-color: #3b82f6;
+  border: 1px solid #bfdbfe;
+}
+
+.card-task-priority.lowest {
+  color: #f1f5f9;
+  background-color: #64748b;
+  border: 1px solid #cbd5e1;
 }

@@ -1,59 +1,101 @@
 package com.azure.jspController;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
+import com.azure.model.enums.PriorityCode;
+import com.azure.model.task.Task;
 import com.azure.model.user.User;
+import com.azure.service.TaskService;
 import com.azure.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-
+import java.util.*;
 import com.azure.dto.TodoItem;
-import com.azure.dto.HomeTaskCard; // ★ 추가
+import com.azure.config.WebUserAdvice;
+import com.azure.dto.HomeTaskCard; 
 
 @Controller
+@RequiredArgsConstructor
 public class HomeController {
+        private final WebUserAdvice webUserAdvice;
+        private final TaskService taskService;
+
+        private static final DateTimeFormatter YMD = DateTimeFormatter.ofPattern("yy-MM-dd");
+        private static final int DUE_SOON_DAYS = 3;
+
+        @GetMapping("/home")
+        public String home(Model model, HttpSession session) {
+                Long userId = webUserAdvice.currentUserId(session);
+                
+        var pageSize = 50; 
+        List<Task> myTasks = taskService
+                .listByAssignee(userId, PageRequest.of(0, pageSize))
+                .getContent();
+
+        LocalDate today = LocalDate.now();
+        LocalDate until = today.plusDays(DUE_SOON_DAYS);
+
+        // 마감일 다되어가는 태스크들
+        List<HomeTaskCard> inprogressTasks = myTasks.stream()
+                .filter(t -> t.getWorkflow() == null || !Boolean.TRUE.equals(t.getWorkflow().getIsTerminal()))
+                .filter(t -> t.getDueDate() != null
+                          && !t.getDueDate().isBefore(today)
+                          && !t.getDueDate().isAfter(until))
+                .sorted(Comparator
+                        .comparing(Task::getDueDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(Task::getId))
+                .map(this::toCard)
+                .toList();
+
+        // 긴급
+        List<HomeTaskCard> doneTasks = myTasks.stream()
+                .filter(t -> t.getPriority() != null && t.getPriority().getId() == 5)
+                .sorted(Comparator
+                        .comparing(Task::getDueDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(Task::getId))
+                .map(this::toCard)
+                .toList();
 
 
-    @GetMapping("/home")
-    public String home(Model model, HttpSession session) {
-
-        // 기존 더미 데이터=====================
-        List<TodoItem> todoList = new ArrayList<>();
-        todoList.add(new TodoItem("레퍼런스 찾기", "15:00 - 16:00", "미완료", "시각 자료 위주"));
-        todoList.add(new TodoItem("클라이언트 원격", "16:30 - 17:30", "미완료", "내용 정리하기"));
-        model.addAttribute("todoList", todoList);
-
-        // IN-PROGRESS
-        List<HomeTaskCard> inprogressTasks = new ArrayList<>();
-        inprogressTasks.add(new HomeTaskCard(
-                1L, "디자인 패턴 적용 및 설계", "김담당", "profile1.png",
-                "25/09/28", "25/09/28", "in-progress", "normal", 50, true, "25/09/25"
-        ));
-        inprogressTasks.add(new HomeTaskCard(
-                2L, "라이브러리 적용", "이담당", "profile2.png",
-                "25/09/28", "25/10/01", "in-progress", "high", 30, true, "25/09/25"
-        ));
         model.addAttribute("inprogressTasks", inprogressTasks);
-
-        // DONE
-        List<HomeTaskCard> doneTasks = new ArrayList<>();
-        doneTasks.add(new HomeTaskCard(
-                3L, "UI 디자인", "박담당", "profile3.png",
-                "25/09/25", "25/09/28", "completed", "low", 100, true, "25/09/25"
-        ));
-        doneTasks.add(new HomeTaskCard(
-                4L, "UX 디자인 및 리뷰", "최담당", "profile4.png",
-                "25/09/25", "25/09/28", "completed", "normal", 100, true, "25/09/25"
-        ));
         model.addAttribute("doneTasks", doneTasks);
+
 
         model.addAttribute("body", "home.jsp");
         model.addAttribute("activePage", "home");
 
         return "mainbar";
+    }
+        private static String nz(String s) { return s == null ? "" : s; }
+        private HomeTaskCard toCard(Task t) {
+        String assigneeName  = t.getAssignee() != null ? nz(t.getAssignee().getName()) : "";
+        String assigneeImage = t.getAssignee() != null ? nz(t.getAssignee().getAvatarUrl()) : "";
+        String startedAt = t.getStartDate() != null ? t.getStartDate().format(YMD) : "";
+        String dueDate   = t.getDueDate()   != null ? t.getDueDate().format(YMD)   : "";
+        String workflow = t.getWorkflow() != null ? nz(t.getWorkflow().getName()) : "";
+        String workflowColor = t.getWorkflow() != null ? nz(t.getWorkflow().getColor()) : "";
+        String priority = t.getPriority().getName();    
+
+        return new HomeTaskCard(
+                t.getId(),
+                nz(t.getTitle()),
+                assigneeName,
+                assigneeImage,
+                startedAt,
+                dueDate,
+                workflow,
+                workflowColor,
+                priority
+        );
     }
 }
