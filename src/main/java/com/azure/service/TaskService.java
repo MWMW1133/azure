@@ -3,6 +3,8 @@ package com.azure.service;
 import com.azure.dto.GanttTaskDTO;
 import com.azure.model.enums.PriorityCode;
 import com.azure.model.task.Task;
+import com.azure.model.user.User;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -55,6 +57,10 @@ public interface TaskService {
     /** 하위 태스크 생성 (상위 태스크 ID 기준) */
     Task createSubTask(Long parentTaskId, Long assigneeId, String title, Long workflowId, Integer priorityId);
 
+
+    //우선순위 변경
+    Task setPriority(Long taskId, Long priorityId, User actor);
+
     /** 하위 태스크 조회 */
     List<Task> getSubTasks(Long parentId);
 
@@ -66,19 +72,16 @@ public interface TaskService {
     List<Task> getByProjectIdAndAssigneeId(Long projectId, Long assigneeId);
 
     /** 담당자 지정/해제(assigneeId가 null이면 해제) */
-    Task assign(Long taskId, Long assigneeId);
+    Task assign(Long taskId, Long assigneeId, User actor);
 
     /** 워크플로우(칸반 컬럼) 변경 */
-    Task setWorkflow(Long taskId, Long workflowId);
-
-    //우선순위 변경
-    Task setPriority(Long taskId, Long priorityId);
+    Task setWorkflow(Long taskId, Long workflowId, User actor);
 
     /** 단계 이름으로 변경(이벤트 발행 포함) */
     Task changeWorkflow(Long taskId, String toStage, Long actorUserId);
 
     /** 계획 시작일/마감일 설정 */
-    Task setDates(Long taskId, LocalDate startDate, LocalDate dueDate);
+    Task setDates(Long taskId, LocalDate startDate, LocalDate dueDate, User actor);
 
     /** 진행률(0.00~100.00) 업데이트 */
     Task setProgress(Long taskId, BigDecimal progressPct);
@@ -94,6 +97,6 @@ public interface TaskService {
     List<Task> listByProject(Long projectId);
     
     /** 첨부파일 연결/해제 */
-    void addAttachment(Long taskId, Long fileId);
-    void removeAttachment(Long taskId, Long fileId);
+    void addAttachment(Long taskId, Long fileId, User actor);
+    void removeAttachment(Long taskId, Long fileId, User actor);
 }

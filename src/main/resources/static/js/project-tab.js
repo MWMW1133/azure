@@ -11,7 +11,59 @@
   // ------- 프로젝트 컨텍스트 -------
   const PROJECT_ID = (rootEl?.dataset.projectId || window.PROJECT_ID || '').trim();
   const PROJECT_NAME = (rootEl?.dataset.projectName || window.PROJECT_NAME || '').trim();
+
   if (!PROJECT_ID) console.warn('[project] PROJECT_ID is empty.');
+
+  const dummyDB = {
+    tags: [
+      { id: 'tag-1', name: '기획' },
+      { id: 'tag-2', name: '디자인' },
+      { id: 'tag-3', name: '긴급' },
+    ],
+    users: [
+      { id: 'user-1', name: '김민준', email: 'mj.kim@example.com', avatarUrl: 'https://i.pravatar.cc/40?u=user-1' },
+      { id: 'user-2', name: '이서연', email: 'sy.lee@example.com', avatarUrl: 'https://i.pravatar.cc/40?u=user-2' },
+      { id: 'user-3', name: '박도윤', email: 'dy.park@example.com', avatarUrl: null },
+      { id: 'user-4', name: '최아린', email: 'ar.choi@example.com', avatarUrl: 'https://i.pravatar.cc/40?u=user-4' },
+      { id: 'user-5', name: '정시우', email: 'sw.jung@example.com', avatarUrl: 'https://i.pravatar.cc/40?u=user-5' },
+    ],
+  };
+
+  // // --- 더미 데이터를 사용하는 가짜 API ---
+  // const api = {
+  //   _delay: (ms = 200) => new Promise((res) => setTimeout(res, ms)),
+
+  //   async getProject() {
+  //     await this._delay();
+  //     return { id: PROJECT_ID, name: PROJECT_NAME };
+  //   },
+  //   async getTags() {
+  //     await this._delay();
+  //     return [...dummyDB.tags];
+  //   },
+  //   async addTag(name) {
+  //     await this._delay(300);
+  //     const newTag = { id: `tag-${Date.now()}`, name };
+  //     dummyDB.tags.push(newTag);
+  //     return newTag;
+  //   },
+  //   async removeTag(tagId) {
+  //     await this._delay(300);
+  //     dummyDB.tags = dummyDB.tags.filter((t) => t.id !== tagId);
+  //     return true;
+  //   },
+  //   async searchUsers(q = '') {
+  //     await this._delay();
+  //     const query = q.toLowerCase();
+  //     const results = q ? dummyDB.users.filter((u) => u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query)) : [...dummyDB.users];
+  //     return results;
+  //   },
+  //   async invite(userIds) {
+  //     await this._delay(500);
+  //     alert(`${userIds.length}명의 사용자를 초대했습니다 (ID: ${userIds.join(', ')})`);
+  //     return true;
+  //   },
+  // };
 
   // ------- API 래퍼 -------
   const api = {
@@ -55,31 +107,6 @@
     },
   };
 
-  // ------- 외부 리소스 로더(중복 방지) -------
-  function loadScriptOnce(src) {
-    return new Promise((resolve, reject) => {
-      if ([...document.scripts].some(s => (s.src || '').includes(src))) return resolve();
-      const s = document.createElement('script');
-      s.src = src;
-      s.onload = resolve;
-      s.onerror = reject;
-      document.body.appendChild(s);
-    });
-  }
-  function loadCssOnce(href) {
-    if ([...document.querySelectorAll('link[rel="stylesheet"]')].some(l => (l.href || '').includes(href))) return;
-    const l = document.createElement('link');
-    l.rel = 'stylesheet';
-    l.href = href;
-    document.head.appendChild(l);
-  }
-  async function ensureFullCalendarLoaded() {
-    loadCssOnce('fullcalendar@6.1.15/index.global.min.css');
-    if (!window.FullCalendar) {
-      await loadScriptOnce('https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js');
-    }
-  }
-
   // ------- Router -------
   const Router = {
     go(name) {
@@ -87,13 +114,13 @@
       const ctx = APP_CONTEXT;
 
       const map = {
-        table:    `${ctx}/projects/${projectId}/table`,
-        card:     `${ctx}/projects/${projectId}/card`,
-        gantt:    `${ctx}/projects/${projectId}/gantt`,
-        chart:    `${ctx}/projects/${projectId}/chart`,
+        table: `${ctx}/projects/${projectId}/table`,
+        card: `${ctx}/projects/${projectId}/card`,
+        gantt: `${ctx}/projects/${projectId}/gantt`,
+        chart: `${ctx}/projects/${projectId}/chart`,
         calendar: `${ctx}/projects/${projectId}/calendar`,
-        files:    `${ctx}/projects/${projectId}/files`,
-        members:  `${ctx}/projects/${projectId}/members`,
+        files: `${ctx}/projects/${projectId}/files`,
+        members: `${ctx}/projects/${projectId}/members`,
       };
 
       const url = map[name];
@@ -130,27 +157,6 @@
               }
             });
           }
-
-          // ====== 캘린더 ======
-          if (name === 'calendar') {
-            // FullCalendar 리소스 보장 후 프래그먼트 내 init 호출
-            ensureFullCalendarLoaded()
-              .then(() => {
-                raf2(() => {
-                  if (typeof window.initProjectCalendar === 'function') {
-                    window.initProjectCalendar(); // 내부에 중복가드 있음
-                  } else {
-                    // 혹시 프래그먼트가 인라인 IIFE만 갖고 있어도 한 프레임 더 밀어 실행 기회를 줌
-                    setTimeout(() => {
-                      if (typeof window.initProjectCalendar === 'function') {
-                        window.initProjectCalendar();
-                      }
-                    }, 0);
-                  }
-                });
-              })
-              .catch(err => console.error('[CAL] FC load failed', err));
-          }
         })
         .catch((err) => {
           console.error('[Router] error:', err);
@@ -159,60 +165,25 @@
     },
   };
 
+  // ------- 조각 렌더 + 후처리(init) -------
   function render(html) {
     if (!main) return;
+    main.innerHTML = html;
 
-    // 1) 프래그먼트 파싱
-    const tmp = document.createElement('div');
-    tmp.innerHTML = html;
-
-    // 2) <script>와 <link rel="stylesheet"> 분리
-    const scripts = Array.from(tmp.querySelectorAll('script'));
-    const links   = Array.from(tmp.querySelectorAll('link[rel="stylesheet"]'));
-    scripts.forEach(s => s.parentNode.removeChild(s));
-    links.forEach(l => l.parentNode && l.parentNode.removeChild(l));
-
-    // 3) 본문 교체 (스크립트/링크 제외)
-    main.innerHTML = '';
-    while (tmp.firstChild) main.appendChild(tmp.firstChild);
-
-    // 4) 스타일시트는 <head>에(중복 방지)
-    const head = document.head;
-    links.forEach(l => {
-      const href = l.getAttribute('href') || '';
-      const already = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-        .some(x => (x.getAttribute('href') || '') === href);
-      if (!already) {
-        const el = document.createElement('link');
-        el.rel = 'stylesheet';
-        el.href = href;
-        el.media = l.media || '';
-        head.appendChild(el);
+    // 조각이 붙은 뒤 한 틱 쉬고 DOM을 스캔해서 해당 탭의 초기화 함수 호출
+    requestAnimationFrame(() => {
+      // 1) 프로젝트 캘린더 탭
+      if (main.querySelector('#calendar') && typeof window.initProjectCalendar === 'function') {
+        try {
+          window.initProjectCalendar();
+        } catch (e) {
+          console.error('initProjectCalendar failed', e);
+        }
       }
-    });
 
-    // 5) 스크립트 실행 (중복 방지)
-    const existingSrcs = new Set(Array.from(document.scripts).map(s => s.src));
-    scripts.forEach(s => {
-      const src = s.getAttribute('src');
-      const type = s.getAttribute('type') || '';
-      const asyncAttr = s.hasAttribute('async');
-      const deferAttr = s.hasAttribute('defer');
-
-      const el = document.createElement('script');
-      if (type) el.type = type;
-
-      if (src) {
-        const abs = src; // 상대/절대 그대로
-        if (existingSrcs.has(abs)) return; // 이미 로드된 동일 src 는 건너뜀
-        el.src = abs;
-        if (asyncAttr) el.async = true;
-        if (deferAttr) el.defer = true;
-        document.body.appendChild(el);
-      } else {
-        el.text = s.textContent || '';
-        document.body.appendChild(el);
-      }
+      // (필요하면 여기에 다른 탭 초기화도 추가)
+      // if (main.querySelector('#main-table-root') && window.initMainTable) window.initMainTable();
+      // if (main.querySelector('#gantt-root') && window.initGantt) window.initGantt();
     });
   }
 
@@ -426,13 +397,7 @@
   }
 
   function raf2(fn) {
-    const raf =
-      window.requestAnimationFrame ||
-      window.webkitRequestAnimationFrame ||
-      window.mozRequestAnimationFrame ||
-      (cb => setTimeout(cb, 0));     // 최후 폴백
-
-    raf(() => raf(fn));
+    requestAnimationFrame(() => requestAnimationFrame(fn));
   }
 
   async function waitForContainers(idList, tries = 40, delayMs = 25) {

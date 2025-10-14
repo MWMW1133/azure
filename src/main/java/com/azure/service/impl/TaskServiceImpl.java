@@ -20,6 +20,7 @@ import com.azure.repository.WorkflowRepository;
 import com.azure.security.SecurityUtil;
 import com.azure.service.AuditService;
 import com.azure.service.TaskService;
+import com.azure.service.UserService;
 import com.azure.service.exception.NotFoundException;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -33,7 +34,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.azure.config.WebUserAdvice;       
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -133,6 +134,13 @@ public class TaskServiceImpl implements TaskService {
         return page;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Task> listByAssignee(Long assigneeId, Pageable pageable) {
+        Page<Task> page = taskRepository.findByAssigneeId(assigneeId, pageable);
+        prefetchToOne(page.getContent());
+        return page;
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -152,6 +160,15 @@ public class TaskServiceImpl implements TaskService {
                 ))
                 .toList();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Task> getTasksForProject(Long projectId) {
+        List<Task> list = taskRepository.findByProject_IdOrderByIdAsc(projectId);
+        prefetchToOne(list);
+        return list;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<Task> getByProjectId(Long projectId) {
@@ -205,7 +222,6 @@ public class TaskServiceImpl implements TaskService {
         ));
         return task;
     }
-
 
     // =========================================================
     // 생성
@@ -415,11 +431,12 @@ public class TaskServiceImpl implements TaskService {
     // 변경
     // =========================================================
     @Override
-    public Task assign(Long taskId, Long assigneeId) {
+    public Task assign(Long taskId, Long assigneeId, User actor) {
         Task t = get(taskId);
 
         Long beforeId   = (t.getAssignee()==null? null : t.getAssignee().getId());
         String beforeNm = (t.getAssignee()==null? null : t.getAssignee().getName());
+
 
         if (assigneeId == null) {
             t.setAssignee(null);
@@ -434,7 +451,7 @@ public class TaskServiceImpl implements TaskService {
         String afterNm = (saved.getAssignee()==null? null : saved.getAssignee().getName());
 
         auditService.log(
-            actor(),
+            actor,
             com.azure.model.enums.AuditEnums.EntityType.TASK,
             saved.getId(),
             ActionType.ASSIGNEE_CHANGED,
@@ -446,7 +463,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public Task setWorkflow(Long taskId, Long workflowId) {
+    public Task setWorkflow(Long taskId, Long workflowId, User actor) {
         Task task = get(taskId);
 
         Long beforeId   = (task.getWorkflow()==null? null : task.getWorkflow().getId());
@@ -466,7 +483,7 @@ public class TaskServiceImpl implements TaskService {
         String afterCo = (saved.getWorkflow()==null? null : saved.getWorkflow().getColor());
 
         auditService.log(
-            actor(),
+            actor,
             com.azure.model.enums.AuditEnums.EntityType.TASK,
             saved.getId(),
             ActionType.WORKFLOW_CHANGED,
@@ -479,7 +496,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public Task setPriority(Long taskId, Long priorityId){
+    public Task setPriority(Long taskId, Long priorityId, User actor){
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new EntityNotFoundException("Task not found: " + taskId));
 
@@ -496,7 +513,7 @@ public class TaskServiceImpl implements TaskService {
         String afterNm = (saved.getPriority()==null? null : saved.getPriority().getName());
 
         auditService.log(
-            actor(),
+            actor,
             com.azure.model.enums.AuditEnums.EntityType.TASK,
             saved.getId(),
             ActionType.PRIORITY_CHANGED,
@@ -508,12 +525,34 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public Task setDates(Long taskId, LocalDate startDate, LocalDate dueDate) {
+    public Task setDates(Long taskId, LocalDate startDate, LocalDate dueDate, User actor) {
         Task t = get(taskId);
+
+        // 변경 전 값 백업
+        LocalDate beforeStart = t.getStartDate();
+        LocalDate beforeDue   = t.getDueDate();
+
+        // 변경
         t.setStartDate(startDate);
         t.setDueDate(dueDate);
-        return taskRepository.save(t);
+
+        // 저장
+        Task saved = taskRepository.save(t);
+
+        // 감사 로그
+        auditService.log(
+            actor,
+            com.azure.model.enums.AuditEnums.EntityType.TASK,
+            saved.getId(),
+            ActionType.DATES_CHANGED,
+            new AuditDiff()
+                .put("startDate", beforeStart, saved.getStartDate())
+                .put("dueDate",   beforeDue,   saved.getDueDate())
+        );
+
+        return saved;
     }
+
 
     @Override
     public Task setProgress(Long taskId, BigDecimal progressPct) {
@@ -564,7 +603,7 @@ public class TaskServiceImpl implements TaskService {
     // 파일
     // =========================================================
     @Override
-    public void addAttachment(Long taskId, Long fileId) {
+    public void addAttachment(Long taskId, Long fileId, User actor) {
         Task task = get(taskId);
         FileObject file = fileObjectRepository.findById(fileId)
                 .orElseThrow(() -> new NotFoundException("File not found: " + fileId));
@@ -572,7 +611,7 @@ public class TaskServiceImpl implements TaskService {
         fileObjectRepository.save(file);
 
         auditService.log(
-            actor(),
+            actor,
             com.azure.model.enums.AuditEnums.EntityType.TASK,
             taskId,
             ActionType.FILE_ATTACHED,
@@ -583,32 +622,29 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public void removeAttachment(Long taskId, Long fileId) {
+    public void removeAttachment(Long taskId, Long fileId, User actor) {
         FileObject file = fileObjectRepository.findById(fileId)
                 .orElseThrow(() -> new NotFoundException("File not found: " + fileId));
         if (file.getTask() != null && file.getTask().getId().equals(taskId)) {
             String beforeName = file.getFileName();
             file.setTask(null);
             fileObjectRepository.save(file);
+
+            auditService.log(
+                actor,
+                com.azure.model.enums.AuditEnums.EntityType.TASK,
+                taskId,
+                ActionType.FILE_REMOVED,
+                new AuditDiff()
+                    .put("fileId",   fileId, null)
+                    .put("fileName", beforeName, null)
+            );
         }
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<Task> getTasksForProject(Long projectId) {
-        List<Task> list = taskRepository.findByProjectIdOrderByIdAsc(projectId);
-        prefetchToOne(list);
-        return list;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<Task> listByAssignee(Long assigneeId, Pageable pageable) {
-        Page<Task> page = taskRepository.findByAssigneeId(assigneeId, pageable);
-        prefetchToOne(page.getContent());
-        return page;
-    }
-
+    // =========================================================
+    // 카운트
+    // =========================================================
     @Override
     @Transactional(readOnly = true)
     public long countByProjectAndWorkflow(Long projectId, Long workflowId) {
@@ -746,10 +782,4 @@ public class TaskServiceImpl implements TaskService {
         prefetchToOne(top);
         return top;
     }
-
-    private User actor() {
-    Long id = WebUserAdvice.currentUserId();   // 세션에서 꺼냄
-    return (id == null) ? null : userRepository.findById(id).orElse(null);
-}
-
 }

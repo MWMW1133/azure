@@ -79,16 +79,7 @@
   </div>
   <div class="project-body"></div>
 </div>
-<!-- 알림창 -->
-<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1080">
-  <div id="planToast" class="toast clean-toast" role="status" aria-live="polite" aria-atomic="true">
-    <div class="d-flex align-items-center gap-2">
-      <span class="toast-icon" aria-hidden="true">ℹ</span>
-      <div class="toast-body">완료되었습니다.</div>
-      <button type="button" class="btn-close ms-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-    </div>
-  </div>
-</div>
+
 
 <script src="/js/project-tab.js"></script>
 <script src="/js/projects/mainTable.js"></script>
