@@ -1,5 +1,6 @@
 package com.azure.model.document;
 
+import com.azure.model.task.Task;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -32,4 +33,7 @@ public class Document {
 
     @Column(name = "updated_at", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
+
+    @Transient
+    private Task tempTask; // 추가
 }

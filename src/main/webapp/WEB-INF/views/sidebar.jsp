@@ -84,21 +84,6 @@
           </a>
         </div>
 
-<%--        <div class="room-section">--%>
-<%--          <hr class="divider divider-room" />--%>
-<%--            <a class="proj-row room ${activePage eq 'meeting' ? 'active' : ''}"--%>
-<%--               href="${pageContext.request.contextPath}/meeting">--%>
-<%--            <span class="ic">--%>
-<%--              <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">--%>
-<%--                <path d="M4 13a8 8 0 0 1 16 0"></path>--%>
-<%--                <path d="M4 13v5a2 2 0 0 0 2 2h2v-7H6a2 2 0 0 0-2 2z"></path>--%>
-<%--                <path d="M20 13v5a2 2 0 0 1-2 2h-2v-7h2a2 2 0 0 1 2 2z"></path>--%>
-<%--              </svg>--%>
-<%--            </span>--%>
-<%--            <span>회의실</span>--%>
-<%--          </a>--%>
-<%--          <hr class="divider divider-room" />--%>
-<%--        </div>--%>
 
           <!-- 회의실 섹션(독립) : 구분선 + 회의실 -->
           <div class="room-section">

@@ -4,7 +4,7 @@
   const main = $('.project-body');
 
   // ------- 컨텍스트/경로 유틸 -------
-  const rootEl = document.getElementById('project-tab-root')|| document.getElementById('project-tab-view-root');//수정
+  const rootEl = document.getElementById('project-tab-root');
   const APP_CONTEXT = (rootEl?.dataset.contextPath || window.APP_CONTEXT || '').replace(/\/$/, '');
   const apiUrl = (p) => `${APP_CONTEXT}${p}`;
 
@@ -107,53 +107,40 @@
     },
   };
 
-
-// ------- Router -------
+  // ------- Router -------
 const Router = {
   go(name) {
-    const projectId = PROJECT_ID;
-    const ctx = APP_CONTEXT;
+    const projectId = PROJECT_ID;  // 이미 위쪽에서 설정되어 있음
+    const ctx = APP_CONTEXT;       // /azure 혹은 ''
 
     const map = {
-      table:    `${ctx}/projects/${projectId}/table`,
-      card:     `${ctx}/projects/${projectId}/card`,
-      gantt:    `${ctx}/projects/${projectId}/gantt`,
-      chart:    `${ctx}/projects/${projectId}/chart`,
+      table: `${ctx}/projects/${projectId}/table`,   // ✅ 수정
+      card: `${ctx}/projects/${projectId}/card`,
+      gantt: `${ctx}/projects/${projectId}/gantt`,
+      chart: `${ctx}/projects/${projectId}/chart`,
       calendar: `${ctx}/projects/${projectId}/calendar`,
-      files:    `${ctx}/projects/${projectId}/files`,
-      members:  `${ctx}/projects/${projectId}/members`,
+      files: `${ctx}/projects/${projectId}/documents`,
+      members: `${ctx}/projects/${projectId}/members`,
     };
 
     const url = map[name];
     if (!url) return render('<h1>Not Found</h1>');
 
-    fetch(url, { cache: 'no-cache' })
-      .then(r => r.text())
+    fetch(url, { cache: 'no-cache', credentials: 'include' }) // credentialㄴ 추가
+      .then((r) => r.text())
       .then(render)
-      .catch(err => {
+      .catch((err) => {
         console.error('[Router] error:', err);
         render('<h1>Load Error</h1>');
       });
   },
 };
 
-// ------- 조각 렌더 + 후처리(init) -------
-function render(html) {
-  if (!main) return;
-  main.innerHTML = html;
 
-  // 조각이 붙은 뒤 한 틱 쉬고 DOM을 스캔해서 해당 탭의 초기화 함수 호출
-  requestAnimationFrame(() => {
-    // 1) 프로젝트 캘린더 탭
-    if (main.querySelector('#calendar') && typeof window.initProjectCalendar === 'function') {
-      try { window.initProjectCalendar(); } catch (e) { console.error('initProjectCalendar failed', e); }
-    }
 
-    // (필요하면 여기에 다른 탭 초기화도 추가)
-    // if (main.querySelector('#main-table-root') && window.initMainTable) window.initMainTable();
-    // if (main.querySelector('#gantt-root') && window.initGantt) window.initGantt();
-  });
-}
+  function render(html) {
+    if (main) main.innerHTML = html;
+  }
 
   // ------- Header(제목/태그) -------
   async function renderHeader() {

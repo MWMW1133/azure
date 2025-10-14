@@ -1,4 +1,4 @@
-package com.azure.service;
+package com.azure.service.file;
 
 import com.azure.model.document.Document;
 import com.azure.model.document.DocumentVersion;

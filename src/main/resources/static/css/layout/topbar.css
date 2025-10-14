@@ -177,3 +177,82 @@ body {
     margin-left: .1rem;
     margin-right: .1rem;
 }
+
+/* --- 공통 드롭다운 계층 보정 --- */
+/*.dropdown-menu {*/
+/*    z-index: 1080 !important; !* 모달보다 한 단계 낮게 *!*/
+/*}*/
+.topbar .dropdown-menu {
+    z-index: 10000 !important; /* event-popup(9999)보다 한 단계 위 */
+}
+
+/* 세 패널 공통: 아이콘(.dropdown) 기준 절대배치 */
+.dropdown-menu.notif-panel,
+.dropdown-menu.todo-panel,
+.dropdown-menu.profile-menu {
+    position: absolute !important;       /* 부모 .dropdown(position:relative) 기준 */
+    right: 0;
+    top: calc(100% + 6px);
+    transform: none !important;          /* Popper transform 무시 */
+    display: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    background: #fff;
+}
+
+/* 열렸을 때 */
+.dropdown-menu.show.notif-panel,
+.dropdown-menu.show.todo-panel,
+.dropdown-menu.show.profile-menu {
+    display: block !important;
+}
+
+/* 레이아웃이 가리지 않도록 */
+.topbar { overflow: visible !important; z-index: 1070 !important; }
+.wrapper, .main-content, .page-body { overflow: visible !important; }
+
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1200 !important; /* dropdown(1080)보다 높게 */
+    overflow: visible !important;
+}
+
+.wrapper, .main-content, .page-body {
+    overflow: visible !important;
+    position: relative !important;
+    z-index: auto !important;
+}
+.topbar,
+.wrapper,
+.main-content,
+.page-body {
+    overflow: visible !important;
+}
+
+.topbar .dropdown-menu {
+    position: fixed !important;
+    top: 58px !important;  /* 탑바 아래 여백 */
+    right: 72px !important; /* 벨 아이콘 맞춰서 조정 */
+    transform: none !important;
+    z-index: 10000 !important;
+}
+
+
+/* 드롭다운은 우리가 위치를 직접 잡으니 고정/표시만 책임진다 */
+.topbar .dropdown-menu {
+    position: fixed !important;
+    display: none;
+    transform: none !important;
+    z-index: 10000 !important;
+}
+.topbar .dropdown-menu.show {
+    display: block !important;
+}
+
+/* 가림 방지 */
+.topbar { overflow: visible !important; z-index: 1200 !important; }
+.wrapper, .main-content, .page-body { overflow: visible !important; }
+
+/* event-popup 같은 오버레이가 9999면 여길 더 높이거나,
+   그쪽 z-index를 평상시 낮추는 게 안전 */

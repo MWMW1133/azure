@@ -15,7 +15,7 @@ import com.azure.dto.FileObjectDTO;
 import com.azure.model.file.FileObject;
 import com.azure.model.user.User;
 import com.azure.repository.FileObjectRepository;
-import com.azure.service.FileStorageService;
+import com.azure.service.file.FileStorageService;
 import com.azure.service.TaskService;
 
 import lombok.RequiredArgsConstructor;

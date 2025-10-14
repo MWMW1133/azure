@@ -22,6 +22,11 @@ public class pageController {
 
     private final UserService userService;
 
+    @GetMapping("/")
+    public String defaultPage() {
+        return "redirect:/login";
+    }
+
     @GetMapping("/profile")
         public String viewProfile(Model model, HttpSession session) {
         User loginUser = (User) session.getAttribute("loginUser");
