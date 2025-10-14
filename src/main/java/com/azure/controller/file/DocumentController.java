@@ -71,7 +71,18 @@ public class DocumentController {
         try {
             // 파일 업로드 (IOException 처리)
             Long orgId = loginUser.getOrganization().getId();
-            fileService.upload(orgId, authorId, file);
+
+            // 파일 저장 (file_objects insert)
+            var fileObject = fileService.upload(orgId, authorId, file);
+
+            // 문서 생성 (documents insert)
+            var document = documentService.create(projectId, authorId, file.getOriginalFilename(), null);
+
+            // 문서 버전 추가 (document_versions insert)
+            documentService.addVersion(document.getId(), fileObject.getId(), authorId, null);
+
+            System.out.printf("[DEBUG] ✅ 업로드 성공: fileId=%d, documentId=%d, authorId=%d%n",
+                    fileObject.getId(), document.getId(), authorId);
 
             // 업로드 후 목록 리로드
             var page = documentService.listByProject(projectId, pageable);
@@ -81,7 +92,8 @@ public class DocumentController {
 
             return "projects/fragments/files";
 
-        } catch (IOException e) {
+
+        } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("error", "파일 업로드 중 오류가 발생했습니다: " + e.getMessage());
             model.addAttribute("projectId", projectId);

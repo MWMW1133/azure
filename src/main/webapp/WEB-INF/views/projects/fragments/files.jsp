@@ -40,6 +40,7 @@
                     <ul class="menu-dropdown shadow-sm">
                         <li data-action="view">파일 보기</li>
                         <li data-action="download">파일 다운로드</li>
+                        <li data-action="delete" class="text-danger">파일 삭제</li>
                     </ul>
                 </div>
 

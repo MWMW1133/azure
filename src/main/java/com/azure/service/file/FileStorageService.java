@@ -25,4 +25,17 @@ public class FileStorageService {
         Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
         return destination.toString(); // storageKey로 반환
     }
+
+    /** 파일 삭제 */
+    public void delete(String storageKey) throws IOException {
+        if (storageKey == null || storageKey.isBlank()) return;
+
+        Path path = Path.of(storageKey);
+        if (Files.exists(path)) {
+            Files.delete(path);
+            System.out.println("[DEBUG] 파일 삭제 완료: " + path);
+        } else {
+            System.out.println("[DEBUG] 삭제할 파일이 존재하지 않음: " + path);
+        }
+    }
 }

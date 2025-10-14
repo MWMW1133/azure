@@ -57,8 +57,14 @@ public class FileController {
     /**  파일 삭제 */
     @DeleteMapping("/{id}")
     @ResponseBody
-    public void deleteFile(@PathVariable Long id) throws IOException {
+    public String deleteFile(@PathVariable Long id, HttpSession session) throws IOException {
+        User loginUser = (User) session.getAttribute("loginUser");
+        if (loginUser == null) {
+            throw new IllegalStateException("로그인이 필요합니다.");
+        }
+
         fileService.delete(id);
+        return "OK";
     }
 
     /** (선택) 검색 + 페이징 API */

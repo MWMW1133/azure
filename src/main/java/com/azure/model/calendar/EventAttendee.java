@@ -12,10 +12,6 @@ public class EventAttendee {
     @EmbeddedId
     private EventAttendeeId id;
 
-    @ManyToOne(fetch = FetchType.LAZY) @MapsId("projectId")
-    @JoinColumn(name = "project_id")
-    private Project project;
-
     @ManyToOne(fetch = FetchType.LAZY) @MapsId("userId")
     @JoinColumn(name = "user_id")
     private User user;

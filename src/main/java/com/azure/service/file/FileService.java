@@ -3,6 +3,8 @@ package com.azure.service.file;
 import com.azure.model.Organization;
 import com.azure.model.file.FileObject;
 import com.azure.model.user.User;
+import com.azure.repository.DocumentRepository;
+import com.azure.repository.DocumentVersionRepository;
 import com.azure.repository.FileObjectRepository;
 import com.azure.service.exception.NotFoundException;
 import jakarta.persistence.EntityManager;
@@ -25,6 +27,8 @@ public class FileService {
     private final FileObjectRepository fileObjectRepository;
     private final FileStorageService fileStorageService;
     private final EntityManager entityManager;
+    private final DocumentVersionRepository documentVersionRepository;
+    private final DocumentRepository documentRepository;
 
     /**  회사 단위 파일 목록 조회 */
     @Transactional(readOnly = true)
@@ -72,11 +76,28 @@ public class FileService {
 
     /** 🔹 파일 삭제 (DB + 물리 파일) */
     @Transactional
-    public void delete(Long id) throws IOException {
-        FileObject f = get(id);
-        if (f.getStorageKey() != null) {
-            Files.deleteIfExists(Path.of(f.getStorageKey()));
+    public void delete(Long fileId) {
+        // 1️⃣ fileId로 연결된 문서 ID들 찾기
+        List<Long> docIds = documentVersionRepository.findDocumentIdsByFileId(fileId);
+
+        for (Long documentId : docIds) {
+            documentVersionRepository.deleteByDocument_Id(documentId);
+            documentRepository.deleteById(documentId);
         }
-        fileObjectRepository.delete(f);
+
+        // 2️⃣ fileObject 삭제
+        var fileOpt = fileObjectRepository.findById(fileId);
+        if (fileOpt.isPresent()) {
+            var file = fileOpt.get();
+            try {
+                fileStorageService.delete(file.getStorageKey());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            fileObjectRepository.delete(file);
+        }
     }
+
+
+
 }

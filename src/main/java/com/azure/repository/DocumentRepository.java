@@ -1,6 +1,7 @@
 package com.azure.repository;
 
 import com.azure.model.document.Document;
+import com.azure.model.document.DocumentVersion;
 import org.springframework.data.domain.Page;        // ★ 추가
 import org.springframework.data.domain.Pageable; // ★ 추가
 import org.springframework.data.jpa.repository.EntityGraph;
