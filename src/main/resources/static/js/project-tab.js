@@ -4,7 +4,7 @@
   const main = $('.project-body');
 
   // ------- 컨텍스트/경로 유틸 -------
-  const rootEl = document.getElementById('project-tab-root');
+  const rootEl = document.getElementById('project-tab-root') || document.getElementById('project-tab-view-root'); //수정
   const APP_CONTEXT = (rootEl?.dataset.contextPath || window.APP_CONTEXT || '').replace(/\/$/, '');
   const apiUrl = (p) => `${APP_CONTEXT}${p}`;
 
@@ -108,10 +108,11 @@
   };
 
   // ------- Router -------
-const Router = {
-  go(name) {
-    const projectId = PROJECT_ID;  // 이미 위쪽에서 설정되어 있음
-    const ctx = APP_CONTEXT;       // /azure 혹은 ''
+  const Router = {
+    go(name) {
+      const projectId = PROJECT_ID;
+      const ctx = APP_CONTEXT;
+
 
     const map = {
       table: `${ctx}/projects/${projectId}/table`,   // ✅ 수정
@@ -123,23 +124,69 @@ const Router = {
       members: `${ctx}/projects/${projectId}/members`,
     };
 
-    const url = map[name];
-    if (!url) return render('<h1>Not Found</h1>');
+
+      const url = map[name];
+      if (!url) return render('<h1>Not Found</h1>');
 
     fetch(url, { cache: 'no-cache', credentials: 'include' }) // credentialㄴ 추가
       .then((r) => r.text())
-      .then(render)
-      .catch((err) => {
-        console.error('[Router] error:', err);
-        render('<h1>Load Error</h1>');
-      });
-  },
-};
+      .then((html) => {
+        render(html);
 
+          // ====== 간트 ======
+          if (name === 'gantt' && typeof window.initGantt === 'function') {
+            raf2(() => {
+              const sel = '.project-body #gantt-wrap';
+              if (!document.querySelector(sel)) {
+                console.warn('[GANTT] container not found yet');
+                return;
+              }
+              if (typeof Gantt === 'undefined') {
+                console.error('[GANTT] library not loaded');
+                return;
+              }
+              window.initGantt(APP_CONTEXT, PROJECT_ID, { container: sel });
+            });
+          }
 
+          // ====== 차트 ======
+          if (name === 'chart') {
+            raf2(() => {
+              if (typeof window.initChartTab === 'function') {
+                window.initChartTab(APP_CONTEXT, PROJECT_ID);
+              } else {
+                console.error('[CHART] initChartTab is not loaded');
+              }
+            });
+          }
+        })
+        .catch((err) => {
+          console.error('[Router] error:', err);
+          render('<h1>Load Error</h1>');
+        });
+    },
+  };
 
+  // ------- 조각 렌더 + 후처리(init) -------
   function render(html) {
-    if (main) main.innerHTML = html;
+    if (!main) return;
+    main.innerHTML = html;
+
+    // 조각이 붙은 뒤 한 틱 쉬고 DOM을 스캔해서 해당 탭의 초기화 함수 호출
+    requestAnimationFrame(() => {
+      // 1) 프로젝트 캘린더 탭
+      if (main.querySelector('#calendar') && typeof window.initProjectCalendar === 'function') {
+        try {
+          window.initProjectCalendar();
+        } catch (e) {
+          console.error('initProjectCalendar failed', e);
+        }
+      }
+
+      // (필요하면 여기에 다른 탭 초기화도 추가)
+      // if (main.querySelector('#main-table-root') && window.initMainTable) window.initMainTable();
+      // if (main.querySelector('#gantt-root') && window.initGantt) window.initGantt();
+    });
   }
 
   // ------- Header(제목/태그) -------
@@ -349,6 +396,19 @@ const Router = {
         console.warn('invite failed', err);
       }
     });
+  }
+
+  function raf2(fn) {
+    requestAnimationFrame(() => requestAnimationFrame(fn));
+  }
+
+  async function waitForContainers(idList, tries = 40, delayMs = 25) {
+    for (let i = 0; i < tries; i++) {
+      const ok = idList.every((id) => document.getElementById(id));
+      if (ok) return true;
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+    return false;
   }
 
   // ------- boot -------

@@ -19,5 +19,5 @@ public interface EventAttendeeRepository extends JpaRepository<EventAttendee, Lo
     @Modifying
     @Query("delete from EventAttendee ea where ea.event.id = :eventId")
     void deleteByEvent_Id(Long eventId);   // ★ 추가
-
 }
+

@@ -17,7 +17,7 @@
   </div>
 
   <div  class="main-wrapper-body"
-        id="project-tab-root"               <%-- ★ JS와 id 통일(원래 project-root -> project-tab-root) --%>
+        id="project-tab-root"             
         data-project-id="${projectId}"
         data-ctx="${pageContext.request.contextPath}">
 
@@ -45,7 +45,7 @@
       </div>
 
       <div class="task-list-body">
-        <c:if test="${not empty activeTasks}">  <%-- ★ 안전 가드 --%>
+        <c:if test="${not empty activeTasks}">  
           <c:forEach var="taskItem" items="${activeTasks}">
             <c:set var="task" value="${taskItem}" scope="request" />
             <jsp:include page="/WEB-INF/views/projects/taskRow.jsp" />
@@ -72,7 +72,7 @@
       </div>
 
       <div class="task-list-body">
-        <c:if test="${not empty archivedTasks}"> <%-- ★ 안전 가드 --%>
+        <c:if test="${not empty archivedTasks}"> 
           <c:forEach var="taskItem" items="${archivedTasks}">
             <c:set var="task" value="${taskItem}" scope="request" />
             <jsp:include page="/WEB-INF/views/projects/taskRow.jsp" />
@@ -103,7 +103,16 @@
     </button>
   </div>
 </div>
-
+<!-- 알림창 -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1080">
+  <div id="planToast" class="toast clean-toast" role="status" aria-live="polite" aria-atomic="true">
+    <div class="d-flex align-items-center gap-2">
+      <span class="toast-icon" aria-hidden="true">ℹ</span>
+      <div class="toast-body">완료되었습니다.</div>
+      <button type="button" class="btn-close ms-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
 <script>
   (function() {
     const root = document.getElementById('project-tab-root'); // ★ 위 id와 동일

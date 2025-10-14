@@ -3,6 +3,7 @@ package com.azure.controller;
 import java.io.IOException;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,7 +34,7 @@ public class TaskFileController {
             @PathVariable Long projectId,
             @PathVariable Long taskId,
             @RequestParam("file") MultipartFile file,
-            @RequestParam("uploaderId") Long uploaderId
+            @ModelAttribute("currentUserId") Long uid
     ) throws IOException {
         // 1️⃣ 파일 저장
         String key = storageService.save(file);
@@ -45,7 +46,7 @@ public class TaskFileController {
         f.setSize(file.getSize());
         f.setStorageKey(key);
         User uploader = new User();   // 기본 생성자
-        uploader.setId(uploaderId);   // ID만 세팅해서 참조
+        uploader.setId(uid);   // ID만 세팅해서 참조
         f.setUploader(uploader);
         fileRepo.save(f);
 

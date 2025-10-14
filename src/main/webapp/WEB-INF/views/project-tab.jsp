@@ -6,6 +6,8 @@
 <link href="/css/projects/mainTable.css" rel="stylesheet">
 <link href="/css/taskRow.css" rel="stylesheet">
 <link href="/css/projects/taskForm.css" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/frappe-gantt/dist/frappe-gantt.css" />
+<script src="https://unpkg.com/frappe-gantt/dist/frappe-gantt.umd.js"></script>
 
 <link href="${pageContext.request.contextPath}/css/bootstrap/bootstrap.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
@@ -67,7 +69,6 @@
   <nav class="nav-project">
     <div class="project-tabs" role="tablist" aria-label="Project views">
       <button class="project-tab is-active" role="tab" aria-selected="true" data-view="table"><span>메인 테이블</span></button>
-      <button class="project-tab" role="tab" aria-selected="false" data-view="card"><span>카드</span></button>
       <button class="project-tab" role="tab" aria-selected="false" data-view="gantt"><span>간트</span></button>
       <button class="project-tab" role="tab" aria-selected="false" data-view="chart"><span>차트</span></button>
       <button class="project-tab" role="tab" aria-selected="false" data-view="calendar"><span>캘린더</span></button>
@@ -78,6 +79,11 @@
   </div>
   <div class="project-body"></div>
 </div>
+
+
 <script src="/js/project-tab.js"></script>
 <script src="/js/projects/mainTable.js"></script>
 <script src="/js/projects/taskRow.js"></script>
+<script src="/js/projects/ganttTab.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script src="/js/projects/chartTab.js"></script>

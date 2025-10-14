@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @Table(name = "event_attendees",
         uniqueConstraints = @UniqueConstraint(name = "uq_event_user",
                 columnNames = {"event_id", "user_id"}))
+
 public class EventAttendee {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -18,6 +19,7 @@ public class EventAttendee {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private ProjectCalendar event;
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -32,3 +34,4 @@ public class EventAttendee {
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
 }
+

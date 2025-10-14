@@ -1,8 +1,10 @@
 package com.azure.service.impl;
 
+import com.azure.model.calendar.EventAttendee;
 import com.azure.model.calendar.PersonalCalendar;
 import com.azure.model.calendar.ProjectCalendar;
 import com.azure.model.reminder.Reminder;
+import com.azure.repository.EventAttendeeRepository;
 import com.azure.repository.PersonalCalendarRepository;
 import com.azure.repository.ProjectCalendarRepository;
 import com.azure.repository.ReminderRepository;
@@ -16,31 +18,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
-
-/**
- * 캘린더 도메인 서비스 구현체
- *
- * <h2>트랜잭션 정책</h2>
- * <ul>
- *   <li>클래스 레벨 @Transactional: 쓰기 메서드는 기본 트랜잭션</li>
- *   <li>조회 메서드는 @Transactional(readOnly=true)로 최적화</li>
- * </ul>
- *
- * <h2>스키마 대응</h2>
- * <ul>
- *   <li><b>is_done</b>(TINYINT(1) NOT NULL DEFAULT 0): 생성 시 <b>false를 명시</b>하여 DB DEFAULT 미적용 문제 회피</li>
- *   <li><b>all_day</b>(TINYINT(1) DEFAULT 0): null로 들어오면 false로 강제하여 일관성 유지</li>
- *   <li><b>created_at/updated_at</b>: DB 자동 관리 컬럼 → 코드에서 설정/수정하지 않음</li>
- *   <li><b>created_by FK (NO ACTION)</b>: 해당 사용자가 참조되면 삭제 불가 → 상위 정책에서 제약 고려</li>
- * </ul>
- *
- * <h2>페이징 전략</h2>
- * <ul>
- *   <li>초기에는 List→Page(PageImpl)로 감싸는 임시 페이징 허용</li>
- *   <li>운영 전환 시 레포지토리에 <code>findBy...(..., Pageable)</code> 추가하여 DB 레벨 페이징으로 교체</li>
- * </ul>
- */
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -49,8 +30,9 @@ public class CalendarServiceImpl implements CalendarService {
     private final ProjectCalendarRepository projectCalendarRepository;
     private final PersonalCalendarRepository personalCalendarRepository;
     private final ReminderRepository reminderRepository;
+    private final EventAttendeeRepository eventAttendeeRepository;
 
-    // ──────────────────────────────── 내부 검증 유틸 ────────────────────────────────
+    /* ========= 유틸 ========= */
 
     /** 시작/종료 시간 검증 (둘 다 필수, end > start) */
     private void validateTimeRange(LocalDateTime startAt, LocalDateTime endAt) {
@@ -62,102 +44,105 @@ public class CalendarServiceImpl implements CalendarService {
         }
     }
 
-    /** Boolean 컬럼(ALL_DAY 등) 기본값 보정: null → false */
-    private boolean toBoolOrFalse(Boolean value) {
-        return value != null && value;
-    }
+    /** Boolean 컬럼 보정: null -> false */
+    private boolean toBoolOrFalse(Boolean v) { return v != null && v; }
 
-    // ──────────────────────────────── 프로젝트 일정 ────────────────────────────────
+    /* ========= 프로젝트 일정 ========= */
 
     @Override
     public ProjectCalendar scheduleProjectEvent(Long projectId, String title, String description,
                                                 LocalDateTime startAt, LocalDateTime endAt, Boolean allDay,
                                                 String rrule, String location, Long createdBy) {
-        // 1) 입력 검증
         if (projectId == null) throw new BadRequestException("projectId는 필수입니다.");
         if (title == null || title.isBlank()) throw new BadRequestException("title은 필수입니다.");
         validateTimeRange(startAt, endAt);
 
-        // 2) 엔티티 조립 (연관관계는 ID만 세팅해도 FK 매핑됨)
         ProjectCalendar e = new ProjectCalendar();
-        e.setProject(new com.azure.model.project.Project());
-        e.getProject().setId(projectId);
+        var p = new com.azure.model.project.Project(); p.setId(projectId);
+        e.setProject(p);
 
         e.setTitle(title);
         e.setDescription(description);
         e.setStartAt(startAt);
         e.setEndAt(endAt);
-        e.setAllDay(toBoolOrFalse(allDay)); // null이면 false
+        e.setAllDay(toBoolOrFalse(allDay));
         e.setRrule(rrule);
         e.setLocation(location);
 
         if (createdBy != null) {
-            e.setCreatedBy(new com.azure.model.user.User());
-            e.getCreatedBy().setId(createdBy);
+            var u = new com.azure.model.user.User(); u.setId(createdBy);
+            e.setCreatedBy(u);
         }
 
-        // 3) 저장
         return projectCalendarRepository.save(e);
     }
 
-    // ──────────────────────────────── 개인 일정 ────────────────────────────────
-
     @Override
-    public PersonalCalendar schedulePersonalEvent(Long creatorId, String title, String description,
-                                                  LocalDateTime startAt, LocalDateTime endAt, Boolean allDay,
-                                                  String rrule, String location) {
-        // 1) 입력 검증
+    public ProjectCalendar updateProjectEvent(Long eventId, String title, String description,
+                                              LocalDateTime startAt, LocalDateTime endAt, Boolean allDay,
+                                              String rrule, String location, String color, Long relatedTaskId) {
+        if (eventId == null) throw new BadRequestException("eventId는 필수입니다.");
         if (title == null || title.isBlank()) throw new BadRequestException("title은 필수입니다.");
         validateTimeRange(startAt, endAt);
 
-        // 2) 엔티티 조립
-        PersonalCalendar e = new PersonalCalendar();
+        ProjectCalendar e = projectCalendarRepository.findById(eventId)
+                .orElseThrow(() -> new NotFoundException("Project event not found: " + eventId));
+
         e.setTitle(title);
         e.setDescription(description);
         e.setStartAt(startAt);
         e.setEndAt(endAt);
-        e.setAllDay(toBoolOrFalse(allDay)); // null이면 false
+        e.setAllDay(toBoolOrFalse(allDay));
         e.setRrule(rrule);
         e.setLocation(location);
-        if (creatorId != null) {
-            e.setCreatedBy(new com.azure.model.user.User());
-            e.getCreatedBy().setId(creatorId);
+        if (color != null && !color.isBlank()) e.setColor(color);
+
+        if (relatedTaskId != null) {
+            var t = new com.azure.model.task.Task(); t.setId(relatedTaskId);
+            e.setRelatedTask(t);
+        } else {
+            e.setRelatedTask(null);
         }
 
-        // ★ 핵심: is_done 기본 false 명시 (DB DEFAULT에만 의존하지 않음)
-        e.setIsDone(false);
-
-        // 3) 저장
-        return personalCalendarRepository.save(e);
+        return projectCalendarRepository.save(e);
     }
-
-    // ──────────────────────────────── 목록 ────────────────────────────────
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<ProjectCalendar> listProjectEvents(Long projectId, Pageable pageable) {
-        if (projectId == null) throw new BadRequestException("projectId는 필수입니다.");
-        // 변경: 레포지토리 페이징 메서드 직접 호출(성능/간결성 향상)
-        return projectCalendarRepository.findByProjectId(projectId, pageable); //
-    }
-
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<PersonalCalendar> listPersonalEvents(Long userId, Pageable pageable) {
-        if (userId == null) throw new BadRequestException("userId는 필수입니다.");
-        // ★ 변경: "내 일정만" 사용자 기준으로 페이징 조회
-        return personalCalendarRepository.findByCreatedBy_Id(userId, pageable); // ★
-    }
-
-    // ──────────────────────────────── 삭제 ────────────────────────────────
 
     @Override
     public void deleteProjectEvent(Long eventId) {
         if (!projectCalendarRepository.existsById(eventId)) {
             throw new NotFoundException("Project event not found: " + eventId);
         }
+        // 참석자/리마인더에 FK 제약이 있다면 여기서 먼저 정리할 수도 있음
         projectCalendarRepository.deleteById(eventId);
+    }
+
+    /* ========= 개인 일정 ========= */
+
+    @Override
+    public PersonalCalendar schedulePersonalEvent(Long creatorId, String title, String description,
+                                                  LocalDateTime startAt, LocalDateTime endAt, Boolean allDay,
+                                                  String rrule, String location) {
+        if (title == null || title.isBlank()) throw new BadRequestException("title은 필수입니다.");
+        validateTimeRange(startAt, endAt);
+
+        PersonalCalendar e = new PersonalCalendar();
+        e.setTitle(title);
+        e.setDescription(description);
+        e.setStartAt(startAt);
+        e.setEndAt(endAt);
+        e.setAllDay(toBoolOrFalse(allDay));
+        e.setRrule(rrule);
+        e.setLocation(location);
+
+        if (creatorId != null) {
+            var u = new com.azure.model.user.User(); u.setId(creatorId);
+            e.setCreatedBy(u);
+        }
+
+        // DB DEFAULT에 의존하지 않고 명시
+        e.setIsDone(false);
+
+        return personalCalendarRepository.save(e);
     }
 
     @Override
@@ -168,7 +153,23 @@ public class CalendarServiceImpl implements CalendarService {
         personalCalendarRepository.deleteById(eventId);
     }
 
-    // ──────────────────────────────── 리마인더 ────────────────────────────────
+    /* ========= 목록 ========= */
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProjectCalendar> listProjectEvents(Long projectId, Pageable pageable) {
+        if (projectId == null) throw new BadRequestException("projectId는 필수입니다.");
+        return projectCalendarRepository.findByProjectId(projectId, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PersonalCalendar> listPersonalEvents(Long userId, Pageable pageable) {
+        if (userId == null) throw new BadRequestException("userId는 필수입니다.");
+        return personalCalendarRepository.findByCreatedBy_Id(userId, pageable);
+    }
+
+    /* ========= 리마인더 ========= */
 
     @Override
     public void addReminderForProjectEvent(Long eventId, Long userId, int minutesBefore, String method) {
@@ -176,8 +177,11 @@ public class CalendarServiceImpl implements CalendarService {
         if (minutesBefore < 0) throw new BadRequestException("minutesBefore는 0 이상이어야 합니다.");
 
         Reminder r = new Reminder();
-        r.setProjectEvent(new ProjectCalendar()); r.getProjectEvent().setId(eventId);
-        r.setUser(new com.azure.model.user.User()); r.getUser().setId(userId);
+        var e = new ProjectCalendar(); e.setId(eventId);
+        var u = new com.azure.model.user.User(); u.setId(userId);
+
+        r.setProjectEvent(e);
+        r.setUser(u);
         r.setMinutesBefore(minutesBefore);
         r.setMethod(method);
 
@@ -190,15 +194,18 @@ public class CalendarServiceImpl implements CalendarService {
         if (minutesBefore < 0) throw new BadRequestException("minutesBefore는 0 이상이어야 합니다.");
 
         Reminder r = new Reminder();
-        r.setPersonalEvent(new PersonalCalendar()); r.getPersonalEvent().setId(eventId);
-        r.setUser(new com.azure.model.user.User()); r.getUser().setId(userId);
+        var e = new PersonalCalendar(); e.setId(eventId);
+        var u = new com.azure.model.user.User(); u.setId(userId);
+
+        r.setPersonalEvent(e);
+        r.setUser(u);
         r.setMinutesBefore(minutesBefore);
         r.setMethod(method);
 
         reminderRepository.save(r);
     }
 
-    // ──────────────────────────────── 개인 일정 완료/미완료 ────────────────────────────────
+    /* ========= 개인 일정 완료 ========= */
 
     @Override
     public PersonalCalendar setPersonalEventDone(Long eventId, boolean done) {
@@ -207,5 +214,72 @@ public class CalendarServiceImpl implements CalendarService {
 
         e.setIsDone(done);
         return personalCalendarRepository.save(e);
+    }
+
+    /* ========= 참석자 ========= */
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EventAttendee> listEventAttendees(Long eventId) {
+        if (eventId == null) throw new BadRequestException("eventId는 필수입니다.");
+        return eventAttendeeRepository.findByEvent_Id(eventId);
+    }
+
+    @Override
+    public EventAttendee addEventAttendee(Long eventId, Long userId, String role, String response) {
+        if (eventId == null || userId == null) throw new BadRequestException("eventId/userId는 필수입니다.");
+
+        // 이벤트 존재 확인
+        projectCalendarRepository.findById(eventId)
+                .orElseThrow(() -> new NotFoundException("Event not found: " + eventId));
+
+        // 중복 방지
+        if (eventAttendeeRepository.existsByEvent_IdAndUser_Id(eventId, userId)) {
+            return eventAttendeeRepository.findByEvent_Id(eventId).stream()
+                    .filter(a -> a.getUser().getId().equals(userId))
+                    .findFirst().orElse(null);
+        }
+
+        EventAttendee a = new EventAttendee();
+        var e = new ProjectCalendar(); e.setId(eventId);
+        var u = new com.azure.model.user.User(); u.setId(userId);
+
+        a.setEvent(e);
+        a.setUser(u);
+        a.setRole(role);
+        a.setResponse(response);
+
+        return eventAttendeeRepository.save(a);
+    }
+
+    @Override
+    public void removeEventAttendee(Long eventId, Long userId) {
+        if (eventId == null || userId == null) throw new BadRequestException("eventId/userId는 필수입니다.");
+        eventAttendeeRepository.deleteByEvent_IdAndUser_Id(eventId, userId);
+    }
+
+    @Override
+    public List<EventAttendee> replaceEventAttendees(Long eventId, List<Long> userIds) {
+        if (eventId == null) throw new BadRequestException("eventId는 필수입니다.");
+        if (userIds == null) userIds = List.of();
+
+        List<EventAttendee> current = eventAttendeeRepository.findByEvent_Id(eventId);
+        Set<Long> keep = new HashSet<>(userIds);
+
+        // 제거
+        for (EventAttendee ea : current) {
+            if (!keep.contains(ea.getUser().getId())) {
+                eventAttendeeRepository.delete(ea);
+            }
+        }
+
+        // 추가
+        for (Long uid : userIds) {
+            if (!eventAttendeeRepository.existsByEvent_IdAndUser_Id(eventId, uid)) {
+                addEventAttendee(eventId, uid, "MEMBER", null);
+            }
+        }
+
+        return eventAttendeeRepository.findByEvent_Id(eventId);
     }
 }
