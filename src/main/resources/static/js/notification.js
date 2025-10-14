@@ -61,11 +61,17 @@ window.connectNotificationSocket = function (userId) {
     client.onConnect = () => {
         console.log("Notification WebSocket connected");
         client.subscribe(`/topic/notifications/${userId}`, (msg) => {
+            console.log("[STEP3] raw msg:", msg.body);
             const data = JSON.parse(msg.body);
+            console.log("[STEP3] parsed data:", data);
+            console.log("[STEP3] typeof payload:", typeof data.payload);
+            console.log("[STEP3] payload content:", data.payload);
+
             const payload = data.payload;
             const newNotif = {
                 id: data.id || Date.now(),
                 type: data.type,
+                payload: payload,  // ✅ 원본 payload 전체를 저장
                 title:
                     data.type === "INVITE_ORGANIZATION"
                         ? "조직 초대 알림"
@@ -79,6 +85,23 @@ window.connectNotificationSocket = function (userId) {
                 createdAt: new Date().toLocaleString(),
                 isRead: false
             };
+
+            // const newNotif = {
+            //     id: data.id || Date.now(),
+            //     type: data.type,
+            //     title:
+            //         data.type === "INVITE_ORGANIZATION"
+            //             ? "조직 초대 알림"
+            //             : "새 알림",
+            //     message:
+            //         data.type === "INVITE_ORGANIZATION"
+            //             ? `${payload.sender}님이 ${payload.organization} 조직에 초대했습니다.`
+            //             : payload.message || "새로운 알림이 있습니다.",
+            //     organizationId: payload.organizationId,
+            //     link: payload.link || "#",
+            //     createdAt: new Date().toLocaleString(),
+            //     isRead: false
+            // };
             window.notifications.unshift(newNotif);
             renderNotifs(window.notifications);
 
@@ -111,10 +134,24 @@ window.connectNotificationSocket = function (userId) {
 window.handleInviteAction = function (notifId, action) {
     const notif = window.notifications.find(n => n.id === notifId);
     if (!notif) return;
+
+    const orgId = notif.payload?.organizationId;
+    if (!orgId) {
+        alert("organizationId가 없습니다. (payload 오류)");
+        return;
+    }
+
+    const bodyData = { organizationId: orgId };
+
+    console.log("[FETCH] sending body =", bodyData); // 🔍 확인용 로그
+    console.log("[FETCH] JSON.stringify =", JSON.stringify(bodyData));
+
     fetch(`/api/invite/${action}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId: notif.organizationId })
+        headers: {
+            "Content-Type": "application/json",  // ✅ 이 헤더 반드시 필요
+        },
+        body: JSON.stringify(bodyData)           // ✅ JSON으로 직렬화
     })
         .then(res => res.json())
         .then(data => {
@@ -122,6 +159,5 @@ window.handleInviteAction = function (notifId, action) {
             window.notifications = window.notifications.filter(n => n.id !== notifId);
             renderNotifs(window.notifications);
         })
-        .catch(err => alert("처리 중 오류 발생"));
+        .catch(err => alert("처리 중 오류 발생: " + err));
 };
-
