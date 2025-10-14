@@ -74,9 +74,6 @@ public interface TaskService {
     //우선순위 변경
     Task setPriority(Long taskId, Long priorityId);
 
-    //우선순위 변경
-    Task setPriority(Long taskId, Long priorityId);
-
     /** 단계 이름으로 변경(이벤트 발행 포함) */
     Task changeWorkflow(Long taskId, String toStage, Long actorUserId);
 

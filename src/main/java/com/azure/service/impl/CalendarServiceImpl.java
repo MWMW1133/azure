@@ -11,6 +11,9 @@ import com.azure.repository.ReminderRepository;
 import com.azure.service.CalendarService;
 import com.azure.service.exception.BadRequestException;
 import com.azure.service.exception.NotFoundException;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import com.azure.model.user.User;
 
 @Service
 @Transactional
@@ -31,7 +35,8 @@ public class CalendarServiceImpl implements CalendarService {
     private final PersonalCalendarRepository personalCalendarRepository;
     private final ReminderRepository reminderRepository;
     private final EventAttendeeRepository eventAttendeeRepository;
-
+    @PersistenceContext
+    private EntityManager em;
     /* ========= 유틸 ========= */
 
     /** 시작/종료 시간 검증 (둘 다 필수, end > start) */
@@ -229,11 +234,9 @@ public class CalendarServiceImpl implements CalendarService {
     public EventAttendee addEventAttendee(Long eventId, Long userId, String role, String response) {
         if (eventId == null || userId == null) throw new BadRequestException("eventId/userId는 필수입니다.");
 
-        // 이벤트 존재 확인
         projectCalendarRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Event not found: " + eventId));
 
-        // 중복 방지
         if (eventAttendeeRepository.existsByEvent_IdAndUser_Id(eventId, userId)) {
             return eventAttendeeRepository.findByEvent_Id(eventId).stream()
                     .filter(a -> a.getUser().getId().equals(userId))
@@ -241,11 +244,8 @@ public class CalendarServiceImpl implements CalendarService {
         }
 
         EventAttendee a = new EventAttendee();
-        var e = new ProjectCalendar(); e.setId(eventId);
-        var u = new com.azure.model.user.User(); u.setId(userId);
-
-        a.setEvent(e);
-        a.setUser(u);
+        a.setEvent(em.getReference(ProjectCalendar.class, eventId));
+        a.setUser(em.getReference(User.class, userId)); // ★ 여기!
         a.setRole(role);
         a.setResponse(response);
 
