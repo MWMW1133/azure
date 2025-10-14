@@ -26,6 +26,7 @@
             <div class="text-muted small px-2 py-3">오늘 표시할 TO-DO가 없습니다.</div>
           </c:if>
         </div>
+      </div>
 
       <!-- 마감일 며칠 안 남은 거 표시 -->
       <div class="kanban-column">
