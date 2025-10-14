@@ -54,7 +54,7 @@
     <!-- 본문 -->
     <main class="main-content">
         <!-- 탑바 -->
-        <jsp:include page="topbar.jsp"/>
+        <jsp:include page="/WEB-INF/views/topbar.jsp"/>
 
         <!-- Body -->
         <div class="page-body">

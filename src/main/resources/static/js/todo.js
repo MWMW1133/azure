@@ -1,81 +1,110 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const todoList = document.getElementById("todoList");
+// /js/todo.js
+// 오늘의 To-do 드롭다운 렌더/토글 전담 스크립트
+(() => {
+  if (window.__AZURA_TODO_BOUND__) return; // 중복 바인딩 방지(탑바가 여러 번 include 되는 경우)
+  window.__AZURA_TODO_BOUND__ = true;
 
-    if (!todoList) {
-        console.warn("todoList 요소 없음 → topbar가 로드되지 않은 상태");
-        return;
+  const q = (sel, root = document) => root.querySelector(sel);
+
+  // 서버 응답을 안전하게 정규화 (snake/camel 혼용 대비)
+  const normalize = (raw) => {
+    const id = raw?.id ?? raw?.personal_calendar_id ?? raw?.calendarId ?? raw?.calendar_id;
+    const title = raw?.title ?? raw?.subject ?? raw?.name ?? "";
+    const memo = raw?.memo ?? raw?.description ?? raw?.note ?? "";
+    const start = raw?.start ?? raw?.start_at ?? raw?.startAt ?? raw?.begin_at ?? null;
+    const end   = raw?.end   ?? raw?.end_at   ?? raw?.endAt   ?? raw?.finish_at ?? null;
+    const allDay = raw?.allDay ?? raw?.all_day ?? false;
+    const isDone = Boolean(raw?.isDone ?? raw?.is_done ?? raw?.done ?? raw?.completed ?? false);
+    return { id, title, memo, start, end, allDay, isDone };
+  };
+
+  const fmtTime = (start, end, allDay) => {
+    if (allDay) return "종일";
+    if (!start || !end) return "";
+    const s = new Date(start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const e = new Date(end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return `${s} - ${e}`;
+  };
+
+  const render = (listEl, items = []) => {
+    listEl.innerHTML = items.map(r => {
+      const it = normalize(r);
+      return `
+        <tr data-id="${it.id}">
+          <td>
+            <input type="checkbox" class="form-check-input azura-todo-toggle" ${it.isDone ? "checked" : ""}>
+          </td>
+          <td class="${it.isDone ? 'text-decoration-line-through text-muted' : ''}">
+            ${it.title}
+          </td>
+          <td>${fmtTime(it.start, it.end, it.allDay)}</td>
+          <td>
+            <span class="badge ${it.isDone ? 'bg-success' : 'bg-danger'}">
+              ${it.isDone ? '완료' : '미완료'}
+            </span>
+          </td>
+          <td>${it.memo}</td>
+        </tr>
+      `;
+    }).join("");
+  };
+
+  const fetchTodos = async (listEl) => {
+    try {
+      const base = window.APP_CTX || '';
+      const res = await fetch(`${base}/api/calendar/today`, { credentials: "same-origin" });
+      if (!res.ok) throw new Error("오늘 일정 조회 실패");
+      const data = await res.json();
+      render(listEl, Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error(e);
+      listEl.innerHTML = `<tr><td colspan="5" class="text-muted">오늘 일정이 없거나 불러오기에 실패했습니다.</td></tr>`;
     }
+  };
 
-    // 백엔드 api 호출 (주소는 내맘대로함 나중에 수정필요)
-    // 프로젝트 태스크 (나의 작업)의 마감일이 당일인 경우? 혹은 해당 기간내에 있을 경우 보여주기
-    // const fetchTodos = async () => {
-    //     try {
-    //         const res = await fetch("/api/calendar/today"); // 오늘 일정 조회
-    //         if (!res.ok) throw new Error("불러오기 실패");
-    //         const todos = await res.json();
-    //         renderTodos(todos);
-    //     } catch (err) {
-    //         console.error("투두 불러오기 실패:", err);
-    //     }
-    // };
+  const onToggle = async (e) => {
+    if (!e.target.classList.contains("azura-todo-toggle")) return;
+    const tr = e.target.closest("tr");
+    const id = tr?.dataset?.id;
+    const done = e.target.checked;
 
-    // 더미 데이터 (근데 이미 api 데이터 기반으로해서 지금은 안나옴)
-    const dummyTodos = [
-        { id: 1, title: "회의 자료 정리", time: "10:00 - 12:00", memo: "2시 회의실 302호" },
-        { id: 2, title: "레퍼런스 찾기", time: "15:00 - 16:00", memo: "시각 자료 위주" },
-        { id: 3, title: "사업계획서 검토", time: "09:20 - 09:50", memo: "피드백 반영" },
-        { id: 4, title: "클라이언트 원격회의", time: "16:30 - 17:30", memo: "내용 정리하기" },
-    ];
+    try {
+      const base = window.APP_CTX || '';
+      const res = await fetch(`${base}/api/calendar/${id}/toggle-done?done=${done}`, {
+        method: "POST",
+        credentials: "same-origin"
+      });
+      if (!res.ok) throw new Error("완료상태 변경 실패");
 
-    // 렌더링 함수
-    const renderTodos = (todos) => {
-        todoList.innerHTML = "";
-        todos.forEach(todo => {
-            const isDone = savedDone[todo.id] || false;
-            todoList.innerHTML += `
-              <tr data-id="${todo.id}">
-                <td><input type="checkbox" class="form-check-input toggle-check" ${isDone ? "checked" : ""}></td>
-                <td class="${isDone ? 'text-decoration-line-through text-muted' : ''}">${todo.title}</td>
-                <td>${todo.time}</td>
-                <td>
-                  <span class="badge ${isDone ? 'bg-success' : 'bg-danger'}">
-                    ${isDone ? '완료' : '미완료'}
-                  </span>
-                </td>
-                <td>${todo.memo}</td>
-              </tr>
-            `;
-        });
-    };
+      // 성공 시 UI 즉시 갱신
+      const badge = tr.querySelector(".badge");
+      badge.className = `badge ${done ? 'bg-success' : 'bg-danger'}`;
+      badge.textContent = done ? "완료" : "미완료";
 
-    //  시간 포맷 유틸 (필요없으면 지워도 상관x)
-    const formatTime = (start, end) => {
-        if (!start || !end) return "";
-        const s = new Date(start).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
-        const e = new Date(end).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
-        return `${s} - ${e}`;
-    };
+      const titleTd = tr.children[1];
+      titleTd.classList.toggle("text-decoration-line-through", done);
+      titleTd.classList.toggle("text-muted", done);
+    } catch (err) {
+      console.error(err);
+      // 실패하면 체크 원복
+      e.target.checked = !done;
+    }
+  };
 
+  const init = () => {
+    const listEl = q("#todoList");
+    if (!listEl) return;                    // 탑바 To-do 표가 없는 페이지는 스킵
+    if (listEl.__AZURA_TODO_WIRED__) return; // 같은 노드에 두 번 바인딩하지 않도록
+    listEl.__AZURA_TODO_WIRED__ = true;
 
-    //  체크박스 토글
-    todoList.addEventListener("change", async (e) => {
-        if (!e.target.classList.contains("toggle-check")) return;
-        const id = e.target.closest("tr").dataset.id;
-        const checked = e.target.checked;
+    listEl.addEventListener("change", onToggle);
+    fetchTodos(listEl);
+  };
 
-        try {
-            // 서버에 토글 요청 (액션 엔드포인트 방식)
-            // 마찬가지로 이후 api 주소 수정필요
-            // await fetch(`/api/calendar/${id}/toggle-done`, {
-            //     method: "POST"
-            // });
-            // 다시 새로고침해서 UI 반영
-            // fetchTodos();
-        } catch (err) {
-            console.error("완료 상태 변경 실패:", err);
-        }
-    });
-
-    // 초기 렌더링
-    // fetchTodos();
-});
+  // DOMContentLoaded 이후에만 초기화
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();

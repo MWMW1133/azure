@@ -167,4 +167,61 @@ public class CalendarApiController {
         if (iso.length() == 16) iso = iso + ":00"; // 초 생략 보정
         return LocalDateTime.parse(iso.substring(0, 19));
     }
+
+    @GetMapping("/today")
+public List<TodoItem> todayTodos(@ModelAttribute("currentUserId") Long uid) {
+    if (uid == null) {
+        throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+    }
+    var today = java.time.LocalDate.now();
+    var from = today.atStartOfDay();
+    var to   = today.atTime(23, 59, 59);
+
+    List<com.azure.model.calendar.PersonalCalendar> rows =
+            personalCalendarRepository.findByCreatedBy_IdAndStartAtBetween(uid, from, to);
+
+    return rows.stream().map(pc -> {
+        TodoItem t = new TodoItem();
+        t.setId(pc.getId());
+        t.setTitle(pc.getTitle());
+        t.setStart(pc.getStartAt());
+        t.setEnd(pc.getEndAt());
+        t.setAllDay(Boolean.TRUE.equals(pc.getAllDay()));
+        t.setMemo(pc.getDescription());
+        t.setDone(Boolean.TRUE.equals(pc.getIsDone()));
+        return t;
+    }).toList();
+}
+
+/** 완료 토글 (done=true/false) */
+@PostMapping("/{id}/toggle-done")
+public ResponseEntity<Void> toggleDone(@PathVariable("id") Long id,
+                                       @RequestParam("done") boolean done,
+                                       @ModelAttribute("currentUserId") Long uid) {
+    if (uid == null) {
+        return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+    }
+    // (선택) 권한 체크: 본인 소유 이벤트인지 확인하고 싶으면 아래 주석 해제
+    // var e = personalCalendarRepository.findById(id)
+    //         .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(HttpStatus.NOT_FOUND));
+    // if (e.getCreatedBy() == null || !uid.equals(e.getCreatedBy().getId())) {
+    //     throw new org.springframework.web.server.ResponseStatusException(HttpStatus.FORBIDDEN);
+    // }
+
+    calendarService.setPersonalEventDone(id, done);
+    return ResponseEntity.ok().build();
+}
+
+/* To-do 응답용 최소 DTO */
+@lombok.Data
+static class TodoItem {
+    private Long id;
+    private String title;
+    private java.time.LocalDateTime start;
+    private java.time.LocalDateTime end;
+    private boolean allDay;
+    private String memo;
+    private boolean isDone;
+}
 }

@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Optional;
 
@@ -58,4 +60,23 @@ public class WebUserAdvice {
         org.springframework.data.domain.PageRequest.of(0, 200));
     return page.getContent();
   }
+   /** 컨트롤러에서 뷰/바인딩용으로 쓰는 값 */
+    @ModelAttribute("currentUserId")
+    public Long currentUserIdAttr(HttpSession session) {
+        User u = (User) session.getAttribute("loginUser");
+        return (u == null) ? null : u.getId();
+    }
+
+    /** ✅ 서비스/어디서든 호출 가능한 정적 헬퍼 */
+    public static Long currentUserId() {
+        var attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs == null) return null;
+        var req = attrs.getRequest();
+        if (req == null) return null;
+        var session = req.getSession(false);
+        if (session == null) return null;
+        User u = (User) session.getAttribute("loginUser");
+        return (u == null) ? null : u.getId();
+    }
+
 }

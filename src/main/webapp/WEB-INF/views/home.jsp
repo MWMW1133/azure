@@ -8,7 +8,7 @@
       <h2>안녕하세요, ${user.name}님.</h2>
     </div>
     <div class="kanban-board">
-      <!-- TO DO -->
+       <!-- TO DO -->
       <div class="kanban-column">
         <div class="column-title">TO DO</div>
         <div class="card-list">
@@ -22,6 +22,9 @@
               </div>
             </div>
           </c:forEach>
+          <c:if test="${empty todoList}">
+            <div class="text-muted small px-2 py-3">오늘 표시할 TO-DO가 없습니다.</div>
+          </c:if>
         </div>
       </div>
 
