@@ -1,11 +1,15 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
+<!-- 👇 이 줄을 추가하세요 -->
+<script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+
+<script src="${pageContext.request.contextPath}/js/meeting.js?v=spa_4"></script>
 
 <c:url value="/api/me"                 var="ME_URL" />
 <c:url value="/api/projects"           var="PROJECTS_URL" />
 <c:url value="/api/files/presign"      var="PRESIGN_URL" />
 <c:url value="/api/meetings/start"     var="START_URL" />
-<c:url value="/api/meetings/end"       var="END_URL" />
+<c:url value="/api/meetings"          var="END_URL" />
 <c:url value="/api/transcripts/submit" var="SUBMIT_URL" />
 
 <!-- meeting.jsp 어느 위치든 OK -->
@@ -22,6 +26,7 @@
 
      data-presign-url="${PRESIGN_URL}"
      data-public-base-url="${AWS_S3_PUBLIC_BASE_URL}"
+     data-agora-app-id ="${AGORA_APP_ID}"
      data-start-url="${START_URL}"
      data-end-url="${END_URL}"
      data-submit-url="${SUBMIT_URL}"

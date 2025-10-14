@@ -17,17 +17,20 @@ function CFG() {
         publicBaseUrl: d.publicBaseUrl,
         startUrl: d.startUrl,
         endUrl: d.endUrl,
-        submitUrl: d.submitUrl
+        submitUrl: d.submitUrl,
+        // --- 👇 Agora 관련 설정 추가 ---
+        agoraAppId: d.agoraAppId,
+        agoraTokenUrl: (channel) => tpl(d.agoraTokenUrl, { channel })
     };
 }
 
 function tpl(t,obj){
-    if (typeof t !== 'string') return ''; // 안전 장치
+    if (typeof t !== 'string') return '';
     return t.replace(/\{(\w+)\}/g,(_,k)=>encodeURIComponent(obj[k]??''));
 }
 
 async function api(method, url, body, headers={}){
-    if (!url) { // URL이 undefined일 경우 에러를 미리 방지
+    if (!url) {
         throw new Error(`API call aborted: URL is ${url}`);
     }
     const res = await fetch(url, {
@@ -40,7 +43,6 @@ async function api(method, url, body, headers={}){
     return ct.includes('application/json') ? res.json() : res.text();
 }
 
-window.__ME_CACHE = window.__ME_CACHE || null;
 async function apiMe(){
     if (window.__ME) return window.__ME;
     window.__ME = await api('GET', CFG().meUrl);
@@ -51,8 +53,8 @@ async function apiListProjects(){
     const list = await api('GET', CFG().projectsUrl + '/list');
     return Array.isArray(list) ? list : [];
 }
+
 function isAdmin(user) {
-    // 백엔드 OrganizationRole Enum과 일치시킴 (MANAGER 또는 ADMIN 등)
     return user && (user.role === 'ADMIN' || user.role === 'MANAGER');
 }
 
@@ -298,13 +300,60 @@ function getSelectedProjectId(root=document){
         let chunks = [];
         let meetingId = null;
 
+
+        // --- 👇 Agora 관련 변수 추가 ---
+        let agoraClient = null;
+        let localAudioTrack = null;
+        // --- 👆 Agora 관련 변수 추가 ---
+
         async function startCapture(){
-            const deviceId = micSel && micSel.value ? { deviceId: { exact: micSel.value } } : true;
-            mediaStream = await navigator.mediaDevices.getUserMedia({ audio: deviceId });
-            chunks = [];
-            mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm' });
-            mediaRecorder.ondataavailable = (e)=>{ if (e.data && e.data.size>0) chunks.push(e.data); };
-            mediaRecorder.start(1000);
+            console.log("🎤 startCapture: 캡처 및 Agora 연결을 시작합니다...");
+            try {
+                // 1. 로컬 녹음용 스트림 생성
+                const deviceId = micSel && micSel.value ? { deviceId: { exact: micSel.value } } : true;
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: deviceId });
+                console.log("✅ 마이크 권한 획득 성공!");
+                chunks = [];
+                mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm' });
+                mediaRecorder.ondataavailable = (e)=>{ if (e.data && e.data.size>0) chunks.push(e.data); };
+                mediaRecorder.start(1000);
+                console.log("⏺️ 로컬 녹음 시작.");
+
+                // --- 👇 Agora 로직 ---
+                const config = CFG();
+                if (!config.agoraAppId) {
+                    console.warn("Agora App ID가 설정되지 않았습니다. 실시간 음성통화를 건너뜁니다.");
+                    return; // App ID 없으면 실행 중단
+                }
+
+                agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+                agoraClient.on("user-published", async (user, mediaType) => {
+                    await agoraClient.subscribe(user, mediaType);
+                    if (mediaType === "audio") {
+                        console.log("🔊 다른 참가자 오디오 수신:", user.uid);
+                        user.audioTrack.play();
+                    }
+                });
+
+                const channelName = `project-${getSelectedProjectId(root)}`;
+                const userId = (await apiMe()).id;
+
+                // ❗️ 토큰 서버가 있다면 여기서 토큰을 받아옵니다. 지금은 null로 진행합니다.
+                // const { token } = await api('GET', config.agoraTokenUrl(channelName));
+                const token = null;
+
+                await agoraClient.join(config.agoraAppId, channelName, token, userId);
+                console.log(`✅ Agora 채널 [${channelName}] 참가 성공.`);
+
+                localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+                await agoraClient.publish([localAudioTrack]);
+                console.log("📢 내 마이크 오디오 발행 성공.");
+
+            } catch (err) {
+                console.error("❌ startCapture 실패!", err);
+                alert("마이크/Agora 오류가 발생했습니다. 콘솔을 확인해주세요.");
+            }
         }
         async function stopCapture(){
             if (!mediaRecorder) return null;
@@ -345,7 +394,11 @@ function getSelectedProjectId(root=document){
                 await api('POST', CFG().submitUrl, {
                     meetingId, audioUrl: publicUrl, mediaType: blob.type
                 });
-                if (meetingId) await api('POST', `${CFG().endUrl}/${encodeURIComponent(meetingId)}`);
+                if (meetingId) {
+                    // ❗️ JSP에 정의된 END_URL은 /api/meetings 입니다.
+                    // 백엔드 컨트롤러(@PostMapping("/{meetingId}/end"))에 맞게 URL을 완성합니다.
+                    await api('POST', `${CFG().endUrl}/${encodeURIComponent(meetingId)}/end`);
+                }
 
                 openBtn?.classList.add('show');
                 endToast('회의가 종료되었습니다.');
@@ -356,6 +409,14 @@ function getSelectedProjectId(root=document){
                 startBtn.disabled = false;
                 stopBtn.disabled  = true;
                 root.classList.remove('rec-on');
+            }
+            // --- 👇 Agora 종료 로직 ---
+            if (localAudioTrack) {
+                localAudioTrack.close();
+            }
+            if (agoraClient) {
+                await agoraClient.leave();
+                console.log("👋 Agora 채널 퇴장.");
             }
         }
 
