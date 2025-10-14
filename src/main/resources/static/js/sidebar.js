@@ -3,6 +3,10 @@
 // + 폰트 크기/굵기(타이포) 런타임 오버레이 주입
 window.__SPA_NAV_ENABLED__ = false;
 
+// 중복 로드 가드
+if (!window.__SIDEBAR_LOADED__) {
+  window.__SIDEBAR_LOADED__ = true;
+
 (function () {
   /* ──[A] 사이드바 타이포(크기/굵기) 런타임 주입 ────────────────────────────
      JSP 캐시/우선순위 문제를 피하려고, 동일 규칙을 head에 한 번 더 주입.
@@ -58,6 +62,7 @@ window.__SPA_NAV_ENABLED__ = false;
   // 글씨 bold처리 문제 ========================================
   // active 토글 전용 함수
   function setActiveNav(target) {
+    if (!target) return;
     document.querySelectorAll('.nav-item, .proj-row').forEach((el) => el.classList.remove('active'));
     target.classList.add('active');
   }
@@ -67,17 +72,17 @@ window.__SPA_NAV_ENABLED__ = false;
     const fixed = document.querySelectorAll('.nav-fixed .nav-item');
     if (fixed[0])
       fixed[0].addEventListener('click', (e) => {
-        Router.go('home');
+        try { Router.go('home'); } catch(e2) {}
         setActiveNav(e.currentTarget);
       });
     if (fixed[1])
       fixed[1].addEventListener('click', (e) => {
-        Router.go('tasks');
+        try { Router.go('tasks'); } catch(e2) {}
         setActiveNav(e.currentTarget);
       });
     if (fixed[2])
       fixed[2].addEventListener('click', (e) => {
-        Router.go('calendar');
+        try { Router.go('calendar'); } catch(e2) {}
         setActiveNav(e.currentTarget);
       });
   })();
@@ -89,7 +94,7 @@ window.__SPA_NAV_ENABLED__ = false;
     const id = 11 + i; // 더미 ID
     // btn.addEventListener('click', () => Router.go('project', { id, name }));
     btn.addEventListener('click', (e) => {
-      Router.go('project', { id, name });
+      try { Router.go('project', { id, name }); } catch(e2) {}
       setActiveNav(e.currentTarget);
     });
   });
@@ -99,16 +104,16 @@ window.__SPA_NAV_ENABLED__ = false;
   // if (planBtn) planBtn.addEventListener('click', () => Router.go('plan'));
   if (planBtn)
     planBtn.addEventListener('click', (e) => {
-      Router.go('plan');
+      try { Router.go('plan'); } catch(e2) {}
       setActiveNav(e.currentTarget);
     });
 
   // 회의실
   const roomBtn = document.querySelector('.proj-row.room');
-  // if (roomBtn) roomBtn.addEventListener('click', () => Router.go('room'));
+  // if (roomBtn) planBtn.addEventListener('click', () => Router.go('room'));
   if (roomBtn)
     roomBtn.addEventListener('click', (e) => {
-      Router.go('room');
+      try { Router.go('room'); } catch(e2) {}
       setActiveNav(e.currentTarget);
     });
 
@@ -209,11 +214,12 @@ window.__SPA_NAV_ENABLED__ = false;
 
   // 오른쪽(사이드바 경계 기준) 위치
   function showPopover() {
+    if (!presenceEl) return;
     const p = ensurePopover();
     p.style.display = 'block';
 
     const hostRect = presenceEl.getBoundingClientRect();
-    const sideRect = document.querySelector('.sidebar').getBoundingClientRect();
+    const sideRect = document.querySelector('.sidebar')?.getBoundingClientRect?.() || { right: 0 };
     const pRect = p.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
@@ -240,7 +246,7 @@ window.__SPA_NAV_ENABLED__ = false;
   }
 
   function onDocDown(e) {
-    if (!pop) return;
+    if (!pop || !presenceEl) return;
     if (pop.contains(e.target) || presenceEl.contains(e.target)) return;
     hidePopover();
   }
@@ -452,6 +458,11 @@ window.__SPA_NAV_ENABLED__ = false;
     // }
 })();
 
+  // DM 리스트 동적 로드 (팀원 목록)
+  // ========== DM 리스트 (팀원) 렌더: 모달 안에서만 ==========
+// ※ 이 블록은 모달 내부에 #dm-list 컨테이너가 있을 때만 렌더링합니다.
+//   홈/사이드바 레이아웃에는 아무것도 추가하지 않으므로 레이아웃을 밀지 않습니다.
+  
 
 
   /* ========= [백엔드 연결 예시 – 이 주석만 보고 교체] =========
@@ -481,10 +492,11 @@ window.__SPA_NAV_ENABLED__ = false;
         </span>
         <span></span>`;
       btn.querySelector('span:last-child').textContent = p.name;
-      btn.addEventListener('click', () => Router.go('project', { id:p.id, name:p.name }));
+      btn.addEventListener('click', () => Router.go('project', { id:p.id, name:p.name })); 
       list.appendChild(btn);
     }
   }
   // loadProjects();
   ===================================================== */
 })();
+} // __SIDEBAR_LOADED__ guard end

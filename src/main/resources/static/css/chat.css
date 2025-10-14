@@ -125,7 +125,7 @@
     padding: 4px 8px;
 }
 
-
+.dm-item.disabled { opacity: .5; pointer-events: none; }
 
 /* 채팅창 */
 .chat-window {
@@ -133,7 +133,7 @@
     display: flex;
     flex-direction: column;
 }
-
+F
 /* 채팅 헤더 (공용) */
 .chat-header {
     padding: 6px 12px;
@@ -269,8 +269,9 @@
 /* 메시지 목록을 flex 컨테이너로 */
 .chat-messages{
     display: flex;             /* ← 추가 */
-    flex-direction: column;    /* ← 추가 */
-    gap: 12px;                 /* 보기 좋게 간격 */
+    flex-direction: column !important;    /* ← 추가 */
+    gap: 12px;
+    overflow-y: auto;                 /* 보기 좋게 간격 */
 }
 
 /* 좌/우 정렬 */
@@ -322,7 +323,7 @@
     align-items: center;
     gap: 6px;
     white-space: nowrap;
-}
+}   
 
 .translate-toggle label {
     font-size: 13px;     /* 글자 조금 작게 */

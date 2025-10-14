@@ -26,7 +26,7 @@
           <ul id="groupChatList" class="chat-list"></ul>
         </section>
 
-        <!-- DM 토글 & 검색 -->
+        <!-- DM 섹션 (정적 항목 제거, 컨테이너만 유지) -->
         <section class="chat-section">
           <button type="button" class="btn btn-sm btn-link p-0 d-flex align-items-center"
                   onclick="toggleDMList()">
@@ -39,7 +39,8 @@
                    oninput="filterDM(this.value)" />
           </div>
 
-          <ul id="dmList" class="chat-list mt-2"></ul>
+          <!-- ✅ 팀원 목록은 JS가 여기(#dmList)에만 동적으로 렌더링 -->
+          <ul id="dmList" class="dm-list"></ul>
         </section>
 
       </aside>
@@ -92,7 +93,7 @@
 
         <div class="mb-3">
           <label class="form-label">참여자(쉼표로 구분)</label>
-          <input type="text" class="form-control" id="createRoomMembers" placeholder="예: 홍길동, 김철수" />
+          <input type="text" class="form-control" id="createRoomMembers" placeholder="예: 박소현, 김테스트" />
         </div>
 
         <div class="d-flex gap-2 justify-content-end">
