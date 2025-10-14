@@ -12,9 +12,7 @@ public class HomeTaskCard {
     private String assigneeImage;
     private String startedAt;
     private String dueDate;
-    private String status;      // in-progress, completed...
-    private String priority;    // high, normal, …
-    private int processPct;     // 0~100
-    private boolean hasFile;
-    private String updatedAt;
+    private String workflow;
+    private String workflowColor;
+    private String priority;    
 }
