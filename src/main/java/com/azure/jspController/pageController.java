@@ -44,12 +44,12 @@ public class pageController {
     }
 
 
-    @GetMapping("/meeting")
+    /*@GetMapping("/meeting")
     public String meeting(Model model) {
         model.addAttribute("body", "meeting.jsp");
         model.addAttribute("activePage", "meeting");
         return "mainbar";
-    }
+    }*/
 
 
 

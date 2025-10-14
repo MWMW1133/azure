@@ -5,6 +5,7 @@ import com.azure.dto.TagDTO;
 import com.azure.dto.UserDTO;
 import com.azure.model.tag.Tag;
 import com.azure.model.user.User;
+import com.azure.service.ProjectInvitationService;
 import com.azure.service.ProjectService;
 import com.azure.service.TagService;
 import lombok.Data;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class ProjectApiController {
     private final ProjectService projectService;
     private final TagService tagService;
+    private final ProjectInvitationService invitationService; // ⬅️ 서비스 주입
     
     @GetMapping("/{projectId}")
   public ProjectDTO get(@PathVariable Long projectId) {
@@ -135,4 +137,9 @@ public class ProjectApiController {
                 })
                 .toList();
             }
+
+    @GetMapping("/{projectId}/invitations")
+    public List<Long> listProjectInvitations(@PathVariable Long projectId) {
+        return invitationService.getPendingInvitedUserIds(projectId);
+    }
 }
