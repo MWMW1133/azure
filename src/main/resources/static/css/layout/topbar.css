@@ -177,3 +177,118 @@ body {
     margin-left: .1rem;
     margin-right: .1rem;
 }
+
+/* --- 공통 드롭다운 계층 보정 --- */
+.topbar .dropdown-menu {
+    z-index: 10000 !important; /* event-popup(9999)보다 한 단계 위 */
+}
+
+/* 세 패널 공통: 아이콘(.dropdown) 기준 절대배치 */
+.dropdown-menu.notif-panel,
+.dropdown-menu.todo-panel,
+.dropdown-menu.profile-menu {
+    position: absolute !important;       /* 부모 .dropdown(position:relative) 기준 */
+    right: 0;
+    top: calc(100% + 6px);
+    transform: none !important;          /* Popper transform 무시 */
+    display: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    background: #fff;
+}
+
+/* 열렸을 때 */
+.dropdown-menu.show.notif-panel,
+.dropdown-menu.show.todo-panel,
+.dropdown-menu.show.profile-menu {
+    display: block !important;
+}
+
+/* 레이아웃이 가리지 않도록 */
+.topbar { overflow: visible !important; z-index: 1070 !important; }
+.wrapper, .main-content, .page-body { overflow: visible !important; }
+
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1200 !important; /* dropdown(1080)보다 높게 */
+    overflow: visible !important;
+}
+
+.wrapper, .main-content, .page-body {
+    overflow: visible !important;
+    position: relative !important;
+    z-index: auto !important;
+}
+.topbar,
+.wrapper,
+.main-content,
+.page-body {
+    overflow: visible !important;
+}
+
+.topbar .dropdown-menu {
+    position: fixed !important;
+    top: 58px !important;  /* 탑바 아래 여백 */
+    right: 72px !important; /* 벨 아이콘 맞춰서 조정 */
+    transform: none !important;
+    z-index: 10000 !important;
+}
+
+
+/* 드롭다운은 우리가 위치를 직접 잡으니 고정/표시만 책임진다 */
+.topbar .dropdown-menu {
+    position: fixed !important;
+    display: none;
+    transform: none !important;
+    z-index: 10000 !important;
+}
+.topbar .dropdown-menu.show {
+    display: block !important;
+}
+
+/* 가림 방지 */
+.topbar { overflow: visible !important; z-index: 1200 !important; }
+.wrapper, .main-content, .page-body { overflow: visible !important; }
+
+/* event-popup 같은 오버레이가 9999면 여길 더 높이거나,
+   그쪽 z-index를 평상시 낮추는 게 안전 */
+
+
+/* 채팅 창 */
+.chat-window { width: 780px; max-width: 95vw; }
+.chat-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 10px 12px; border-bottom: 1px solid #eee;
+}
+.chat-header .left { font-weight: 600; }
+.chat-header .translate-toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+}
+.chat-layout {
+    display: grid; grid-template-columns: 260px 1fr; gap: 12px;
+    min-height: 420px;
+}
+.chat-list {
+    border-right: 1px solid #eee; padding-right: 10px; overflow:auto;
+}
+.chat-body { display:flex; flex-direction:column; gap:10px; overflow:auto; }
+#chatMessages {
+    height: 320px; overflow:auto;
+    padding: 10px 12px; background: #fafafa; border-radius: 8px; border:1px solid #eee;
+}
+.chat-input {
+    display: flex; align-items: center; gap: 8px;
+}
+.chat-input .form-control { resize: none; }
+
+/* DM/그룹 리스트 */
+.dm-header { display:flex; align-items:center; justify-content:space-between; }
+.dm-search { margin: 8px 0; }
+.dm-list, .group-list { max-height: 300px; overflow:auto; }
+
+/* 자잘한 보조 요소 */
+.msg {
+    background: #f9f9f9; border-radius: 8px; padding: 8px 10px; display:inline-block;
+}
+.msg.me { background: #eaf1ff; }

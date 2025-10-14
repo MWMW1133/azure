@@ -9,8 +9,9 @@ import java.time.LocalDateTime;
 @Data
 @Entity
 @Table(name = "event_attendees",
-       uniqueConstraints = @UniqueConstraint(name = "uq_event_user",
-                                             columnNames = {"event_id", "user_id"}))
+        uniqueConstraints = @UniqueConstraint(name = "uq_event_user",
+                columnNames = {"event_id", "user_id"}))
+
 public class EventAttendee {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -19,9 +20,9 @@ public class EventAttendee {
     @JoinColumn(name = "event_id", nullable = false)
     private ProjectCalendar event;
 
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-
     private User user;
 
     @Column(length = 16)

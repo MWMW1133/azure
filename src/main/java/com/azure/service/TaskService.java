@@ -97,6 +97,6 @@ public interface TaskService {
     List<Task> listByProject(Long projectId);
     
     /** 첨부파일 연결/해제 */
-    void addAttachment(Long taskId, Long fileId, User actor);
-    void removeAttachment(Long taskId, Long fileId, User actor);
+    void addAttachment(Long taskId, Long fileId);
+    void removeAttachment(Long taskId, Long fileId);
 }

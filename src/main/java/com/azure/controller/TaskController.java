@@ -1,11 +1,15 @@
 package com.azure.controller;
 
+import com.azure.config.WebUserAdvice;
 import com.azure.dto.TaskCreateDTO;
 import com.azure.dto.TaskResponseDTO;
 import com.azure.model.task.Task;
 import com.azure.repository.TaskRepository;
 import com.azure.service.TaskService;
+import com.azure.service.UserService;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +29,8 @@ public class TaskController {
     private final TaskService taskService;
     private static final DateTimeFormatter YYMMDD = DateTimeFormatter.ofPattern("yy-MM-dd");
     private final TaskRepository taskRepository;
+    private final UserService userService;
+    private final WebUserAdvice webUserAdvice;
 
     /** ✅ 목록 조회 */
     @GetMapping
@@ -136,8 +142,9 @@ public class TaskController {
     public static class AssignReq { private Long userId; }
 
     @PatchMapping("/{taskId}/assignee")
-    public ResponseEntity<Void> assign(@PathVariable Long taskId, @RequestBody AssignReq req) {
-        taskService.assign(taskId, req.getUserId()); // null 처리 규칙은 서비스가 수행
+    public ResponseEntity<Void> assign(@PathVariable Long taskId, @RequestBody AssignReq req, HttpSession session) {
+        Long userId = webUserAdvice.currentUserId(session);
+        taskService.assign(taskId, req.getUserId(), userService.get(userId)); // null 처리 규칙은 서비스가 수행
         return ResponseEntity.noContent().build();
     }
     

@@ -8,12 +8,15 @@ import com.azure.model.user.User;
 import com.azure.repository.DocumentRepository;
 import com.azure.repository.DocumentVersionRepository;
 import com.azure.repository.FileObjectRepository;
-import com.azure.service.DocumentService;
+import com.azure.repository.ProjectRepository;
+import com.azure.service.file.DocumentService;
 import com.azure.service.exception.BadRequestException; // 입력 검증/비즈니스 규칙 위반
 import com.azure.service.exception.NotFoundException;   // 조회 대상 없음
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;              // [ADD]
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +49,9 @@ public class DocumentServiceImpl implements DocumentService {
     private final DocumentVersionRepository documentVersionRepository;
     /** 업로드 파일 메타(저장키/이름/MIME/크기 등) */
     private final FileObjectRepository fileObjectRepository;
+    private final ProjectRepository projectRepository;
+    private final EntityManager entityManager;
+
 
     // =========================================
     // [ADD] 최근 N개만 유지 보존 정책 (application.properties)
@@ -72,11 +78,45 @@ public class DocumentServiceImpl implements DocumentService {
      *
      * @throws BadRequestException projectId 미지정
      */
-    @Override @Transactional(readOnly = true)
+//    @Override @Transactional(readOnly = true)
+//    public Page<Document> listByProject(Long projectId, Pageable pageable) {
+//        if (projectId == null) throw new BadRequestException("projectId는 필수입니다.");
+//        return documentRepository.findByProject_Id(projectId, pageable);
+//    }
+    @Override
+    @Transactional(readOnly = true)
     public Page<Document> listByProject(Long projectId, Pageable pageable) {
         if (projectId == null) throw new BadRequestException("projectId는 필수입니다.");
-        return documentRepository.findByProject_Id(projectId, pageable);
+
+        // [1] 문서 목록 조회 (author 함께)
+        Page<Document> page = documentRepository.findByProject_Id(projectId, pageable);
+
+        // [2] 각 문서별 최신 버전 → 파일 → 태스크 추적
+        for (Document doc : page.getContent()) {
+            try {
+                var latestVersion = documentVersionRepository
+                        .findTopByDocument_IdOrderByVersionNumDesc(doc.getId())
+                        .orElse(null);
+
+                if (latestVersion != null && latestVersion.getFile() != null) {
+                    var file = latestVersion.getFile();
+
+                    if (file.getTask() != null) {
+                        // ⬇️ Document에 임시로 task를 붙임
+                        doc.setTempTask(file.getTask());
+                    }
+                }
+
+            } catch (Exception e) {
+                // 혹시라도 Lazy 로딩 문제나 null 예외 나면 무시
+                System.err.println("[WARN] Task 매핑 실패 (docId=" + doc.getId() + "): " + e.getMessage());
+            }
+        }
+
+        return page;
     }
+
+
 
     /**
      * 문서 생성.
@@ -92,13 +132,24 @@ public class DocumentServiceImpl implements DocumentService {
         if (title == null || title.isBlank()) throw new BadRequestException("title은 필수입니다.");
 
         Document d = new Document();
-        d.setProject(new Project()); d.getProject().setId(projectId);
-        d.setAuthor(new User());     d.getAuthor().setId(authorId);
+
+//        Project project = new Project();
+//        project.setId(projectId);
+//        d.setProject(project);
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new BadRequestException("프로젝트를 찾을 수 없습니다."));
+        d.setProject(project);
+
+        User author = new User();
+        author.setId(authorId);
+        d.setAuthor(author);
 
         d.setTitle(title.trim());
         d.setTemplateKey(templateKey);
 
-        return documentRepository.save(d);
+        Document saved = documentRepository.save(d);
+        documentRepository.flush();
+        return saved;
     }
 
     /**
@@ -164,7 +215,8 @@ public class DocumentServiceImpl implements DocumentService {
         DocumentVersion v = new DocumentVersion();
         v.setDocument(doc);
         v.setFile(file);
-        v.setAuthor(new User()); v.getAuthor().setId(authorId);
+        User authorRef = entityManager.getReference(User.class, authorId);
+        v.setAuthor(authorRef);
         v.setVersionNum(versionNum);
 
         try {

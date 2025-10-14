@@ -671,6 +671,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const t = bootstrap.Toast.getOrCreateInstance(el, { autohide: true, delay });
     t.show();
   }
+
   // ---------- 초기화 ----------
   syncDeleteButtonState();
   updateAllProgressBars();

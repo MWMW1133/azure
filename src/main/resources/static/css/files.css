@@ -1,0 +1,70 @@
+.file-grid {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.file-card {
+    background: #fff;
+    transition: 0.15s;
+}
+
+.file-card:hover {
+    background: #f8f9fa;
+    transform: translateY(-2px);
+}
+
+.file-upload-card {
+    border: 2px dashed #d0d0d0;
+    color: #666;
+    transition: 0.15s;
+}
+
+.file-upload-card:hover {
+    border-color: #0d6efd;
+    color: #0d6efd;
+    background: #f0f7ff;
+}
+
+.template-card:hover {
+    background: #f8f9fa;
+    border-color: #0d6efd;
+}
+
+.file-menu {
+    position: relative;
+}
+.file-menu .menu-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+.file-menu .menu-btn:hover {
+    background-color: #f1f1f1;
+}
+.menu-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    list-style: none;
+    padding: 4px 0;
+    margin: 4px 0 0;
+    min-width: 130px;
+    z-index: 200;
+}
+.menu-dropdown li {
+    padding: 6px 12px;
+    font-size: 14px;
+    cursor: pointer;
+}
+.menu-dropdown li:hover {
+    background-color: #f8f9fa;
+}
+.file-menu.open .menu-dropdown {
+    display: block;
+}

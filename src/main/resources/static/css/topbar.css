@@ -1,0 +1,190 @@
+/* ===== Topbar scoped styles (from topbar.jsp) ===== */
+
+/* 상단 바 */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  height: 60px;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+
+/* 좌측 로고/브랜드 */
+.topbar .left {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.topbar .logo {
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+}
+
+/* 우측 아이콘/버튼 그룹 */
+.topbar .right {
+  display: flex;
+  align-items: center;
+  gap: 1rem; /* 아이콘 간격 */
+}
+.topbar .right i { cursor: pointer; }
+.topbar .profile {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+/* ===== 드롭다운 패널들 ===== */
+
+/* 공통 패널 베이스 (알림/할일/프로필) */
+.topbar .dropdown-menu {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
+}
+
+/* 알림 패널 */
+.topbar .notif-panel {
+  width: 340px;
+  position: relative;
+  padding: 16px;
+}
+.topbar .notif-panel::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  right: 16px;
+  border-width: 10px;
+  border-style: solid;
+  border-color: transparent transparent #fff transparent;
+  filter: drop-shadow(0 -1px 1px rgba(0,0,0,.1));
+}
+
+/* 카드형 알림 */
+.topbar .notif-card {
+  background: #f9f9f9;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  font-size: 14px;
+}
+.topbar .notif-card:hover { background: #f1f1f1; }
+
+/* 할 일(To-do) 패널 */
+.topbar .todo-panel {
+  width: 520px;
+  max-width: 90vw;
+}
+.topbar .todo-panel table { margin-bottom: 0; }
+.topbar .todo-panel th,
+.topbar .todo-panel td {
+  white-space: nowrap;
+  vertical-align: middle;
+  font-size: 13px;
+}
+.topbar .todo-panel .form-check-input { margin: 0; }
+
+/* 완료/미완료 라벨 */
+.topbar .badge {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* 프로필 메뉴 */
+.topbar .profile-menu { min-width: 260px; }
+.topbar .profile-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+}
+.topbar .profile-header img {
+  width: 36px; height: 36px; border-radius: 50%;
+}
+.topbar .profile-menu .dropdown-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px;
+}
+
+/* 설정 서브 드롭다운 */
+.topbar .dropdown-submenu { position: relative; }
+.topbar .dropdown-submenu > .dropdown-menu {
+  top: 0; left: -100%;
+  margin-top: -0.25rem;
+  margin-left: .1rem;
+  margin-right: .1rem;
+}
+
+/* ===== 전역(모달/검색/채팅) — 클래스 그대로 사용 ===== */
+
+/* 검색 모달 */
+.modal-content.search-modal { border: 0; border-radius: 12px; }
+.modal-content.search-modal .modal-body { padding: 0; }
+
+.search-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 14px; border-bottom: 1px solid #eee;
+}
+.search-header .input-group { flex: 1 1 auto; }
+.search-header input#searchInput { border: 0; }
+
+.search-tabs .nav-link { border: 0; color: #6b7280; }
+.search-tabs .nav-link.active {
+  color: #111827; background: transparent; border-bottom: 2px solid #4f46e5;
+}
+.search-result-section { padding: 12px 14px; }
+.search-result-section .section-title {
+  font-weight: 600; margin: 8px 0;
+}
+.search-result {
+  background: #f9f9f9;
+  border-radius: 6px;
+  padding: 8px 12px;
+  vertical-align: middle;
+}
+
+/* 채팅 창 */
+.chat-window { width: 780px; max-width: 95vw; }
+.chat-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 10px 12px; border-bottom: 1px solid #eee;
+}
+.chat-header .left { font-weight: 600; }
+.chat-header .translate-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.chat-layout {
+  display: grid; grid-template-columns: 260px 1fr; gap: 12px;
+  min-height: 420px;
+}
+.chat-list {
+  border-right: 1px solid #eee; padding-right: 10px; overflow:auto;
+}
+.chat-body { display:flex; flex-direction:column; gap:10px; overflow:auto; }
+#chatMessages {
+  height: 320px; overflow:auto;
+  padding: 10px 12px; background: #fafafa; border-radius: 8px; border:1px solid #eee;
+}
+.chat-input {
+  display: flex; align-items: center; gap: 8px;
+}
+.chat-input .form-control { resize: none; }
+
+/* DM/그룹 리스트 */
+.dm-header { display:flex; align-items:center; justify-content:space-between; }
+.dm-search { margin: 8px 0; }
+.dm-list, .group-list { max-height: 300px; overflow:auto; }
+
+/* 자잘한 보조 요소 */
+.msg {
+  background: #f9f9f9; border-radius: 8px; padding: 8px 10px; display:inline-block;
+}
+.msg.me { background: #eaf1ff; }

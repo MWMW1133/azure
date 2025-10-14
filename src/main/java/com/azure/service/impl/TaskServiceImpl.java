@@ -603,26 +603,26 @@ public class TaskServiceImpl implements TaskService {
     // 파일
     // =========================================================
     @Override
-    public void addAttachment(Long taskId, Long fileId, User actor) {
+    public void addAttachment(Long taskId, Long fileId) {
         Task task = get(taskId);
         FileObject file = fileObjectRepository.findById(fileId)
                 .orElseThrow(() -> new NotFoundException("File not found: " + fileId));
         file.setTask(task);
         fileObjectRepository.save(file);
 
-        auditService.log(
-            actor,
-            com.azure.model.enums.AuditEnums.EntityType.TASK,
-            taskId,
-            ActionType.FILE_ATTACHED,
-            new AuditDiff()
-                .put("fileId",   null, file.getId())
-                .put("fileName", null, file.getFileName())
-        );
+//        auditService.log(
+//            actor,
+//            com.azure.model.enums.AuditEnums.EntityType.TASK,
+//            taskId,
+//            ActionType.FILE_ATTACHED,
+//            new AuditDiff()
+//                .put("fileId",   null, file.getId())
+//                .put("fileName", null, file.getFileName())
+//        );
     }
 
     @Override
-    public void removeAttachment(Long taskId, Long fileId, User actor) {
+    public void removeAttachment(Long taskId, Long fileId) {
         FileObject file = fileObjectRepository.findById(fileId)
                 .orElseThrow(() -> new NotFoundException("File not found: " + fileId));
         if (file.getTask() != null && file.getTask().getId().equals(taskId)) {
@@ -630,15 +630,15 @@ public class TaskServiceImpl implements TaskService {
             file.setTask(null);
             fileObjectRepository.save(file);
 
-            auditService.log(
-                actor,
-                com.azure.model.enums.AuditEnums.EntityType.TASK,
-                taskId,
-                ActionType.FILE_REMOVED,
-                new AuditDiff()
-                    .put("fileId",   fileId, null)
-                    .put("fileName", beforeName, null)
-            );
+//            auditService.log(
+//                actor,
+//                com.azure.model.enums.AuditEnums.EntityType.TASK,
+//                taskId,
+//                ActionType.FILE_REMOVED,
+//                new AuditDiff()
+//                    .put("fileId",   fileId, null)
+//                    .put("fileName", beforeName, null)
+//            );
         }
     }
 

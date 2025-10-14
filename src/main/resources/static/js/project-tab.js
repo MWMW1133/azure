@@ -113,23 +113,25 @@
       const projectId = PROJECT_ID;
       const ctx = APP_CONTEXT;
 
-      const map = {
-        table: `${ctx}/projects/${projectId}/table`,
-        card: `${ctx}/projects/${projectId}/card`,
-        gantt: `${ctx}/projects/${projectId}/gantt`,
-        chart: `${ctx}/projects/${projectId}/chart`,
-        calendar: `${ctx}/projects/${projectId}/calendar`,
-        files: `${ctx}/projects/${projectId}/files`,
-        members: `${ctx}/projects/${projectId}/members`,
-      };
+
+    const map = {
+      table: `${ctx}/projects/${projectId}/table`,   // ✅ 수정
+      card: `${ctx}/projects/${projectId}/card`,
+      gantt: `${ctx}/projects/${projectId}/gantt`,
+      chart: `${ctx}/projects/${projectId}/chart`,
+      calendar: `${ctx}/projects/${projectId}/calendar`,
+      files: `${ctx}/projects/${projectId}/documents`,
+      members: `${ctx}/projects/${projectId}/members`,
+    };
+
 
       const url = map[name];
       if (!url) return render('<h1>Not Found</h1>');
 
-      fetch(url, { cache: 'no-cache' })
-        .then((r) => r.text())
-        .then((html) => {
-          render(html);
+    fetch(url, { cache: 'no-cache', credentials: 'include' }) // credentialㄴ 추가
+      .then((r) => r.text())
+      .then((html) => {
+        render(html);
 
           // ====== 간트 ======
           if (name === 'gantt' && typeof window.initGantt === 'function') {
