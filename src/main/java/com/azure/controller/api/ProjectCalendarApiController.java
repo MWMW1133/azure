@@ -290,7 +290,7 @@ public ResponseEntity<Void> putAttendees(
         List<com.azure.model.calendar.EventAttendee> rows = new ArrayList<>(ids.size());
         for (Long userId : ids) {
             var row = new com.azure.model.calendar.EventAttendee();
-            row.setEvent(event);               // ← project_id 안 씀
+            row.setEvent(event);              
             var u = new com.azure.model.user.User(); u.setId(userId);
             row.setUser(u);
             rows.add(row);

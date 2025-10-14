@@ -20,6 +20,7 @@ import com.azure.repository.WorkflowRepository;
 import com.azure.security.SecurityUtil;
 import com.azure.service.AuditService;
 import com.azure.service.TaskService;
+import com.azure.service.UserService;
 import com.azure.service.exception.NotFoundException;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -430,7 +431,7 @@ public class TaskServiceImpl implements TaskService {
     // 변경
     // =========================================================
     @Override
-    public Task assign(Long taskId, Long assigneeId) {
+    public Task assign(Long taskId, Long assigneeId, User actor) {
         Task t = get(taskId);
 
         Long beforeId   = (t.getAssignee()==null? null : t.getAssignee().getId());
@@ -450,7 +451,7 @@ public class TaskServiceImpl implements TaskService {
         String afterNm = (saved.getAssignee()==null? null : saved.getAssignee().getName());
 
         auditService.log(
-            actor(),
+            actor,
             com.azure.model.enums.AuditEnums.EntityType.TASK,
             saved.getId(),
             ActionType.ASSIGNEE_CHANGED,
@@ -462,7 +463,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public Task setWorkflow(Long taskId, Long workflowId) {
+    public Task setWorkflow(Long taskId, Long workflowId, User actor) {
         Task task = get(taskId);
 
         Long beforeId   = (task.getWorkflow()==null? null : task.getWorkflow().getId());
@@ -482,7 +483,7 @@ public class TaskServiceImpl implements TaskService {
         String afterCo = (saved.getWorkflow()==null? null : saved.getWorkflow().getColor());
 
         auditService.log(
-            actor(),
+            actor,
             com.azure.model.enums.AuditEnums.EntityType.TASK,
             saved.getId(),
             ActionType.WORKFLOW_CHANGED,
@@ -495,7 +496,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public Task setPriority(Long taskId, Long priorityId){
+    public Task setPriority(Long taskId, Long priorityId, User actor){
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new EntityNotFoundException("Task not found: " + taskId));
 
@@ -512,7 +513,7 @@ public class TaskServiceImpl implements TaskService {
         String afterNm = (saved.getPriority()==null? null : saved.getPriority().getName());
 
         auditService.log(
-            actor(),
+            actor,
             com.azure.model.enums.AuditEnums.EntityType.TASK,
             saved.getId(),
             ActionType.PRIORITY_CHANGED,
@@ -524,7 +525,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public Task setDates(Long taskId, LocalDate startDate, LocalDate dueDate) {
+    public Task setDates(Long taskId, LocalDate startDate, LocalDate dueDate, User actor) {
         Task t = get(taskId);
 
         // 변경 전 값 백업
@@ -540,7 +541,7 @@ public class TaskServiceImpl implements TaskService {
 
         // 감사 로그
         auditService.log(
-            actor(),
+            actor,
             com.azure.model.enums.AuditEnums.EntityType.TASK,
             saved.getId(),
             ActionType.DATES_CHANGED,
@@ -602,7 +603,7 @@ public class TaskServiceImpl implements TaskService {
     // 파일
     // =========================================================
     @Override
-    public void addAttachment(Long taskId, Long fileId) {
+    public void addAttachment(Long taskId, Long fileId, User actor) {
         Task task = get(taskId);
         FileObject file = fileObjectRepository.findById(fileId)
                 .orElseThrow(() -> new NotFoundException("File not found: " + fileId));
@@ -610,7 +611,7 @@ public class TaskServiceImpl implements TaskService {
         fileObjectRepository.save(file);
 
         auditService.log(
-            actor(),
+            actor,
             com.azure.model.enums.AuditEnums.EntityType.TASK,
             taskId,
             ActionType.FILE_ATTACHED,
@@ -621,7 +622,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public void removeAttachment(Long taskId, Long fileId) {
+    public void removeAttachment(Long taskId, Long fileId, User actor) {
         FileObject file = fileObjectRepository.findById(fileId)
                 .orElseThrow(() -> new NotFoundException("File not found: " + fileId));
         if (file.getTask() != null && file.getTask().getId().equals(taskId)) {
@@ -630,7 +631,7 @@ public class TaskServiceImpl implements TaskService {
             fileObjectRepository.save(file);
 
             auditService.log(
-                actor(),
+                actor,
                 com.azure.model.enums.AuditEnums.EntityType.TASK,
                 taskId,
                 ActionType.FILE_REMOVED,
@@ -755,11 +756,6 @@ public class TaskServiceImpl implements TaskService {
         }
     }
 
-    private User actor() {
-       // Long id = SecurityUtil.getCurrentUserId(); 
-       Long id = 1L;
-        return userRepository.findById(id).orElse(null);
-    }
     // =========================================================
     // 메인 테이블용 리스트(최상위 + 진행중만)
     // =========================================================

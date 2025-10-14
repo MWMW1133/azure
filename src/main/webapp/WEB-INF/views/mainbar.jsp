@@ -80,7 +80,7 @@
 <script src="${pageContext.request.contextPath}/js/meeting.js"></script>
 
 <script src="${pageContext.request.contextPath}/js/my-calendar.js"></script>
-<script src="${pageContext.request.contextPath}/js/my-tasks.js"></script>
+<script src="${pageContext.request.contextPath}/js/my-tasks.js" defer></script>
 <script src="${pageContext.request.contextPath}/js/project-plan.js"></script>
 <script src="${pageContext.request.contextPath}/js/projects/mainTable.js"></script>
 <script src="${pageContext.request.contextPath}/js/projects/taskRow.js"></script>
