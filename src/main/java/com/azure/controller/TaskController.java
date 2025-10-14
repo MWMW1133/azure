@@ -42,9 +42,8 @@ public class TaskController {
                     map.put("workflowId",    t.getWorkflow()!=null ? t.getWorkflow().getId()    : null);
                     map.put("workflowName",  t.getWorkflow()!=null ? t.getWorkflow().getName()  : null);
                     map.put("workflowColor", t.getWorkflow()!=null ? t.getWorkflow().getColor() : null);
-                    map.put("priority",
-                            (t.getPriority() != null && t.getPriority().getName() != null)
-                                    ? t.getPriority().getName() : "-");
+                    map.put("priorityId", t.getPriority() != null ? t.getPriority().getId() : null);
+                    map.put("priorityName", t.getPriority() !=null ? t.getPriority().getName() : null);
                     map.put("childrenCount", t.getChildrenCount());
                     return map;
                 })
@@ -87,8 +86,10 @@ public class TaskController {
                     map.put("workflowId",    t.getWorkflow()!=null ? t.getWorkflow().getId()    : null);
                     map.put("workflowName",  t.getWorkflow()!=null ? t.getWorkflow().getName()  : null);
                     map.put("workflowColor", t.getWorkflow()!=null ? t.getWorkflow().getColor() : null);
-                    map.put("priority", (t.getPriority() != null) ? t.getPriority().getName() : "-");
-                    map.put("childrenCount", t.getChildrenCount());
+                    map.put("priorityId", t.getPriority() != null ? t.getPriority().getId() : null);
+                    map.put("priorityName", t.getPriority() !=null ? t.getPriority().getName() : null);
+                    map.put("childrenCount", t.getChildrenCount()); // 중첩된 하위 태스크를 위해 추가
+                    map.put("updatedAt", t.getUpdatedAt());
                     return map;
                 })
                 .collect(Collectors.toList());

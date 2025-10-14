@@ -1,6 +1,7 @@
 package com.azure.service;
 
 import com.azure.dto.GanttTaskDTO;
+import com.azure.model.enums.PriorityCode;
 import com.azure.model.task.Task;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -69,6 +70,9 @@ public interface TaskService {
 
     /** 워크플로우(칸반 컬럼) 변경 */
     Task setWorkflow(Long taskId, Long workflowId);
+
+    //우선순위 변경
+    Task setPriority(Long taskId, Long priorityId);
 
     /** 단계 이름으로 변경(이벤트 발행 포함) */
     Task changeWorkflow(Long taskId, String toStage, Long actorUserId);

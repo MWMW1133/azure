@@ -1,7 +1,11 @@
 package com.azure.service.impl;
 
 import com.azure.dto.GanttTaskDTO;
+import com.azure.dto.TaskUpdateDTO;
 import com.azure.event.TaskWorkflowChangedEvent;
+import com.azure.model.audit.AuditDiff;
+import com.azure.model.enums.AuditEnums.ActionType;
+import com.azure.model.enums.PriorityCode;
 import com.azure.model.file.FileObject;
 import com.azure.model.task.Priority;
 import com.azure.model.task.Task;
@@ -13,17 +17,23 @@ import com.azure.repository.ProjectRepository;
 import com.azure.repository.TaskRepository;
 import com.azure.repository.UserRepository;
 import com.azure.repository.WorkflowRepository;
+import com.azure.security.SecurityUtil;
+import com.azure.service.AuditService;
 import com.azure.service.TaskService;
 import com.azure.service.exception.NotFoundException;
+
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.azure.config.WebUserAdvice;       
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -45,6 +55,7 @@ public class TaskServiceImpl implements TaskService {
     private final FileObjectRepository fileObjectRepository;
     private final ApplicationEventPublisher publisher;
     private final ProjectRepository projectRepository;
+    private final AuditService auditService;
 
     // =========================================================
     // 기본 조회
@@ -122,13 +133,6 @@ public class TaskServiceImpl implements TaskService {
         return page;
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<Task> listByAssignee(Long assigneeId, Pageable pageable) {
-        Page<Task> page = taskRepository.findByAssigneeId(assigneeId, pageable);
-        prefetchToOne(page.getContent());
-        return page;
-    }
 
     @Override
     @Transactional(readOnly = true)
@@ -148,15 +152,6 @@ public class TaskServiceImpl implements TaskService {
                 ))
                 .toList();
     }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<Task> getTasksForProject(Long projectId) {
-        List<Task> list = taskRepository.findByProject_IdOrderByIdAsc(projectId);
-        prefetchToOne(list);
-        return list;
-    }
-
     @Override
     @Transactional(readOnly = true)
     public List<Task> getByProjectId(Long projectId) {
@@ -211,31 +206,6 @@ public class TaskServiceImpl implements TaskService {
         return task;
     }
 
-    /** 단계 ID로 변경 */
-    @Override
-    public Task setWorkflow(Long taskId, Long workflowId) {
-        Task task = get(taskId);
-
-        // 상위(부모) 테스크는 사용자 변경 금지
-        if (!taskRepository.findByParentTaskId(taskId).isEmpty()) {
-            throw new IllegalStateException("Parent task is controlled by its subtasks");
-        }
-
-        Workflow workflow = workflowRepository.findById(workflowId)
-                .orElseThrow(() -> new NotFoundException("Workflow not found: " + workflowId));
-
-        if (!workflow.getProject().getId().equals(task.getProject().getId())) {
-            throw new IllegalArgumentException("Workflow does not belong to the same project as the task");
-        }
-
-        applyStageAndProgressRules(task, workflow);
-        Task saved = taskRepository.save(task);
-
-        if (task.getParentTask() != null) {
-            updateParentAggregate(task.getParentTask().getId());
-        }
-        return saved;
-    }
 
     // =========================================================
     // 생성
@@ -447,14 +417,94 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public Task assign(Long taskId, Long assigneeId) {
         Task t = get(taskId);
+
+        Long beforeId   = (t.getAssignee()==null? null : t.getAssignee().getId());
+        String beforeNm = (t.getAssignee()==null? null : t.getAssignee().getName());
+
         if (assigneeId == null) {
             t.setAssignee(null);
-            return taskRepository.save(t);
+        } else {
+            User assignee = userRepository.findById(assigneeId)
+                    .orElseThrow(() -> new NotFoundException("User not found: " + assigneeId));
+            t.setAssignee(assignee);
         }
-        User assignee = userRepository.findById(assigneeId)
-                .orElseThrow(() -> new NotFoundException("User not found: " + assigneeId));
-        t.setAssignee(assignee);
-        return taskRepository.save(t);
+        Task saved = taskRepository.save(t);
+
+        Long afterId   = (saved.getAssignee()==null? null : saved.getAssignee().getId());
+        String afterNm = (saved.getAssignee()==null? null : saved.getAssignee().getName());
+
+        auditService.log(
+            actor(),
+            com.azure.model.enums.AuditEnums.EntityType.TASK,
+            saved.getId(),
+            ActionType.ASSIGNEE_CHANGED,
+            new AuditDiff()
+                .put("assigneeId",   beforeId, afterId)
+                .put("assigneeName", beforeNm, afterNm)
+        );
+        return saved;
+    }
+
+    @Override
+    public Task setWorkflow(Long taskId, Long workflowId) {
+        Task task = get(taskId);
+
+        Long beforeId   = (task.getWorkflow()==null? null : task.getWorkflow().getId());
+        String beforeNm = (task.getWorkflow()==null? null : task.getWorkflow().getName());
+        String beforeCo = (task.getWorkflow()==null? null : task.getWorkflow().getColor());
+
+        Workflow workflow = workflowRepository.findById(workflowId)
+                .orElseThrow(() -> new NotFoundException("Workflow not found: " + workflowId));
+        if (!workflow.getProject().getId().equals(task.getProject().getId())) {
+            throw new IllegalArgumentException("Workflow does not belong to the same project as the task");
+        }
+        task.setWorkflow(workflow);
+        Task saved = taskRepository.save(task);
+
+        Long afterId   = (saved.getWorkflow()==null? null : saved.getWorkflow().getId());
+        String afterNm = (saved.getWorkflow()==null? null : saved.getWorkflow().getName());
+        String afterCo = (saved.getWorkflow()==null? null : saved.getWorkflow().getColor());
+
+        auditService.log(
+            actor(),
+            com.azure.model.enums.AuditEnums.EntityType.TASK,
+            saved.getId(),
+            ActionType.WORKFLOW_CHANGED,
+            new AuditDiff()
+                .put("workflowId",   beforeId, afterId)
+                .put("workflowName", beforeNm, afterNm)
+                .put("workflowColor",beforeCo, afterCo)
+        );
+        return saved;
+    }
+
+    @Override
+    public Task setPriority(Long taskId, Long priorityId){
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new EntityNotFoundException("Task not found: " + taskId));
+
+        int beforeId   = (task.getPriority()==null? null : task.getPriority().getId());
+        String beforeNm = (task.getPriority()==null? null : task.getPriority().getName());
+
+        Priority priority = priorityRepository.findById(priorityId.intValue())
+                .orElseThrow(() -> new EntityNotFoundException("Priority not found: " + priorityId));
+
+        task.setPriority(priority);
+        Task saved = taskRepository.save(task);
+
+        int afterId   = (saved.getPriority()==null? null : saved.getPriority().getId());
+        String afterNm = (saved.getPriority()==null? null : saved.getPriority().getName());
+
+        auditService.log(
+            actor(),
+            com.azure.model.enums.AuditEnums.EntityType.TASK,
+            saved.getId(),
+            ActionType.PRIORITY_CHANGED,
+            new AuditDiff()
+                .put("priorityId",   beforeId, afterId)
+                .put("priorityName", beforeNm, afterNm)
+        );
+        return saved;
     }
 
     @Override
@@ -520,6 +570,16 @@ public class TaskServiceImpl implements TaskService {
                 .orElseThrow(() -> new NotFoundException("File not found: " + fileId));
         file.setTask(task);
         fileObjectRepository.save(file);
+
+        auditService.log(
+            actor(),
+            com.azure.model.enums.AuditEnums.EntityType.TASK,
+            taskId,
+            ActionType.FILE_ATTACHED,
+            new AuditDiff()
+                .put("fileId",   null, file.getId())
+                .put("fileName", null, file.getFileName())
+        );
     }
 
     @Override
@@ -527,14 +587,28 @@ public class TaskServiceImpl implements TaskService {
         FileObject file = fileObjectRepository.findById(fileId)
                 .orElseThrow(() -> new NotFoundException("File not found: " + fileId));
         if (file.getTask() != null && file.getTask().getId().equals(taskId)) {
+            String beforeName = file.getFileName();
             file.setTask(null);
             fileObjectRepository.save(file);
         }
     }
 
-    // =========================================================
-    // 카운트
-    // =========================================================
+    @Override
+    @Transactional(readOnly = true)
+    public List<Task> getTasksForProject(Long projectId) {
+        List<Task> list = taskRepository.findByProjectIdOrderByIdAsc(projectId);
+        prefetchToOne(list);
+        return list;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Task> listByAssignee(Long assigneeId, Pageable pageable) {
+        Page<Task> page = taskRepository.findByAssigneeId(assigneeId, pageable);
+        prefetchToOne(page.getContent());
+        return page;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public long countByProjectAndWorkflow(Long projectId, Long workflowId) {
@@ -672,4 +746,10 @@ public class TaskServiceImpl implements TaskService {
         prefetchToOne(top);
         return top;
     }
+
+    private User actor() {
+    Long id = WebUserAdvice.currentUserId();   // 세션에서 꺼냄
+    return (id == null) ? null : userRepository.findById(id).orElse(null);
+}
+
 }

@@ -6,7 +6,7 @@
   <!-- 캘린더 -->
   <div id="calendar" style="min-height:620px"></div>
 
-  <!-- 팝업 (컨테이너 내부) -->
+  <!-- 팝업 -->
   <div id="event-popup" class="event-popup">
     <div class="popup-content">
       <button type="button" class="popup-close" aria-label="닫기">&times;</button>
@@ -57,7 +57,6 @@
             </div>
             <ul id="member-list"
                 style="list-style:none;margin:0;padding:4px;max-height:260px;overflow:auto;border-radius:8px;background:#fafafa">
-              <!-- JS에서 렌더링 -->
             </ul>
             <div style="margin-top:6px;color:#6b7280;font-size:.85rem">
               해당 프로젝트에 참여중인 인원만 표시
@@ -118,9 +117,9 @@
   </div>
 </div>
 
-<!-- ✅ FullCalendar: 폴백 없이 1개만, 우리 스크립트보다 먼저 -->
+<!-- FullCalendar: 이 페이지에서만 1세트 로드 -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 
-<!-- 우리 스크립트 (FullCalendar 로드 후) -->
+<!-- 프로젝트 캘린더 전용 스크립트 -->
 <script src="${pageContext.request.contextPath}/js/projects/project-calendar.js"></script>

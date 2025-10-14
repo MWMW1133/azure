@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', function () {
+  // ===== 중복 마운트 가드 =====
+  if (window.__PROJECT_TAB_MOUNTED) return;
+  window.__PROJECT_TAB_MOUNTED = true;
+
   const root = document.getElementById('project-tab-root');
   const ctx = (root?.dataset.ctx || '').replace(/\/$/, '');
   const projectId = root?.dataset.projectId;
@@ -14,37 +18,26 @@ document.addEventListener('DOMContentLoaded', function () {
     users: `${ctx}/api/users`,
   };
 
-  // ===== 상태 =====
   let currentOpenForm = null;
   let activeStatusPopover = null;
 
-  // ===== 클릭/더블클릭 구분용 타이머 =====
-  let clickTimer = null;
-  const DOUBLE_DELAY = 250; // 필요시 200~300으로 조절
+  // === 더블클릭 후 잔여 click 무시용 타임스탬프 ===
+  let suppressClickUntil = 0;
 
-  // ------------------------
-  // 공통 유틸
-  // ------------------------
-  function esc(s) {
-    if (s == null) return '';
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  function showEl(el) {
+  // ---------- 유틸 ----------
+  const esc = (s) => (s == null ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+  const showEl = (el) => {
     if (!el) return;
     el.classList.remove('hidden');
     el.hidden = false;
     el.removeAttribute('hidden');
-  }
-  function hideEl(el) {
+  };
+  const hideEl = (el) => {
     if (!el) return;
     el.classList.add('hidden');
     el.hidden = true;
-  }
-  function isHidden(el) {
-    if (!el) return true;
-    return el.classList.contains('hidden') || el.hidden === true || el.hasAttribute('hidden');
-  }
+  };
+  const isHidden = (el) => !el || el.classList.contains('hidden') || el.hidden === true || el.hasAttribute('hidden');
 
   function updateAllProgressBars() {
     document.querySelectorAll('.task-progress-bar').forEach((bar) => {
@@ -52,34 +45,162 @@ document.addEventListener('DOMContentLoaded', function () {
       bar.style.width = Math.max(0, Math.min(100, progress)) + '%';
     });
   }
+  function fmtDateLikeList(isoish) {
+    if (isoish == null || isoish === '') return '-';
+    try {
+      let val = isoish;
+      if (typeof val === 'number') {
+        const ms = val > 1e12 ? val : val * 1000;
+        val = new Date(ms).toISOString();
+      }
+      if (typeof val === 'string' && val.includes(' ')) {
+        val = val.replace(' ', 'T');
+      }
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return '-';
+      const y = String(d.getFullYear()).slice(-2);
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${y}-${mm}-${dd}`;
+    } catch {
+      return '-';
+    }
+  }
 
+  function firstDefined(obj, keys) {
+    for (const k of keys) {
+      if (obj && obj[k] != null) return obj[k];
+    }
+    return null;
+  }
+
+  // 자식태스크의 최근 수정일 안전 추출
+  function resolveUpdatedAt(task) {
+    // 대표 후보 키들(카멜/스네이크 + modified/updated 계열)
+    let v = firstDefined(task, ['updatedAt', 'updated_at', 'modifiedAt', 'modified_at', 'lastModifiedAt', 'last_modified_at', 'lastUpdatedAt', 'last_updated_at']);
+
+    // 숫자 타임스탬프(초/밀리초)도 지원
+    if (typeof v === 'number') {
+      const ms = v > 1e12 ? v : v * 1000;
+      return new Date(ms).toISOString();
+    }
+    if (typeof v === 'string') {
+      // "YYYY-MM-DD HH:mm:ss" → Date가 파싱되도록 공백을 T로 보정
+      return v.includes(' ') ? v.replace(' ', 'T') : v;
+    }
+    return null;
+  }
+
+  //하위태스크 생성
   function renderChildRow(t) {
     const hasChildren = !!(t.childrenCount && Number(t.childrenCount) > 0);
+
+    // --- assignee robust 파싱 ---
+    const assigneeObj = t.assignee && typeof t.assignee === 'object' ? t.assignee : null;
+
+    const assigneeId = t.assigneeId ?? assigneeObj?.id ?? null;
+
+    const assigneeName = t.assigneeName ?? assigneeObj?.name ?? (typeof t.assignee === 'string' ? t.assignee : '') ?? '';
+
+    const avatarUrl = t.assigneeAvatarUrl ?? assigneeObj?.avatarUrl ?? null;
+
+    const workflowId = t.workflowId ?? (t.workflow && t.workflow.id) ?? '';
+    const priorityId = t.priorityId ?? (t.priority && t.priority.id) ?? '';
+    const priorityName = (t.priorityName ?? (t.priority && t.priority.name) ?? '').toString().trim();
+    const pct = t.progressPct ?? 0;
+    const firstInitial = (s) => (s && s.length ? s[0] : 'U');
+
+    const updatedAt = resolveUpdatedAt(t);
+
+    // 👉 표시 조건을 assigneeId "또는" (assigneeName/아바타)로 완화
+    const hasAssigneeVisual = !!(assigneeId || assigneeName || avatarUrl);
+
     return `
-      <div class="task-row sub" data-task-id="${t.id}">
-        <div class="task-cell task-actions-cell">
-          <div class="icon-wrapper">
-            ${hasChildren ? '<span class="toggle-icon js-toggle-subtasks"><i class="fa-solid fa-caret-right"></i></span>' : '<input type="checkbox" class="form-check-input">'}
-          </div>
+    <div class="task-row sub"
+         data-task-id="${t.id}"
+         data-assignee-id="${assigneeId ?? ''}"
+         data-workflow-id="${workflowId}"
+         data-priority-id="${priorityId}"
+         data-priority-name="${esc(priorityName)}"
+         data-progress="${pct}">
+      <div class="task-cell task-actions-cell">
+        <div class="icon-wrapper">
+          ${hasChildren ? '<span class="toggle-icon js-toggle-subtasks"><i class="fa-solid fa-caret-right"></i></span>' : '<input type="checkbox" class="form-check-input">'}
         </div>
-        <div class="task-cell task-title-cell">${esc(t.title)}</div>
-        <div class="task-cell assignee-cell">${esc(t.assignee ?? '-')}</div>
-        <div class="task-cell started-at-cell">${esc(t.startDate ?? '')}</div>
-        <div class="task-cell duedate-cell">${esc(t.dueDate ?? '')}</div>
-        <div class="task-cell status-cell"><span class="status">${esc(t.status ?? '')}</span></div>
-        <div class="task-cell priority-cell">${esc(t.priority ?? '')}</div>
-        <div class="task-cell progress-cell">
-          <div class="progress-cell-wrapper">
-            <span class="progress-value"></span>
-            <div class="task-progress-container">
-              <div class="task-progress-bar" data-progress="0"></div>
-            </div>
-          </div>
-        </div>
-        <div class="task-cell file-cell"></div>
-        <div class="task-cell updated-at-cell"></div>
       </div>
-    `;
+
+      <div class="task-cell task-title-cell">${esc(t.title)}</div>
+
+      <div class="task-cell assignee-cell" data-cell="assignee">
+        ${
+          hasAssigneeVisual
+            ? avatarUrl
+              ? `<img src="${avatarUrl}" class="assignee-img" alt="${esc(assigneeName)}" />`
+              : `<div class="assignee-initial">${esc(firstInitial(assigneeName))}</div>`
+            : `<div class="assignee-placeholder">-</div>`
+        }
+        <div class="assignee-panel" role="dialog" aria-modal="true" hidden>
+          <div class="assignee-search">
+            <i class="bi bi-search"></i>
+            <input type="text" class="assignee-search-input" placeholder="검색" aria-label="사용자 검색" />
+          </div>
+          <ul class="assignee-list" aria-label="사용자 목록"></ul>
+          <div class="assignee-footer">
+            <button type="button" class="assignee-submit" disabled>
+              <i class="bi bi-plus-lg"></i> 배정하기
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="task-cell started-at-cell">${esc(t.startDate ?? '')}</div>
+      <div class="task-cell duedate-cell">${esc(t.dueDate ?? '')}</div>
+      <div class="task-cell status-cell" data-cell="workflow">
+        <button type="button" class="status-badge" data-workflow-id="${t.workflowId ?? ''}">
+          <span class="status-dot" style="background:${esc(t.workflowColor || '#e5e7eb')}"></span>
+          <span class="status-text">${esc(t.workflowName || '-')}</span>
+        </button>
+        <div class="status-panel" hidden>
+        <div class="status-panel-header">
+          <input type="text" class="status-search-input" placeholder="검색" />
+          <button type="button" class="status-edit-toggle">편집</button>
+        </div>
+
+        <ul class="status-list"></ul>
+
+        <div class="status-panel-footer">
+          <input class="status-new-name" placeholder="새 상태명" />
+          <input class="status-new-color" type="color" value="#e5e7eb" />
+          <button type="button" class="status-create-btn">추가</button>
+        </div>
+      </div>
+      </div>
+       <div class="task-cell priority-cell" data-cell="priority">
+         <span class="priority-badge"
+               data-id="${priorityId ?? ''}"
+               data-name="${esc(priorityName)}">
+          <span class="priority-dot" style="background:#e5e7eb;"></span>
+          <span class="priority-text">-</span>
+        </span>
+        <div class="priority-panel" hidden>
+          <ul class="priority-list"></ul>
+        </div>
+      </div>
+      <div class="task-cell progress-cell">
+        <div class="progress-cell-wrapper">
+          <span class="progress-value">${esc(pct)}%</span>
+          <div class="task-progress-container">
+            <div class="task-progress-bar" data-progress="${pct}"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="task-cell file-cell"></div>
+      <div class="task-cell updated-at-cell" data-cell="updatedAt">
+        <span class="updated-at-text">${esc(fmtDateLikeList(updatedAt || t.updated_at))}</span>
+      </div>
+    </div>
+  `;
   }
 
   function findSubTaskContainer(taskRow) {
@@ -120,7 +241,6 @@ document.addEventListener('DOMContentLoaded', function () {
       const span = document.createElement('span');
       span.className = 'toggle-icon js-toggle-subtasks';
       span.innerHTML = '<i class="fa-solid fa-caret-right"></i>';
-
       if (checkbox) checkbox.replaceWith(span);
       else iconWrapper.prepend(span);
     }
@@ -129,15 +249,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function loadChildrenOnce(container, parentId) {
     if (container.dataset.loaded) return;
-    const res = await fetch(API.children(parentId));
-    if (!res.ok) throw new Error('하위 태스크 로드 실패');
-    const list = await res.json();
-    const body = container.querySelector('.sub-task-body') || container;
-    body.innerHTML = list.map(renderChildRow).join('');
-    container.dataset.loaded = '1';
-    updateAllProgressBars();
+    if (container.__busy) return;
+    container.__busy = true;
+    try {
+      const res = await fetch(API.children(parentId));
+      if (!res.ok) throw new Error('하위 태스크 로드 실패');
+      const list = await res.json();
+      const body = container.querySelector('.sub-task-body') || container;
+      body.innerHTML = list.map(renderChildRow).join('');
+      if (typeof window.__applyAllPriorityBadges__ === 'function') {
+        window.__applyAllPriorityBadges__();
+      } else {
+        applyPriorityBadgesFor(body);
+      }
+      container.dataset.loaded = '1';
+      updateAllProgressBars();
+    } finally {
+      container.__busy = false;
+    }
   }
 
+  // ---------- 폼 ----------
   function showTaskForm(targetContainer, parentTaskId = null) {
     if (currentOpenForm) {
       currentOpenForm.remove();
@@ -187,10 +319,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function handleSaveTask(event) {
     const form = event.target.closest('.task-form-row');
-    if (!form) {
-      alert('저장 폼을 찾을 수 없습니다.');
-      return;
-    }
+    if (!form) return showToast('저장 폼을 찾을 수 없습니다', 'error');
 
     const titleEl = form.querySelector('input[name="title"]');
     const startEl = form.querySelector('input[name="startedAt"]');
@@ -204,13 +333,12 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    const assigneeId = null;
     const taskData = {
       title,
       startDate: startEl?.value || null,
       dueDate: dueEl?.value || null,
       priorityId: getPriorityId(prioEl?.value || 'normal'),
-      assigneeId,
+      assigneeId: null,
       parentTaskId: form.dataset.parentId ? Number(form.dataset.parentId) : null,
     };
 
@@ -220,7 +348,6 @@ document.addEventListener('DOMContentLoaded', function () {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData),
       });
-
       if (!res.ok) {
         let msg = '저장 실패';
         try {
@@ -230,7 +357,6 @@ document.addEventListener('DOMContentLoaded', function () {
         alert(msg);
         return;
       }
-
       alert('저장 완료');
       window.location.reload();
     } catch (e) {
@@ -256,11 +382,173 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  function syncDeleteButtonState() {
-    const anyChecked = document.querySelector('.task-row input[type="checkbox"]:checked') !== null;
-    const delBtn = document.getElementById('task-delete-btn');
-    if (delBtn) delBtn.disabled = !anyChecked;
+  // ---------- 상태 팝오버 ----------
+  const statusPopover = document.getElementById('status-popover');
+
+  function toggleStatusPopover(cell) {
+    if (!statusPopover) return;
+    if (statusPopover.hidden || activeStatusPopover !== statusPopover) showStatusPopover(cell);
+    else hideStatusPopover();
   }
+  async function showStatusPopover(cell) {
+    if (!statusPopover) return;
+    hideStatusPopover();
+    activeStatusPopover = statusPopover;
+    const currentTaskId = cell.closest('.task-row')?.dataset.taskId;
+    if (!currentTaskId) return;
+    const rect = cell.getBoundingClientRect();
+    statusPopover.style.left = `${rect.left}px`;
+    statusPopover.style.top = `${rect.bottom + window.scrollY + 5}px`;
+    statusPopover.hidden = false;
+    await populateStatusList(currentTaskId, cell);
+  }
+  function hideStatusPopover() {
+    if (!statusPopover) return;
+    statusPopover.hidden = true;
+    activeStatusPopover = null;
+  }
+  async function populateStatusList(taskId, cell) {
+    const list = statusPopover.querySelector('.status-list');
+    list.innerHTML = '<li>불러오는 중...</li>';
+    try {
+      const statuses = [
+        { id: 1, name: 'Assignments', color: '#e3e3e3' },
+        { id: 2, name: 'in-progress', color: '#b5e6ff' },
+        { id: 3, name: 'Reviewing', color: '#87cbfb' },
+        { id: 4, name: 'Completed', color: '#3041ff' },
+      ];
+      list.innerHTML = '';
+      statuses.forEach((s) => {
+        const li = document.createElement('li');
+        li.className = 'status-list-item';
+        li.dataset.statusId = s.id;
+        li.dataset.statusName = s.name;
+        li.innerHTML = `<span class="status-color-dot" style="background-color:${s.color};"></span><span>${s.name}</span>`;
+        list.appendChild(li);
+      });
+      statusPopover.querySelector('.status-list').onclick = (e) => {
+        const item = e.target.closest('.status-list-item');
+        if (!item) return;
+        const statusName = item.dataset.statusName;
+        const statusSpan = cell.querySelector('.status');
+        statusSpan.textContent = statusName;
+        statusSpan.className = `status ${statusName}`;
+        hideStatusPopover();
+      };
+      statusPopover.querySelector('.status-add-input').onkeydown = async (e) => {
+        if (e.key !== 'Enter') return;
+        const newStatusName = e.target.value.trim();
+        if (!newStatusName) return;
+        alert(`'${newStatusName}' 상태가 추가되었습니다.`);
+        e.target.value = '';
+        await populateStatusList(taskId, cell);
+      };
+    } catch {
+      list.innerHTML = '<li>목록을 불러오지 못했습니다.</li>';
+    }
+  }
+
+  // ---------- 클릭(단일) ----------
+  document.body.addEventListener('click', function (e) {
+    // 더블클릭 직후 발생하는 click 무시
+    if (e.__assigneeHandled || e.target.closest('.assignee-cell, .assignee-panel')) {
+      e.stopImmediatePropagation();
+      e.stopPropagation();
+      return;
+    }
+    // 상단 버튼
+    const addBtn = e.target.closest('#task-add-btn');
+    if (addBtn) {
+      const activeTaskListBody = document.querySelector('.active-task-container .task-list-body');
+      if (activeTaskListBody) showTaskForm(activeTaskListBody, null);
+      return;
+    }
+    const deleteBtn = e.target.closest('#task-delete-btn');
+    if (deleteBtn) {
+      handleDeleteTask();
+      return;
+    }
+
+    // 상태 팝오버
+    const statusCell = e.target.closest('.task-row .task-cell.status-cell');
+    if (statusCell) {
+      toggleStatusPopover(statusCell);
+      return;
+    }
+    if (activeStatusPopover && !activeStatusPopover.contains(e.target)) hideStatusPopover();
+
+    // 토글 아이콘 클릭만 처리
+    const toggleIcon = e.target.closest('.js-toggle-subtasks');
+    if (toggleIcon) {
+      e.stopPropagation();
+      const row = toggleIcon.closest('.task-row');
+      if (!row) return;
+      const container = findSubTaskContainer(row) || ensureSubTaskContainer(row);
+      if (container.__busy) return;
+
+      if (isHidden(container)) {
+        (async () => {
+          try {
+            await loadChildrenOnce(container, row.dataset.taskId);
+            showEl(container);
+            toggleIcon.classList.add('open');
+          } catch (err) {
+            console.error(err);
+            hideEl(container);
+            toggleIcon.classList.remove('open');
+            alert(err.message || '하위 태스크를 불러오지 못했습니다.');
+          }
+        })();
+      } else {
+        hideEl(container);
+        toggleIcon.classList.remove('open');
+      }
+      return;
+    }
+  });
+
+  // ---------- 더블클릭(행) ----------
+  document.body.addEventListener('dblclick', function (e) {
+    // 더블클릭 완료 후 X ms 동안 click 무시
+    suppressClickUntil = performance.now() + 350;
+
+    // 토글 아이콘 자체에서의 더블클릭은 무시 (토글은 단일클릭 전용)
+    if (e.target.closest('.js-toggle-subtasks')) return;
+
+    const row = e.target.closest('.task-row:not(.task-form-row)');
+    if (!row) return;
+
+    const container = ensureSubTaskContainer(row);
+    if (container.__busy) return;
+
+    (async () => {
+      try {
+        await loadChildrenOnce(container, row.dataset.taskId);
+        showEl(container);
+        row.querySelector('.js-toggle-subtasks')?.classList.add('open');
+        const subBody = container.querySelector('.sub-task-body') || container;
+        showTaskForm(subBody, row.dataset.taskId);
+      } catch (err) {
+        console.error(err);
+        hideEl(container);
+        row.querySelector('.js-toggle-subtasks')?.classList.remove('open');
+        alert(err.message || '하위 태스크를 불러오지 못했습니다.');
+      }
+    })();
+  });
+
+  // ---------- 체크박스 ----------
+  document.body.addEventListener('change', function (e) {
+    if (e.target.matches('.task-row input[type="checkbox"]')) {
+      const row = e.target.closest('.task-row');
+      row?.classList.toggle('is-selected', e.target.checked);
+      syncDeleteButtonState();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideStatusPopover();
+  });
 
   async function handleDeleteTask() {
     const selectedIds = [...document.querySelectorAll('.task-row input[type="checkbox"]:checked')].map((cb) => cb.closest('.task-row')?.dataset.taskId).filter(Boolean);
@@ -287,205 +575,106 @@ document.addEventListener('DOMContentLoaded', function () {
       syncDeleteButtonState();
     } catch (err) {
       console.error(err);
-      alert(err.message || '삭제 중 오류가 발생했습니다.');
+      showToast('삭제 중 오류가 발생했습니다', 'error');
     }
   }
 
-  // ===== 상태 팝오버 =====
-  const statusPopover = document.getElementById('status-popover');
+  function syncDeleteButtonState() {
+    const anyChecked = document.querySelector('.task-row input[type="checkbox"]:checked') !== null;
+    const delBtn = document.getElementById('task-delete-btn');
+    if (delBtn) delBtn.disabled = !anyChecked;
+  }
 
-  function toggleStatusPopover(cell) {
-    if (!statusPopover) return;
-    if (statusPopover.hidden || activeStatusPopover !== statusPopover) {
-      showStatusPopover(cell);
+  // 단일 행에 우선순위를 적용하는 함수 ===
+  function applyPriorityToRow(row) {
+    const badge = row.querySelector('.priority-cell .priority-badge');
+    if (!badge) return;
+
+    // 5단계 고정 매핑
+    const MAP_BY_ID = {
+      5: { label: '매우 높음', color: '#ef4444', name: 'HIGHEST' },
+      4: { label: '높음', color: '#f59e0b', name: 'HIGH' },
+      3: { label: '보통', color: '#22c55e', name: 'MEDIUM' },
+      2: { label: '낮음', color: '#3b82f6', name: 'LOW' },
+      1: { label: '매우 낮음', color: '#64748b', name: 'LOWEST' },
+    };
+
+    const COLOR_FALLBACK = '#e5e7eb';
+
+    // 1) 행 dataset
+    let idKey = (row.dataset.priorityId || row.dataset.priorityCode || '').toString().trim();
+    let nameKey = (row.dataset.priorityName || '').toString().trim();
+
+    // 2) 배지 dataset(행이 비어있을 때 폴백)
+    if (!idKey && badge.dataset.id) idKey = badge.dataset.id.toString().trim();
+    if (!nameKey && badge.dataset.name) nameKey = badge.dataset.name.toString().trim();
+
+    // 3) 현재 표시 텍스트(마지막 폴백)
+    const nowTxt = (badge.querySelector('.priority-text')?.textContent || '').trim();
+
+    // 숫자 보정: "5.0" / 5 / " 3 " 등 → "5","3"
+    if (idKey) {
+      const n = parseInt(idKey, 10);
+      if (!Number.isNaN(n)) idKey = String(Math.max(1, Math.min(5, n))); // 1~5로 클램프
+    }
+
+    // 이름 정규화
+    const normName = alias(nameKey) || alias(nowTxt);
+
+    // 메타 찾기
+    let meta = null;
+    if (!meta && idKey && MAP_BY_ID[idKey]) meta = MAP_BY_ID[idKey];
+    if (!meta && normName) {
+      meta = Object.values(MAP_BY_ID).find((m) => m.name === normName) || null;
+    }
+
+    const textEl = badge.querySelector('.priority-text');
+    const dotEl = badge.querySelector('.priority-dot');
+
+    if (meta) {
+      if (textEl) textEl.textContent = meta.label;
+      if (dotEl) {
+        // 일부 테마에서 background 가 우선되기도 하므로 둘 다 지정
+        dotEl.style.setProperty('background', meta.color, 'important');
+        dotEl.style.setProperty('background-color', meta.color, 'important');
+      }
     } else {
-      hideStatusPopover();
-    }
-  }
-
-  async function showStatusPopover(cell) {
-    if (!statusPopover) return;
-    hideStatusPopover();
-    activeStatusPopover = statusPopover;
-
-    const currentTaskId = cell.closest('.task-row')?.dataset.taskId;
-    if (!currentTaskId) return;
-
-    const rect = cell.getBoundingClientRect();
-    statusPopover.style.left = `${rect.left}px`;
-    statusPopover.style.top = `${rect.bottom + window.scrollY + 5}px`;
-    statusPopover.hidden = false;
-
-    await populateStatusList(currentTaskId, cell);
-  }
-
-  function hideStatusPopover() {
-    if (!statusPopover) return;
-    statusPopover.hidden = true;
-    activeStatusPopover = null;
-  }
-
-  async function populateStatusList(taskId, cell) {
-    const list = statusPopover.querySelector('.status-list');
-    list.innerHTML = '<li>불러오는 중...</li>';
-    try {
-      const statuses = [
-        { id: 1, name: 'Assignments', color: '#e3e3e3' },
-        { id: 2, name: 'in-progress', color: '#b5e6ff' },
-        { id: 3, name: 'Reviewing', color: '#87cbfb' },
-        { id: 4, name: 'Completed', color: '#3041ff' },
-      ];
-      list.innerHTML = '';
-      statuses.forEach((status) => {
-        const li = document.createElement('li');
-        li.className = 'status-list-item';
-        li.dataset.statusId = status.id;
-        li.dataset.statusName = status.name;
-        li.innerHTML = `<span class="status-color-dot" style="background-color: ${status.color};"></span><span>${status.name}</span>`;
-        list.appendChild(li);
-      });
-
-      statusPopover.querySelector('.status-list').onclick = async (e) => {
-        const item = e.target.closest('.status-list-item');
-        if (!item) return;
-        const statusName = item.dataset.statusName;
-        try {
-          const statusSpan = cell.querySelector('.status');
-          statusSpan.textContent = statusName;
-          statusSpan.className = `status ${statusName}`;
-          hideStatusPopover();
-        } catch {
-          alert('상태 변경에 실패했습니다.');
-        }
-      };
-
-      statusPopover.querySelector('.status-add-input').onkeydown = async (e) => {
-        if (e.key !== 'Enter') return;
-        const newStatusName = e.target.value.trim();
-        if (!newStatusName) return;
-        try {
-          alert(`'${newStatusName}' 상태가 추가되었습니다.`);
-          e.target.value = '';
-          await populateStatusList(taskId, cell);
-        } catch {
-          alert('새 상태 추가에 실패했습니다.');
-        }
-      };
-    } catch {
-      list.innerHTML = '<li>목록을 불러오지 못했습니다.</li>';
-    }
-  }
-
-  // ------------------------
-  // 클릭 하나로 모든 상호작용 처리
-  // ------------------------
-  document.body.addEventListener('click', function (e) {
-    // 1) 특별 버튼들 우선 처리
-    const addBtn = e.target.closest('#task-add-btn');
-    if (addBtn) {
-      const activeTaskListBody = document.querySelector('.active-task-container .task-list-body');
-      if (activeTaskListBody) showTaskForm(activeTaskListBody, null);
-      return;
-    }
-
-    const deleteBtn = e.target.closest('#task-delete-btn');
-    if (deleteBtn) {
-      handleDeleteTask();
-      return;
-    }
-
-    // 상태 팝오버 셀
-    const statusCell = e.target.closest('.task-row .task-cell.status-cell');
-    if (statusCell) {
-      toggleStatusPopover(statusCell);
-      return;
-    }
-    if (activeStatusPopover && !activeStatusPopover.contains(e.target)) hideStatusPopover();
-
-    // 2) 테이블 내부 클릭(행 기준)
-    const row = e.target.closest('.task-row:not(.task-form-row)');
-    if (!row) return;
-
-    const isToggle = !!e.target.closest('.js-toggle-subtasks');
-
-    // 더블클릭 감지: 두 번째 클릭 시 detail === 2
-    if (e.detail === 2) {
-      if (clickTimer) {
-        clearTimeout(clickTimer);
-        clickTimer = null;
+      if (textEl) textEl.textContent = '-';
+      if (dotEl) {
+        dotEl.style.setProperty('background', COLOR_FALLBACK, 'important');
+        dotEl.style.setProperty('background-color', COLOR_FALLBACK, 'important');
       }
-      e.preventDefault();
-      e.stopPropagation();
-
-      // 더블클릭: 하위 컨테이너 열고 폼 표시(자식 최초 로드 포함)
-      (async () => {
-        const container = ensureSubTaskContainer(row);
-        try {
-          await loadChildrenOnce(container, row.dataset.taskId);
-          showEl(container);
-          row.querySelector('.js-toggle-subtasks')?.classList.add('open');
-          const subBody = container.querySelector('.sub-task-body') || container;
-          showTaskForm(subBody, row.dataset.taskId);
-        } catch (err) {
-          console.error(err);
-          hideEl(container);
-          row.querySelector('.js-toggle-subtasks')?.classList.remove('open');
-          alert(err.message || '하위 태스크를 불러오지 못했습니다.');
-        }
-      })();
-      return;
     }
+  }
 
-    // 단일 클릭 후보: 타이머로 지연 실행해 더블클릭과 충돌 방지
-    if (clickTimer) clearTimeout(clickTimer);
-    clickTimer = setTimeout(async () => {
-      clickTimer = null;
+  function applyPriorityBadgesFor(scopeEl) {
+    const rows = (scopeEl || document).querySelectorAll('.task-row');
+    rows.forEach(applyPriorityToRow);
+  }
 
-      // 단일 클릭 동작: 토글 아이콘을 눌렀을 때만 토글
-      if (isToggle) {
-        const container = findSubTaskContainer(row) || ensureSubTaskContainer(row);
-        const wasHidden = isHidden(container);
+  function showToast(message = '완료되었습니다.', type = 'success', opts = {}) {
+    const el = document.getElementById('planToast');
+    if (!el) return;
+    const container = el.closest('.toast-container');
+    const pos = opts.position || 'top-end';
+    container.className = `toast-container position-fixed p-3 ` + `${pos.includes('bottom') ? 'bottom-0' : 'top-0'} ` + `${pos.includes('start') ? 'start-0' : 'end-0'}`;
 
-        if (wasHidden) {
-          try {
-            await loadChildrenOnce(container, row.dataset.taskId);
-            showEl(container);
-            row.querySelector('.js-toggle-subtasks')?.classList.add('open');
-          } catch (err) {
-            console.error(err);
-            hideEl(container);
-            row.querySelector('.js-toggle-subtasks')?.classList.remove('open');
-            alert(err.message || '하위 태스크를 불러오지 못했습니다.');
-          }
-        } else {
-          hideEl(container);
-          row.querySelector('.js-toggle-subtasks')?.classList.remove('open');
-        }
-      }
-      // (필요 시 다른 “단일 클릭” 기능도 여기에 추가)
-    }, DOUBLE_DELAY);
-  });
+    el.className = 'toast clean-toast';
+    el.classList.add(`toast-${type}`);
+    el.querySelector('.toast-body').textContent = message;
 
-  // 체크박스 선택 토글
-  document.body.addEventListener('change', function (e) {
-    if (e.target.matches('.task-row input[type="checkbox"]')) {
-      const row = e.target.closest('.task-row');
-      row?.classList.toggle('is-selected', e.target.checked);
-      syncDeleteButtonState();
-    }
-  });
+    const iconEl = el.querySelector('.toast-icon');
+    const icons = { success: '✔', error: '✖', warning: '!', info: 'ℹ' };
+    if (iconEl) iconEl.textContent = icons[type] ?? 'ℹ';
 
-  // ESC → 팝오버 닫기
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') hideStatusPopover();
-  });
-
+    const delay = Number(opts.duration || 2200);
+    const t = bootstrap.Toast.getOrCreateInstance(el, { autohide: true, delay });
+    t.show();
+  }
   // ---------- 초기화 ----------
   syncDeleteButtonState();
   updateAllProgressBars();
+  applyPriorityBadgesFor(document);
   const observer = new MutationObserver(updateAllProgressBars);
-  observer.observe(document.querySelector('.main-wrapper-body') || document.body, {
-    childList: true,
-    subtree: true,
-  });
+  observer.observe(document.querySelector('.main-wrapper-body') || document.body, { childList: true, subtree: true });
 });

@@ -250,3 +250,8 @@
 @media (max-width: 480px) {
   #calendar-container .clean-toast { min-width: 260px; }
 }
+/* 기본은 닫힘 */
+#calendar-container .event-popup { display: none; }
+
+/* 열릴 때 */
+#calendar-container .event-popup.is-open { display: flex; }
