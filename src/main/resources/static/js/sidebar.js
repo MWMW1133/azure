@@ -1,24 +1,29 @@
 // ===== sidebar.js =====
 // 클릭 시 본문 전환 + 백엔드 연결 포인트 + 상태 팝오버
 // + 폰트 크기/굵기(타이포) 런타임 오버레이 주입
+window.__SPA_NAV_ENABLED__ = false;
 
-(function () {
-  /* ──[A] 사이드바 타이포(크기/굵기) 런타임 주입 ────────────────────────────
-     JSP 캐시/우선순위 문제를 피하려고, 동일 규칙을 head에 한 번 더 주입.
-     아래 숫자만 바꾸면 전체가 바로 적용된다. (JSP의 <style id="sb-typo-vars">가 있으면 그대로 두고,
-     이 주입은 '최후 보정' 역할이라 중복되어도 문제 없음) */
-  const TYPO = {
-    sbFs: 17, // 기본 크기(px)
-    sbFw: 430, // 기본 굵기(얇게: 380~440)
-    labelFs: 24,
-    labelFw: 720,
-    titleFw: 520,
-    userFw: 560,
-    presFw: 520,
-  };
-  (function injectTypography() {
-    if (document.getElementById('sb-typo-runtime')) return;
-    const css = `
+// 중복 로드 가드
+if (!window.__SIDEBAR_LOADED__) {
+  window.__SIDEBAR_LOADED__ = true;
+
+  (function () {
+    /* ──[A] 사이드바 타이포(크기/굵기) 런타임 주입 ────────────────────────────
+       JSP 캐시/우선순위 문제를 피하려고, 동일 규칙을 head에 한 번 더 주입.
+       아래 숫자만 바꾸면 전체가 바로 적용된다. (JSP의 <style id="sb-typo-vars">가 있으면 그대로 두고,
+       이 주입은 '최후 보정' 역할이라 중복되어도 문제 없음) */
+    const TYPO = {
+      sbFs: 17, // 기본 크기(px)
+      sbFw: 430, // 기본 굵기(얇게: 380~440)
+      labelFs: 24,
+      labelFw: 720,
+      titleFw: 520,
+      userFw: 560,
+      presFw: 520,
+    };
+    (function injectTypography() {
+      if (document.getElementById('sb-typo-runtime')) return;
+      const css = `
       :root{
         --sb-fs:${TYPO.sbFs}px; --sb-fw:${TYPO.sbFw};
         --sb-label-fs:${TYPO.labelFs}px; --sb-label-fw:${TYPO.labelFw};
@@ -44,101 +49,102 @@
         font-size:15px !important; font-weight:var(--sb-pres-fw) !important; letter-spacing:0; color:#6b7280;
       }`;
 
-    const st = document.createElement('style');
-    st.id = 'sb-typo-runtime';
-    st.textContent = css;
-    document.head.appendChild(st);
-  })();
-  /* ─────────────────────────────────────────────────────────────────── */
+      const st = document.createElement('style');
+      st.id = 'sb-typo-runtime';
+      st.textContent = css;
+      document.head.appendChild(st);
+    })();
+    /* ─────────────────────────────────────────────────────────────────── */
 
-  //  const main = document.querySelector('.main');
-  const main = document.querySelector('.page-body'); // 수정
+    //  const main = document.querySelector('.main');
+    const main = document.querySelector('.page-body'); // 수정
 
-  // 글씨 bold처리 문제 ========================================
-  // active 토글 전용 함수
-  function setActiveNav(target) {
-    document.querySelectorAll('.nav-item, .proj-row').forEach((el) => el.classList.remove('active'));
-    target.classList.add('active');
-  }
+    // 글씨 bold처리 문제 ========================================
+    // active 토글 전용 함수
+    function setActiveNav(target) {
+      if (!target) return;
+      document.querySelectorAll('.nav-item, .proj-row').forEach((el) => el.classList.remove('active'));
+      target.classList.add('active');
+    }
 
-  // 상단 고정 3개
-  (function bindFixed() {
-    const fixed = document.querySelectorAll('.nav-fixed .nav-item');
-    if (fixed[0])
-      fixed[0].addEventListener('click', (e) => {
-        // Router.go('home');
+    // 상단 고정 3개
+    (function bindFixed() {
+      const fixed = document.querySelectorAll('.nav-fixed .nav-item');
+      if (fixed[0])
+        fixed[0].addEventListener('click', (e) => {
+          // Router.go('home');
+          setActiveNav(e.currentTarget);
+        });
+      if (fixed[1])
+        fixed[1].addEventListener('click', (e) => {
+          // Router.go('tasks');
+          setActiveNav(e.currentTarget);
+        });
+      if (fixed[2])
+        fixed[2].addEventListener('click', (e) => {
+          // Router.go('calendar');
+          setActiveNav(e.currentTarget);
+        });
+    })();
+
+
+    // 프로젝트 목록 버튼
+    document.querySelectorAll('.proj-list .proj-row').forEach((btn, i) => {
+      const name = btn.querySelector('span:last-child')?.textContent?.trim() || '프로젝트 ' + (i + 1);
+      const id = 11 + i; // 더미 ID
+      // btn.addEventListener('click', () => Router.go('project', { id, name }));
+      btn.addEventListener('click', (e) => {
+        // Router.go('project', { id, name });
         setActiveNav(e.currentTarget);
       });
-    if (fixed[1])
-      fixed[1].addEventListener('click', (e) => {
-        // Router.go('tasks');
+    });
+
+    // 프로젝트 계획
+    const planBtn = document.querySelector('.proj-row.proj-plan');
+    // if (planBtn) planBtn.addEventListener('click', () => Router.go('plan'));
+    if (planBtn)
+      planBtn.addEventListener('click', (e) => {
+        // Router.go('plan');
         setActiveNav(e.currentTarget);
       });
-    if (fixed[2])
-      fixed[2].addEventListener('click', (e) => {
-        // Router.go('calendar');
+
+
+    // 이쪽 router validation
+    // 회의실
+    const roomBtn = document.querySelector('.proj-row.room');
+    // if (roomBtn) planBtn.addEventListener('click', () => Router.go('room'));
+    if (roomBtn)
+      roomBtn.addEventListener('click', (e) => {
+        // Router.go('room');
         setActiveNav(e.currentTarget);
       });
-  })();
+
+    // 초기 active: 홈 버튼
+    // const firstNav = document.querySelector(".nav-fixed .nav-item");
+    // if (firstNav) setActiveNav(firstNav);
+
+    const currentActive = document.querySelector(".nav-fixed .nav-item.active");
+    if (currentActive) {
+      setActiveNav(currentActive); // 서버가 붙인 active 유지
+    }
 
 
-  // 프로젝트 목록 버튼
-  document.querySelectorAll('.proj-list .proj-row').forEach((btn, i) => {
-    const name = btn.querySelector('span:last-child')?.textContent?.trim() || '프로젝트 ' + (i + 1);
-    const id = 11 + i; // 더미 ID
-    // btn.addEventListener('click', () => Router.go('project', { id, name }));
-    btn.addEventListener('click', (e) => {
-      // Router.go('project', { id, name });
-      setActiveNav(e.currentTarget);
-    });
-  });
+    // ===== Presence Status (상태 선택 팝오버) =====
+    const PRESENCE = {
+      online: {label: '접속중', color: '#22c55e'}, // green
+      busy: {label: '다른 용무중', color: '#f59e0b'}, // amber
+      away: {label: '자리 비움', color: '#ef4444'}, // red
+      offline: {label: '오프라인', color: '#9ca3af'}, // gray
+    };
 
-  // 프로젝트 계획
-  const planBtn = document.querySelector('.proj-row.proj-plan');
-  // if (planBtn) planBtn.addEventListener('click', () => Router.go('plan'));
-  if (planBtn)
-    planBtn.addEventListener('click', (e) => {
-      // Router.go('plan');
-      setActiveNav(e.currentTarget);
-    });
+    const presenceEl = document.querySelector('.presence');
+    const presenceDot = presenceEl?.querySelector('.dot');
 
+    // 팝오버 스타일(팝오버 전용) — 부족하면 자동 주입
+    function ensurePresenceStyles() {
+      if (document.getElementById('presence-style')) return;
 
-  // 이쪽 router validation
-  // 회의실
-  const roomBtn = document.querySelector('.proj-row.room');
-  // if (roomBtn) roomBtn.addEventListener('click', () => Router.go('room'));
-  if (roomBtn)
-    roomBtn.addEventListener('click', (e) => {
-      // Router.go('room');
-      setActiveNav(e.currentTarget);
-    });
-
-  // 초기 active: 홈 버튼
-  // const firstNav = document.querySelector(".nav-fixed .nav-item");
-  // if (firstNav) setActiveNav(firstNav);
-
-  const currentActive = document.querySelector(".nav-fixed .nav-item.active");
-  if (currentActive) {
-    setActiveNav(currentActive); // 서버가 붙인 active 유지
-  }
-
-
-  // ===== Presence Status (상태 선택 팝오버) =====
-  const PRESENCE = {
-    online: { label: '접속중', color: '#22c55e' }, // green
-    busy: { label: '다른 용무중', color: '#f59e0b' }, // amber
-    away: { label: '자리 비움', color: '#ef4444' }, // red
-    offline: { label: '오프라인', color: '#9ca3af' }, // gray
-  };
-
-  const presenceEl = document.querySelector('.presence');
-  const presenceDot = presenceEl?.querySelector('.dot');
-
-  // 팝오버 스타일(팝오버 전용) — 부족하면 자동 주입
-  function ensurePresenceStyles() {
-    if (document.getElementById('presence-style')) return;
-
-    const css = `
+      const css = `
       .status-popover{
         position:fixed; z-index:1000; background:#fff;
         border:1px solid rgba(0,0,0,.08); border-radius:12px;
@@ -155,183 +161,149 @@
       .status-item:focus{ outline:2px solid #93c5fd; outline-offset:2px; }
     `;
 
-    const st = document.createElement('style');
-    st.id = 'presence-style';
-    st.textContent = css;
-    document.head.appendChild(st);
-  }
+      const st = document.createElement('style');
+      st.id = 'presence-style';
+      st.textContent = css;
+      document.head.appendChild(st);
+    }
 
-  // 팝오버 생성(메인 영역에 뜨게 body에 부착)
-  let pop;
-  function ensurePopover() {
-    if (pop) return pop;
-    ensurePresenceStyles();
+    // 팝오버 생성(메인 영역에 뜨게 body에 부착)
+    let pop;
 
-    pop = document.createElement('div');
-    pop.className = 'status-popover';
-    pop.setAttribute('role', 'menu');
-    pop.style.display = 'none';
-    pop.innerHTML = [
-      { key: 'online', ...PRESENCE.online },
-      { key: 'busy', ...PRESENCE.busy },
-      { key: 'away', ...PRESENCE.away },
-      { key: 'offline', ...PRESENCE.offline },
-    ]
-        .map(
-            (s) => `
+    function ensurePopover() {
+      if (pop) return pop;
+      ensurePresenceStyles();
+
+      pop = document.createElement('div');
+      pop.className = 'status-popover';
+      pop.setAttribute('role', 'menu');
+      pop.style.display = 'none';
+      pop.innerHTML = [
+        {key: 'online', ...PRESENCE.online},
+        {key: 'busy', ...PRESENCE.busy},
+        {key: 'away', ...PRESENCE.away},
+        {key: 'offline', ...PRESENCE.offline},
+      ]
+          .map(
+              (s) => `
       <div class="status-item" role="menuitem" tabindex="0" data-key="${s.key}">
         <span class="status-dot" style="background:${s.color}"></span>
         <span>${s.label}</span>
       </div>
     `
-        )
-        .join('');
+          )
+          .join('');
 
-    pop.addEventListener('click', (e) => {
-      const item = e.target.closest('.status-item');
-      if (!item) return;
-      setPresence(item.dataset.key);
-      hidePopover();
-    });
-
-    pop.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        const item = document.activeElement.closest('.status-item');
-        if (item) {
-          setPresence(item.dataset.key);
-          hidePopover();
-        }
-      }
-    });
-
-    document.body.appendChild(pop);
-    return pop;
-  }
-
-  // 오른쪽(사이드바 경계 기준) 위치
-  function showPopover() {
-    const p = ensurePopover();
-    p.style.display = 'block';
-
-    const hostRect = presenceEl.getBoundingClientRect();
-    const sideRect = document.querySelector('.sidebar').getBoundingClientRect();
-    const pRect = p.getBoundingClientRect();
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
-    const EDGE_GAP = 6; // 사이드바 경계 기준 기본 간격
-    const NUDGE_X = -120; // 음수=왼쪽(경계쪽), 양수=오른쪽
-    const Y_MARGIN = 8;
-
-    let left = sideRect.right + EDGE_GAP + NUDGE_X;
-    let top = hostRect.top + (hostRect.height - pRect.height) / 2;
-
-    left = Math.max(0, Math.min(left, vw - pRect.width - 8));
-    top = Math.max(Y_MARGIN, Math.min(top, vh - pRect.height - Y_MARGIN));
-
-    p.style.left = `${left}px`;
-    p.style.top = `${top}px`;
-
-    setTimeout(() => document.addEventListener('mousedown', onDocDown));
-  }
-
-  function hidePopover() {
-    if (pop) pop.style.display = 'none';
-    document.removeEventListener('mousedown', onDocDown);
-  }
-
-  function onDocDown(e) {
-    if (!pop) return;
-    if (pop.contains(e.target) || presenceEl.contains(e.target)) return;
-    hidePopover();
-  }
-
-  function setPresence(key) {
-    const conf = PRESENCE[key] || PRESENCE.online;
-    if (presenceDot) presenceDot.style.background = conf.color;
-    if (presenceEl) {
-      presenceEl.setAttribute('data-status', key);
-      presenceEl.childNodes.forEach((n) => {
-        if (n.nodeType === 3) n.remove();
+      pop.addEventListener('click', (e) => {
+        const item = e.target.closest('.status-item');
+        if (!item) return;
+        setPresence(item.dataset.key);
+        hidePopover();
       });
-      presenceEl.appendChild(document.createTextNode(' ' + conf.label));
+
+      pop.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          const item = document.activeElement.closest('.status-item');
+          if (item) {
+            setPresence(item.dataset.key);
+            hidePopover();
+          }
+        }
+      });
+
+      document.body.appendChild(pop);
+      return pop;
     }
-    try {
-      localStorage.setItem('presence', key);
-    } catch (e) {}
-    /* [백엔드 연결 지점]
-       fetch('/api/me/status', {
-         method:'POST', headers:{'Content-Type':'application/json'},
-         body: JSON.stringify({ status: key })
-       });
-    */
-  }
 
-  // 초기 상태 복원 + 토글 바인딩
-  (function initPresence() {
-    if (!presenceEl) return;
-    const saved = (() => {
-      try {
-        return localStorage.getItem('presence');
-      } catch (e) {
-        return null;
+    // 오른쪽(사이드바 경계 기준) 위치
+    function showPopover() {
+      if (!presenceEl) return;
+      const p = ensurePopover();
+      p.style.display = 'block';
+
+      const hostRect = presenceEl.getBoundingClientRect();
+      const sideRect = document.querySelector('.sidebar')?.getBoundingClientRect?.() || {right: 0};
+      const pRect = p.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      const EDGE_GAP = 6; // 사이드바 경계 기준 기본 간격
+      const NUDGE_X = -120; // 음수=왼쪽(경계쪽), 양수=오른쪽
+      const Y_MARGIN = 8;
+
+      let left = sideRect.right + EDGE_GAP + NUDGE_X;
+      let top = hostRect.top + (hostRect.height - pRect.height) / 2;
+
+      left = Math.max(0, Math.min(left, vw - pRect.width - 8));
+      top = Math.max(Y_MARGIN, Math.min(top, vh - pRect.height - Y_MARGIN));
+
+      p.style.left = `${left}px`;
+      p.style.top = `${top}px`;
+
+      setTimeout(() => document.addEventListener('mousedown', onDocDown));
+    }
+
+    function hidePopover() {
+      if (pop) pop.style.display = 'none';
+      document.removeEventListener('mousedown', onDocDown);
+    }
+
+    function onDocDown(e) {
+      if (!pop || !presenceEl) return;
+      if (pop.contains(e.target) || presenceEl.contains(e.target)) return;
+      hidePopover();
+    }
+
+    function setPresence(key) {
+      const conf = PRESENCE[key] || PRESENCE.online;
+      if (presenceDot) presenceDot.style.background = conf.color;
+      if (presenceEl) {
+        presenceEl.setAttribute('data-status', key);
+        presenceEl.childNodes.forEach((n) => {
+          if (n.nodeType === 3) n.remove();
+        });
+        presenceEl.appendChild(document.createTextNode(' ' + conf.label));
       }
-    })();
-    if (saved && PRESENCE[saved]) setPresence(saved);
-    else setPresence('online');
+      try {
+        localStorage.setItem('presence', key);
+      } catch (e) {
+      }
+      /* [백엔드 연결 지점]
+         fetch('/api/me/status', {
+           method:'POST', headers:{'Content-Type':'application/json'},
+           body: JSON.stringify({ status: key })
+         });
+      */
+    }
 
-    presenceEl.style.cursor = 'pointer';
-    presenceEl.setAttribute('title', '상태 변경');
-    presenceEl.setAttribute('tabindex', '0');
+    // 초기 상태 복원 + 토글 바인딩
+    (function initPresence() {
+      if (!presenceEl) return;
+      const saved = (() => {
+        try {
+          return localStorage.getItem('presence');
+        } catch (e) {
+          return null;
+        }
+      })();
+      if (saved && PRESENCE[saved]) setPresence(saved);
+      else setPresence('online');
 
-    presenceEl.addEventListener('click', () => {
-      if (pop && pop.style.display === 'block') hidePopover();
-      else showPopover();
-    });
-    presenceEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
+      presenceEl.style.cursor = 'pointer';
+      presenceEl.setAttribute('title', '상태 변경');
+      presenceEl.setAttribute('tabindex', '0');
+
+      presenceEl.addEventListener('click', () => {
         if (pop && pop.style.display === 'block') hidePopover();
         else showPopover();
-      }
-    });
-
-
+      });
+      presenceEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (pop && pop.style.display === 'block') hidePopover();
+          else showPopover();
+        }
+      });
+    })();
   })();
-
-
-
-  /* ========= [백엔드 연결 예시 – 이 주석만 보고 교체] =========
-  // 1) 유저 정보 로드
-  async function loadMe(){
-    const r = await fetch('/api/me');
-    const me = await r.json();
-    document.querySelector('.user-card .user-name').textContent = me.name;
-    document.querySelector('.user-card .avatar').textContent = me.name.charAt(0);
-  }
-  // loadMe();
-
-  // 2) 프로젝트 목록 로드
-  async function loadProjects(){
-    const r = await fetch('/api/projects');
-    const items = await r.json(); // [{id,name}, ...]
-    const list = document.querySelector('.proj-list');
-    list.innerHTML = '';
-    for (const p of items){
-      const btn = document.createElement('button');
-      btn.className = 'proj-row';
-      btn.innerHTML = `
-        <span class="ic elbow">
-          <svg width="22" height="22" viewBox="0 0 24 24" class="stroke-1">
-            <path d="M6 6v8a4 4 0 0 0 4 4h8"></path>
-          </svg>
-        </span>
-        <span></span>`;
-      btn.querySelector('span:last-child').textContent = p.name;
-      btn.addEventListener('click', () => Router.go('project', { id:p.id, name:p.name }));
-      list.appendChild(btn);
-    }
-  }
-  // loadProjects();
-  ===================================================== */
-})();
+}

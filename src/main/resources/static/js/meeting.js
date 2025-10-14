@@ -3,6 +3,7 @@
   if (w.__meetingLoaded) return;
   w.__meetingLoaded = true;
 
+
   /* ===========================
    * 1) Styles
    * =========================== */
@@ -471,58 +472,58 @@
     });
 
     // 회의록 작성 시작/종료
-    function beginNotes(){
-      startBtn.disabled = true; stopBtn.disabled = false;
-      openBtn.classList.remove('show'); // 작성 중에는 숨김
-      Speech.start();
-      root.classList.add('rec-on');     // 네온 링 ON
+  function beginNotes(){
+    startBtn.disabled = true; stopBtn.disabled = false;
+    openBtn.classList.remove('show'); // 작성 중에는 숨김
+    Speech.start();
+    root.classList.add('rec-on');     // 네온 링 ON
+  }
+  function endNotes(){
+    startBtn.disabled = false; stopBtn.disabled = true;
+    Speech.stop();
+    root.classList.remove('rec-on');  // 네온 링 OFF
+    requestAnimationFrame(()=> openBtn.classList.add('show')); // 회의록 버튼 등장
+  }
+
+  // 회의록 시작
+  startBtn?.addEventListener('click', async (e) => {
+    e.preventDefault();
+
+  // (선택) 프로젝트 멤버십 가드 — 멤버 아니면 프로젝트 참여 수락 모달 열고 종료
+  const pid = getCurrentProjectId?.(); // 너희가 쓰는 선택값 반환 함수
+  if (pid) {
+    const ids = await apiListProjectMemberIds(pid);
+    const isAdmin = currentUserId === COMPANY_ADMIN_ID;
+    if (!isAdmin && !ids.includes(currentUserId)) {
+      gateAccessForCurrentUser(document, pid);
+      return;
     }
-    function endNotes(){
-      startBtn.disabled = false; stopBtn.disabled = true;
-      Speech.stop();
-      root.classList.remove('rec-on');  // 네온 링 OFF
-      requestAnimationFrame(()=> openBtn.classList.add('show')); // 회의록 버튼 등장
-    }
+  }
 
-    // 회의록 시작
-    startBtn?.addEventListener('click', async (e) => {
-      e.preventDefault();
+  // 진짜 시작
+  beginNotes();
+  (document.querySelector('.room-wrap') || document).classList.add('in-call');
+  });
 
-      // (선택) 프로젝트 멤버십 가드 — 멤버 아니면 프로젝트 참여 수락 모달 열고 종료
-      const pid = getCurrentProjectId?.(); // 너희가 쓰는 선택값 반환 함수
-      if (pid) {
-        const ids = await apiListProjectMemberIds(pid);
-        const isAdmin = currentUserId === COMPANY_ADMIN_ID;
-        if (!isAdmin && !ids.includes(currentUserId)) {
-          gateAccessForCurrentUser(document, pid);
-          return;
-        }
-      }
+  stopBtn ?.addEventListener('click', endNotes);
 
-      // 진짜 시작
-      beginNotes();
-      (document.querySelector('.room-wrap') || document).classList.add('in-call');
-    });
-
-    stopBtn ?.addEventListener('click', endNotes);
-
-    // 통화 종료 → 버튼 오른쪽 토스트
-    endBtn?.addEventListener('click', () => {
-      if (!startBtn.disabled) { /* 작성 중 아님 */ } else { endNotes(); }
+  // 통화 종료 → 버튼 오른쪽 토스트
+  endBtn?.addEventListener('click', () => {
+    if (!startBtn.disabled) { /* 작성 중 아님 */ } else { endNotes(); }
       showEndToastAtHangup('회의가 종료되었습니다.', endBtn);
     });
 
-    // 마이크 리스트(가능하면 채우기)
-    try{
-      if (navigator.mediaDevices?.enumerateDevices) {
-        navigator.mediaDevices.enumerateDevices().then(list=>{
-          const mics = list.filter(d=>d.kind==='audioinput');
-          if (mics.length && micSel){
-            micSel.innerHTML = mics.map(d=>`<option value="${d.deviceId}">${d.label || '마이크'}</option>`).join('');
-          }
-        });
-      }
-    }catch(e){}
+  // 마이크 리스트(가능하면 채우기)
+  try{
+    if (navigator.mediaDevices?.enumerateDevices) {
+      navigator.mediaDevices.enumerateDevices().then(list=>{
+        const mics = list.filter(d=>d.kind==='audioinput');
+        if (mics.length && micSel){
+          micSel.innerHTML = mics.map(d=>`<option value="${d.deviceId}">${d.label || '마이크'}</option>`).join('');
+        }
+      });
+    }
+  }catch(e){}
   }
 
   // 통화 종료 토스트 (버튼 오른쪽에 앵커)
@@ -564,6 +565,7 @@
       toast.classList.remove('in');
     }, 1800);
   }
+
 
   /* ===========================
    * 4) Speech (Web Speech API – 라이트)
@@ -752,7 +754,7 @@ window.renderPeoplePanel = async function renderPeoplePanel(root = document, pro
           <div class="p-sub">온라인</div>
         </div>
         ${(currentUserId === COMPANY_ADMIN_ID && u.id !== COMPANY_ADMIN_ID)
-      ? `<button class="chip" data-action="remove" data-id="${u.id}">제외</button>` : ''}
+          ? `<button class="chip" data-action="remove" data-id="${u.id}">제외</button>` : ''}
       </li>
     `).join('');
 
@@ -842,7 +844,9 @@ function hideLobby(root=document){
   if (lobby) lobby.style.display = 'none';
 }
 
+
 function resetStubStore(){
+
   // 원본 상수로 되감기
   state.projects    = JSON.parse(JSON.stringify(PROJECTS));
   state.invitations = JSON.parse(JSON.stringify(INVITATIONS));
@@ -898,16 +902,17 @@ function openLobby(root, {
     try { await onAccept(); } catch(e) {}
   });
   no.addEventListener('click', async () => {
-    // ⬇️ 먼저 로비를 숨겨 카드가 위에 보이도록
-    lobby.style.display = 'none';
-    try { await onDecline(); } catch(e) {}
+     // ⬇️ 먼저 로비를 숨겨 카드가 위에 보이도록
+   lobby.style.display = 'none';
+   try { await onDecline(); } catch(e) {}
   });
 
   // 표시
   lobby.style.display = 'flex';
 }
-// 초대 게이트: 멤버가 아니고 초대받은 사람에게만 수락/거절 표시
-async function gateAccessForCurrentUser(root, projectId){
+
+  // 초대 게이트: 멤버가 아니고 초대받은 사람에게만 수락/거절 표시
+  async function gateAccessForCurrentUser(root, projectId){
   const lobby = root.querySelector('#lobby-view');
   if (!lobby) return;
 
@@ -925,32 +930,32 @@ async function gateAccessForCurrentUser(root, projectId){
 
   // 2) 초대 받은 경우 → "프로젝트 참여 수락" 모달
   if (invited) {
-    openLobby(root, {
-      title: '프로젝트 참여 수락',
-      desc:  '관리자가 보낸 초대를 수락하면 이 프로젝트 회의실을 사용할 수 있어요.',
-      acceptLabel: '수락',
-      declineLabel: '닫기',
-      acceptDisabled: false, // ← 버튼 비활성화 풀기
-      onAccept: async () => {
-        await apiAccept(projectId, currentUserId);   // 멤버 편입
-        renderPeoplePanel(root, projectId);          // 우측 패널 갱신
-      },
-      onDecline: async () => {
-        await apiDecline(projectId, currentUserId);  // 초대 제거
-        showCancelCard('참가 요청이 취소되었습니다.');
-      }
-    });
-  } else {
-    // 3) 초대도 아닌 경우 → "초대 필요"
-    openLobby(root, {
-      title: '초대 필요',
-      desc:  '회사 관리자에게 초대를 요청하세요.',
-      acceptLabel: '확인',
-      declineLabel: '닫기',
-      acceptDisabled: true
-    });
-  }
+  openLobby(root, {
+    title: '프로젝트 참여 수락',
+    desc:  '관리자가 보낸 초대를 수락하면 이 프로젝트 회의실을 사용할 수 있어요.',
+    acceptLabel: '수락',
+    declineLabel: '닫기',
+    acceptDisabled: false, // ← 버튼 비활성화 풀기
+    onAccept: async () => {
+      await apiAccept(projectId, currentUserId);   // 멤버 편입
+      renderPeoplePanel(root, projectId);          // 우측 패널 갱신
+    },
+    onDecline: async () => {
+      await apiDecline(projectId, currentUserId);  // 초대 제거
+      showCancelCard('참가 요청이 취소되었습니다.');
+    }
+  });
+} else {
+  // 3) 초대도 아닌 경우 → "초대 필요"
+  openLobby(root, {
+    title: '초대 필요',
+    desc:  '회사 관리자에게 초대를 요청하세요.',
+    acceptLabel: '확인',
+    declineLabel: '닫기',
+    acceptDisabled: true
+  });
 }
+  }
 function confirmJoinMeeting(root){
   openLobby(root, {
     title: '회의실 입장',

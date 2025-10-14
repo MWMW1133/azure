@@ -38,4 +38,7 @@ public interface ChatService {
 
     /** 읽음 위치 업데이트(해당 채널의 마지막 읽은 메시지 ID 저장). */
     void markRead(Long channelId, Long userId, Long lastReadMessageId);
+
+    /** DM 채널을 찾거나 생성해서 ID 반환 */
+    Long getOrCreateDmChannel(long me, long peer);
 }

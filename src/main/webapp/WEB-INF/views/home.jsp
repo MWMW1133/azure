@@ -73,3 +73,15 @@
     </div>
   </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // 서버에서 내려준 현재 사용자 ID (없으면 0)
+    const uid = ${empty user or empty user.id ? 0 : user.id};
+    if (uid > 0 && typeof window.connectNotificationSocket === 'function') {
+      window.connectNotificationSocket(uid);
+    } else {
+      console.warn('connectNotificationSocket 미로딩 또는 사용자 ID 없음');
+    }
+  });
+</script>
