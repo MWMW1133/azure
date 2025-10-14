@@ -33,59 +33,47 @@ public class MeetingServiceImpl implements MeetingService {
 
     @Override
     public Meeting startMeeting(Long organizationId, Long projectId) {
+        // 1) 세션에서 현재 사용자 ID 확보
+        Long uid = WebUserAdvice.currentUserId();
+        if (uid == null) throw new UnauthorizedException();
 
+        // 2) 프로젝트 로드
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException("project"));
 
-        String roomTitle = String.format(PERMANENT_MEETING_ROOM_TITLE_FORMAT, project.getName());
+        // 3) 대표 캘린더 이벤트 생성 (중복 방지 로직 없이 단순 생성; created_by 필수 세팅)
+        User creator = userRepository.getReferenceById(uid);
 
-        // 1. 기존에 만들어 둔 '상시 회의실' 대표 일정이 있는지 먼저 찾습니다.
-        ProjectCalendar representativeEvent = calendarRepository.findByProjectIdAndTitle(projectId, roomTitle)
-                .orElseGet(() -> {
-                    // 2. 없을 때만 새로 생성합니다.
-                    System.out.println("대표 일정이 없어 새로 생성합니다: " + roomTitle);
+        ProjectCalendar ev = new ProjectCalendar();
+        ev.setProject(project);
+        ev.setTitle(String.format(PERMANENT_MEETING_ROOM_TITLE_FORMAT, project.getName()));
+        ev.setStartAt(LocalDateTime.now());
+        ev.setEndAt(LocalDateTime.now());
+        ev.setAllDay(false);
+        ev.setCreatedBy(creator); // ⬅️ created_by NOT NULL 해결
+        ev = calendarRepository.save(ev);
 
-                    Long currentUserId = WebUserAdvice.currentUserId();
-                    if (currentUserId == null) {
-                        throw new UnauthorizedException("User not authenticated for creating a calendar event.");
-                    }
-
-                    User currentUser = userRepository.findById(currentUserId)
-                            .orElseThrow(() -> new NotFoundException("user"));
-
-                    ProjectCalendar newEvent = new ProjectCalendar();
-                    newEvent.setProject(project);
-                    newEvent.setTitle(roomTitle);
-                    newEvent.setStartAt(LocalDateTime.now());
-                    newEvent.setEndAt(LocalDateTime.now());
-                    newEvent.setCreatedBy(currentUser);
-
-                    return calendarRepository.save(newEvent);
-                });
-
-        // 3. 새로운 회의(Meeting) 기록을 만들고, 찾거나 생성한 대표 일정과 연결합니다.
-        Meeting newMeeting = new Meeting();
+        // 4) 회의 엔티티 저장 (Meeting에는 startedBy 필드가 없음)
+        Meeting m = new Meeting();
         if (organizationId != null) {
-            var o = new Organization();
-            o.setId(organizationId);
-            newMeeting.setOrganization(o);
+            Organization org = new Organization();
+            org.setId(organizationId);
+            m.setOrganization(org);
         }
-        newMeeting.setProject(project);
-        newMeeting.setStartedAt(LocalDateTime.now());
-        newMeeting.setEvent(representativeEvent);
+        m.setProject(project);
+        m.setStartedAt(LocalDateTime.now());
+        m.setEvent(ev); // Meeting 엔티티에 event 필드가 있음
 
-        return meetingRepository.save(newMeeting);
+        return meetingRepository.save(m);
     }
 
     @Override
     public Meeting endMeeting(Long meetingId) {
-        Meeting m = meetingRepository.findByIdWithEvent(meetingId)
+        Meeting m = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new NotFoundException("meeting"));
-
         if (m.getEndedAt() == null) {
             m.setEndedAt(LocalDateTime.now());
         }
         return meetingRepository.save(m);
     }
 }
-
