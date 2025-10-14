@@ -62,4 +62,5 @@ public interface UserService {
     Optional<OrganizationMember> findMembershipByUserId(Long userId);
     List<User> searchInvitableUsers(String keyword);
 
+    void joinOrganization(Long userId, Long organizationId);
 }

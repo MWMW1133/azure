@@ -25,7 +25,7 @@ public class SecurityConfig {
             // 개발 중에는 CSRF 비활성화 (POST 테스트 편의)
             .csrf(csrf -> csrf.disable())
 
-            // 세션은 필요 시 생성 (JSESSIONID 사용)
+                // 세션은 필요 시 생성 (JSESSIONID 사용)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 
             // 경로별 권한

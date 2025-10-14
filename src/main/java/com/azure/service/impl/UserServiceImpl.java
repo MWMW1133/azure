@@ -169,4 +169,23 @@ public class UserServiceImpl implements UserService {
         return userRepository.searchInvitableUsers(keyword);
     }
 
+    @Transactional
+    public void joinOrganization(Long userId, Long organizationId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
+
+        Organization org = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new NotFoundException("Organization not found: " + organizationId));
+
+        user.setOrganization(org);
+        userRepository.save(user);
+
+        if(!organizationMemberRepository.existsByOrganizationIdAndUserId(org.getId(), userId)) {
+            OrganizationMember member = new OrganizationMember(org, user, OrganizationRole.MEMBER);
+            organizationMemberRepository.save(member);
+        }
+
+        System.out.printf("[DEBUG] 초대 수락: userId=%d, orgId=%d%n", userId, organizationId);
+    }
+
 }

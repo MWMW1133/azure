@@ -119,15 +119,6 @@ public class InviteController {
         // 초대 처리 및 알림 생성
         int successCount = 0;
         for (Long targetId : userIds) {
-            // 초대 엔티티 만들기
-            // Long inviteId = System.currentTimeMillis(); // 암거나 넣엇음
-
-            // 알림 생성
-//            String payload = String.format(
-//                    "{\"sender\":\"%s\",\"organization\":\"%s\",\"link\":\"/organization/invitations\"}",
-//                    sender.getName(),
-//                    memberOpt.get().getOrganization().getName()
-//            );
 
             // payload JSON 구성
             Map<String, Object> payloadMap = Map.of(
@@ -136,6 +127,12 @@ public class InviteController {
                     "organization", org.getName(),
                     "link", "/organization/invitations"
             );
+
+            // 지우지마세요~~ㅠㅠ
+            System.out.println("[STEP1] orgId=" + org.getId()
+                    + ", senderId=" + sender.getId()
+                    + ", targetId=" + targetId);
+            System.out.println("[STEP1] payloadMap=" + payloadMap);
 
             try {
                 String payloadJson = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payloadMap);

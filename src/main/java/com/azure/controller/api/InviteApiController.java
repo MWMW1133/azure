@@ -5,6 +5,8 @@ import com.azure.model.enums.OrganizationRole;
 import com.azure.model.user.User;
 import com.azure.repository.OrganizationMemberRepository;
 import com.azure.repository.OrganizationRepository;
+import com.azure.repository.UserRepository;
+import com.azure.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,11 +19,21 @@ public class InviteApiController {
 
     private final OrganizationMemberRepository organizationMemberRepository;
     private final OrganizationRepository organizationRepository;
+    private final UserService userService;
 
     /** 초대 수락 */
     @PostMapping("/accept")
     public Map<String, Object> acceptInvite(@ModelAttribute("user") User user,
                                             @RequestBody Map<String, Object> body) {
+
+        System.out.println("[DEBUG] /api/invite/accept body = " + body);
+        System.out.println("[DEBUG] /api/invite/accept keys = " + (body != null ? body.keySet() : "null"));
+
+        if (body == null || body.get("organizationId") == null) {
+            System.err.println("[ERROR] body 또는 organizationId가 null: " + body);
+            return Map.of("status", "error", "message", "organizationId 누락");
+        }
+
         Long orgId = Long.valueOf(body.get("organizationId").toString());
 
         // 이미 구성원인지 확인
@@ -29,6 +41,8 @@ public class InviteApiController {
         if (exists) {
             return Map.of("status", "error", "message", "이미 해당 조직의 구성원입니다.");
         }
+
+        userService.joinOrganization(user.getId(), orgId);
 
         // 조직 멤버로 추가
         var org = organizationRepository.findById(orgId)
