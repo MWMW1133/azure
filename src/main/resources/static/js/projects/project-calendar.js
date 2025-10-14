@@ -1,375 +1,373 @@
-/* /js/projects/project-calendar.js */
-(function () {
-  let inited = false;
-  const $id = (s) => document.getElementById(s);
+// ====== Project Calendar (FullCalendar + Modal + 멤버선택) ======
+if (!window.initProjectCalendar) {
+  window.initProjectCalendar = function () {
+    // 중복 초기화 가드
+    if (window.__projectCalendarInitDone) return;
+    window.__projectCalendarInitDone = true;
 
-  function actuallyInit() {
+    const calendarEl = document.getElementById('calendar');
+    if (!calendarEl) return;
+
     const container = document.getElementById('calendar-container');
-    if (!container) return;
+    const projectId = container?.dataset.projectId;
+    const ctx = (container?.dataset.ctx || '').replace(/\/$/, '');
 
-    const ctx = (container.dataset.ctx || '').replace(/\/$/, '');
-    const projectId = container.dataset.projectId;
+    // ---- 폼/모달 엘리먼트 ----
+    const modalTitle = document.getElementById('modal-title');
+    const eventForm = document.getElementById('event-form');
+    const btnDelete = document.getElementById('btn-delete');
+    const btnSave = document.getElementById('btn-save');
+    const allDayCheckbox = document.getElementById('event-all-day');
+    const startInput = document.getElementById('event-start');
+    const endInput = document.getElementById('event-end');
+    const daySelector = document.querySelector('.day-selector-group');
+    const relatedTaskSelect = document.getElementById('event-related-task');
 
-    const popup = $id('event-popup');
-    const form = $id('event-form');
+    // ---- 참석자: 프로젝트 멤버 리스트 ----
+    const memberListEl   = document.getElementById('member-list');
+    const memberFilterEl = document.getElementById('member-filter');
+    const memberCheckAll = document.getElementById('member-check-all');
+    const selectedAttendees = new Set(); // userId Set (string)
+    let allMembers = [];                 // [{id,name,email,title,teamName,avatarUrl}]
 
-    const inpId = $id('event-id');
-    const inpTitle = $id('event-title');
-    const inpStart = $id('event-start');
-    const inpEnd = $id('event-end');
-    const chkAllDay = $id('event-all-day');
-    const selTask = $id('event-related-task');
-    const inpLocation = $id('event-location');
-    const txtMemo = $id('event-memo');
-    const selColor = $id('event-color');
+    // ---- 유틸 ----
+    const debounce = (fn, ms = 200) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+    const toLocalDate = (d) => new Date(d - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const toLocalDateTime = (d) => new Date(d - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
-    const memberFilter = $id('member-filter');
-    const memberList = $id('member-list');
-    const memberCheckAll = $id('member-check-all');
+    // ---- API 래퍼 ----
+    const api = {
+      // 해당 프로젝트의 태스크만 간단 정보(id, title)로 받아오기
+      tasksMinimal: () =>
+        fetch(`${ctx}/api/projects/${projectId}/tasks/minimal`, { cache: 'no-cache' })
+          .then(r => (r.ok ? r.json() : []))
+          .then(arr => (Array.isArray(arr) ? arr.map(t => ({ id: t.id, title: t.title })) : [])),
 
-    const btnSave = $id('btn-save');
-    const btnDelete = $id('btn-delete');
+      projectMembers: () =>
+        fetch(`${ctx}/api/projects/${projectId}/members`, { cache: 'no-cache' })
+          .then(r => (r.ok ? r.json() : [])),
 
-    const API = {
-      members: `${ctx}/api/projects/${projectId}/members`,
-      tasks: `${ctx}/api/projects/${projectId}/tasks/brief`,
-      events: `${ctx}/api/projects/${projectId}/calendar/events`,
-      eventOne: (id) => `${ctx}/api/projects/${projectId}/calendar/events/${id}`,
-      create: `${ctx}/api/projects/${projectId}/calendar/events`,
+      // ✅ 백엔드: GET /attendees → [1,5,9] 혹은 [{user:{id}}]
+      attendeesList: (eventId) =>
+        fetch(`${ctx}/api/projects/${projectId}/calendar/events/${eventId}/attendees`, { cache: 'no-cache' })
+          .then(r => (r.ok ? r.json() : []))
+          .then(list => {
+            if (!Array.isArray(list)) return [];
+            if (typeof list[0] === 'number') return list;
+            return list
+              .map(x => x?.user?.id ?? x?.id ?? null)
+              .filter(v => typeof v === 'number');
+          }),
+
+      // ✅ 백엔드: PUT /attendees (application/json) ← [1,5,9]
+      attendeesReplace: (eventId, userIds) =>
+        fetch(`${ctx}/api/projects/${projectId}/calendar/events/${eventId}/attendees`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userIds)
+        }).then(r => { if (!r.ok) throw new Error('attendeesReplace'); return true; }),
     };
 
-    const toastEl = document.getElementById('planToast');
-    const toastMsgEl = toastEl?.querySelector('.toast-body');
-    let toast;
-    function showToast(msg, ok = true) {
-      try {
-        toastMsgEl.textContent = msg;
-        toastEl.classList.toggle('toast-error', !ok);
-        toastEl.classList.toggle('toast-success', ok);
-        if (!toast) toast = new bootstrap.Toast(toastEl, { delay: 1600 });
-        toast.show();
-      } catch { console.log(msg); }
+    // ---- 팝업 열기/닫기 ----
+    function openPopup() {
+      const el = document.getElementById('event-popup');
+      el.style.display = 'flex';
+      el.classList.add('is-open');
     }
-
-    function openPopup() { popup?.classList.add('is-open'); }
     function closePopup() {
-      if (!popup) return;
-      popup.classList.remove('is-open');
-      form?.reset?.();
-      inpId.value = '';
-      memberCheckAll && (memberCheckAll.checked = false);
-      if (memberList) renderMemberChecks(cachedMembers, memberFilter?.value || '');
+      const el = document.getElementById('event-popup');
+      el.classList.remove('is-open');
+      el.style.display = 'none';
     }
-    popup?.querySelector('.popup-close')?.addEventListener('click', closePopup);
-    popup?.addEventListener('click', (e) => { if (e.target === popup) closePopup(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePopup(); });
 
-    let calendar;
-
-    (async function boot() {
-      await Promise.all([loadMembers(), loadTasks()]);
-      const calEl = document.getElementById('calendar');
-      calendar = new FullCalendar.Calendar(calEl, {
-        themeSystem: 'standard',
-        timeZone: 'local',
-        initialView: 'dayGridMonth',
-        height: 'auto',
-        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
-        selectable: false,
-        nowIndicator: true,
-        eventOverlap: true,
-        eventSources: [{
-          url: API.events,
-          method: 'GET',
-          failure: () => showToast('일정 로드 실패', false),
-          extraParams: () => ({ _: Date.now() }),
-        }],
-        dateClick: makeDoubleClickHandler((arg) => {
-          const start = new Date(arg.date);
-          const end = new Date(start.getTime() + 60 * 60 * 1000);
-          fillForm({ start, end, allDay: false });
-          openPopup();
-        }),
-        eventClick: async (info) => { await openForEdit(info.event); },
-        editable: true,
-        eventDrop: onEventDropResize,
-        eventResize: onEventDropResize,
-        locale: 'ko',
-      });
-
-      calendar.render();
-      hookCalendarResizeFix();
-    })();
-
-    function makeDoubleClickHandler(cb, gap = 300) {
-      let last = 0;
-      return function (arg) {
-        const now = Date.now();
-        if (now - last < gap) cb(arg);
-        last = now;
-      };
-    }
-
-    async function onEventDropResize(info) {
-      try {
-        const body = {
-          title: info.event.title,
-          start: info.event.start?.toISOString(),
-          end: info.event.end?.toISOString(),
-          allDay: !!info.event.allDay,
-          backgroundColor: info.event.backgroundColor || info.event.extendedProps.color,
-          location: info.event.extendedProps.location || '',
-          description: info.event.extendedProps.description || '',
-          rrule: info.event.extendedProps.rrule || undefined,
-          extendedProps: {
-            relatedTaskId: info.event.extendedProps.related_task_id || info.event.extendedProps.relatedTaskId || null
-          }
-        };
-        const res = await fetch(API.eventOne(info.event.id), {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
+    // ---- 태스크 옵션 채우기 ----
+    api.tasksMinimal()
+      .then(list => {
+        list.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t.id;
+          opt.textContent = `#${t.id} ${t.title}`;
+          relatedTaskSelect.appendChild(opt);
         });
-        if (!res.ok) throw new Error();
-        showToast('일정이 업데이트됐습니다');
-      } catch (e) {
-        info.revert();
-        showToast('일정 이동/수정 실패', false);
-      }
-    }
+      })
+      .catch(() => {});
 
-    // ===== 멤버 렌더링 =====
-    let cachedMembers = [];
-    async function loadMembers() {
-      try {
-        const res = await fetch(API.members);
-        if (!res.ok) throw new Error();
-        cachedMembers = await res.json();
-        renderMemberChecks(cachedMembers, '');
-        memberFilter?.addEventListener('input', () => {
-          renderMemberChecks(cachedMembers, memberFilter.value);
-        });
-        memberCheckAll?.addEventListener('change', () => {
-          memberList?.querySelectorAll('input[type="checkbox"]').forEach(ch => {
-            ch.checked = memberCheckAll.checked;
-          });
-        });
-      } catch {
-        cachedMembers = [];
-        renderMemberChecks([], '');
-      }
-    }
+    // ---- 멤버 목록 최초 로드 ----
+    api.projectMembers()
+      .then(list => { allMembers = list || []; renderMemberList(''); })
+      .catch(() => { allMembers = []; renderMemberList(''); });
 
-    function renderMemberChecks(members, keyword) {
-      if (!memberList) return;
-      const kw = (keyword || '').trim().toLowerCase();
-      const filtered = kw
-        ? members.filter(m =>
-            (m.name || '').toLowerCase().includes(kw) ||
-            (m.position || '').toLowerCase().includes(kw) ||
-            (m.team || '').toLowerCase().includes(kw))
-        : members;
+    // ---- 멤버 리스트 렌더링/필터/체크 ----
+    function renderMemberList(filter = '') {
+      const q = filter.trim().toLowerCase();
+      const data = q
+        ? allMembers.filter(m =>
+            (m.name || '').toLowerCase().includes(q) ||
+            (m.title || '').toLowerCase().includes(q) ||
+            (m.teamName || '').toLowerCase().includes(q) ||
+            (m.email || '').toLowerCase().includes(q)
+          )
+        : allMembers;
 
-      memberList.innerHTML = '';
-      if (!filtered.length) {
-        memberList.innerHTML = `<li style="padding:8px 10px;color:#9ca3af">검색 결과가 없습니다</li>`;
-        return;
-      }
-      const frag = document.createDocumentFragment();
-      filtered.forEach(m => {
+      memberListEl.innerHTML = '';
+      data.forEach(m => {
         const li = document.createElement('li');
-        li.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid #eee';
+        li.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;';
+        li.addEventListener('mouseenter', () => (li.style.background = '#f3f4f6'));
+        li.addEventListener('mouseleave', () => (li.style.background = 'transparent'));
+
+        const checked = selectedAttendees.has(String(m.id));
         li.innerHTML = `
-          <input type="checkbox" class="att-chk" data-id="${m.id}">
-          <div style="flex:1;display:flex;align-items:center;gap:10px">
-            <div style="width:28px;height:28px;border-radius:50%;background:#e5e7eb;overflow:hidden"></div>
-            <div>
-              <div style="font-weight:600">${escapeHtml(m.name)}</div>
-              <div style="font-size:.82rem;color:#6b7280">${escapeHtml(m.team || '')}${m.team ? ' · ' : ''}${escapeHtml(m.position || '')}</div>
+          <div style="width:34px;height:34px;border-radius:999px;overflow:hidden;background:#eef2ff;display:grid;place-items:center;flex:0 0 34px">
+            ${m.avatarUrl ? `<img src="${m.avatarUrl}" alt="" style="width:100%;height:100%;object-fit:cover">` : (m.name || 'U')[0]}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600">${m.name || ''}</div>
+            <div style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              ${(m.title || '')}${m.teamName ? ` • ${m.teamName}` : ''}${m.email ? ` • ${m.email}` : ''}
             </div>
           </div>
+          <label>
+            <input type="checkbox" class="attendee-check" data-id="${m.id}" ${checked ? 'checked' : ''} />
+          </label>
         `;
-        frag.appendChild(li);
+        memberListEl.appendChild(li);
       });
-      memberList.appendChild(frag);
+
+      // 전체선택 상태 동기화 (현재 보이는 항목 기준)
+      const visibleIds = data.map(m => String(m.id));
+      const allVisibleChecked = visibleIds.length > 0 && visibleIds.every(id => selectedAttendees.has(id));
+      memberCheckAll.checked = allVisibleChecked;
     }
 
-    // ===== 태스크 로딩 =====
-    async function loadTasks() {
-      try {
-        const res = await fetch(API.tasks);
-        if (!res.ok) throw new Error();
-        const tasks = await res.json();
-        selTask.innerHTML = `<option value="">선택 안 함</option>` +
-          tasks.map(t => `<option value="${t.id}">${escapeHtml(t.title)}</option>`).join('');
-      } catch {
-        // 404 등 실패 시 조용히 기본 옵션만
-        selTask.innerHTML = `<option value="">선택 안 함</option>`;
-      }
+    memberListEl.addEventListener('change', (e) => {
+      const box = e.target.closest('.attendee-check');
+      if (!box) return;
+      const id = String(box.dataset.id);
+      if (box.checked) selectedAttendees.add(id);
+      else selectedAttendees.delete(id);
+      renderMemberList(memberFilterEl.value);
+    });
+    memberFilterEl.addEventListener('input', debounce(() => renderMemberList(memberFilterEl.value), 160));
+    memberCheckAll.addEventListener('change', () => {
+      const q = memberFilterEl.value.trim().toLowerCase();
+      const visible = (q
+        ? allMembers.filter(m =>
+            (m.name || '').toLowerCase().includes(q) ||
+            (m.title || '').toLowerCase().includes(q) ||
+            (m.teamName || '').toLowerCase().includes(q) ||
+            (m.email || '').toLowerCase().includes(q)
+          )
+        : allMembers).map(m => String(m.id));
+
+      if (memberCheckAll.checked) visible.forEach(id => selectedAttendees.add(id));
+      else visible.forEach(id => selectedAttendees.delete(id));
+
+      renderMemberList(memberFilterEl.value);
+    });
+
+    // ---- FullCalendar ----
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
+      events: `${ctx}/api/projects/${projectId}/calendar/events`,
+      locale: 'ko',
+      selectable: true,
+      selectMirror: true,
+      editable: true,
+      dayMaxEvents: true,
+      displayEventTime: false,
+
+      dateClick: (info) => openModalForNewEvent(info.dateStr),
+      select: (info) => { const d = info.startStr.slice(0, 10); openModalForNewEvent(d); calendar.unselect(); },
+      dayCellDidMount: (arg) => {
+        const isoDate = arg.date.toISOString().slice(0, 10);
+        arg.el.querySelector('.fc-daygrid-day-number')
+          ?.addEventListener('click', (e) => { e.preventDefault(); openModalForNewEvent(isoDate); });
+        arg.el.addEventListener('dblclick', () => openModalForNewEvent(isoDate));
+      },
+      eventClick: (info) => openModalForExistingEvent(info.event),
+      dayCellContent: (info) => info.dayNumberText.replace('일', ''),
+    });
+
+    calendar.render();
+    closePopup(); // 초기 숨김 확정
+
+    // ---- 모달 오픈(신규) ----
+    function openModalForNewEvent(date) {
+      eventForm.reset();
+      modalTitle.textContent = '일정 추가';
+      btnDelete.style.display = 'none';
+      document.getElementById('event-id').value = '';
+      daySelector.querySelectorAll('.day-btn.active').forEach(b => b.classList.remove('active'));
+      relatedTaskSelect.value = '';
+
+      // 참석자 초기화
+      selectedAttendees.clear();
+      memberFilterEl.value = '';
+      renderMemberList('');
+
+      startInput.type = 'datetime-local';
+      endInput.type   = 'datetime-local';
+      startInput.value = `${date}T09:00`;
+      endInput.value   = `${date}T10:00`;
+
+      openPopup();
     }
 
-    // ===== 폼 채우기/추출 =====
-    function fillForm({ id, title, start, end, allDay, color, description, location, related_task_id, relatedTaskId, attendees }) {
-      inpId.value = id || '';
-      inpTitle.value = title || '';
-      chkAllDay.checked = !!allDay;
-      if (start) inpStart.value = toLocalInput(start);
-      if (end)   inpEnd.value = toLocalInput(end);
-      selColor.value = color || 'blue';
-      txtMemo.value = description || '';
-      inpLocation.value = location || '';
-      selTask.value = related_task_id || relatedTaskId || '';
-      const ids = new Set((attendees || []).map(a => a.id || a));
-      memberList?.querySelectorAll('input.att-chk').forEach(ch => {
-        ch.checked = ids.has(Number(ch.dataset.id));
-      });
-      btnDelete.style.display = id ? '' : 'none';
-    }
+    // ---- 모달 오픈(기존) ----
+    async function openModalForExistingEvent(event) {
+      eventForm.reset();
+      modalTitle.textContent = '일정 수정';
+      btnDelete.style.display = String(event.id).startsWith('T-') ? 'none' : 'block';
+      daySelector.querySelectorAll('.day-btn.active').forEach(b => b.classList.remove('active'));
 
-    function extractForm() {
-      const attendeeIds = Array.from(memberList?.querySelectorAll('input.att-chk:checked') || [])
-        .map(ch => Number(ch.dataset.id));
-      const start = inpStart.value ? new Date(inpStart.value) : null;
-      const end = inpEnd.value ? new Date(inpEnd.value) : null;
-      return {
-        title: inpTitle.value?.trim(),
-        start: start ? start.toISOString() : null,
-        end: end ? end.toISOString() : null,
-        allDay: chkAllDay.checked,
-        backgroundColor: selColor.value,
-        description: txtMemo.value?.trim() || '',
-        location: inpLocation.value?.trim() || '',
-        extendedProps: { relatedTaskId: selTask.value || null },
-        attendeeIds // ← camelCase 유지
-      };
-    }
+      document.getElementById('event-id').value = event.id;
+      document.getElementById('event-title').value = event.title;
 
-    function toLocalInput(dt) {
-      const d = (dt instanceof Date) ? dt : new Date(dt);
-      const pad = (n) => String(n).padStart(2, '0');
-      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    }
-    function escapeHtml(s) {
-      return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    }
+      allDayCheckbox.checked = event.allDay;
+      handleAllDayChange(event.allDay, event.start, event.end);
 
-    // 단일 조회 → 폼 채우기
-    async function openForEdit(eventObj) {
-      try {
-        const res = await fetch(API.eventOne(eventObj.id));
-        const data = res.ok ? await res.json() : {
-          id: eventObj.id,
-          title: eventObj.title,
-          start_at: eventObj.start?.toISOString(),
-          end_at: eventObj.end?.toISOString(),
-          allDay: eventObj.allDay,
-          color: eventObj.backgroundColor || eventObj.extendedProps.color,
-          description: eventObj.extendedProps.description,
-          location: eventObj.extendedProps.location,
-          related_task_id: eventObj.extendedProps.related_task_id,
-          attendees: (eventObj.extendedProps.attendeeIds || []),
-        };
-        fillForm({
-          id: data.id,
-          title: data.title,
-          start: data.start || data.start_at,
-          end: data.end || data.end_at,
-          allDay: data.allDay ?? data.all_day,
-          color: data.backgroundColor || data.color,
-          description: data.description,
-          location: data.location,
-          relatedTaskId: data.relatedTaskId,
-          attendees: data.attendeeIds || data.attendees, // ← attendeeIds 우선
+      if (event.extendedProps.rrule) {
+        const weekdays = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+        const byday = event.extendedProps.rrule.split('BYDAY=')[1];
+        if (byday) byday.split(',').forEach(d => {
+          const idx = weekdays.indexOf(d);
+          if (idx !== -1) daySelector.querySelector(`[data-day="${idx}"]`)?.classList.add('active');
         });
-        openPopup();
-      } catch {
-        showToast('일정 정보를 불러오지 못했습니다', false);
       }
-    }
 
-    // 저장/삭제
-    form?.addEventListener('submit', async function (e) {
-      e.preventDefault();
+      document.getElementById('event-location').value = event.extendedProps.location || '';
+      document.getElementById('event-memo').value     = event.extendedProps.memo || '';
+      document.getElementById('event-color').value    = event.backgroundColor || 'blue';
+      relatedTaskSelect.value = event.extendedProps.relatedTaskId || '';
+
+      // ✅ 참석자 로드
+      selectedAttendees.clear();
       try {
-        const payload = extractForm();
-        if (!payload.title) {
-          inpTitle.focus();
-          return showToast('제목을 입력해 주세요', false);
+        if (!String(event.id).startsWith('T-')) {
+          const ids = await api.attendeesList(event.id); // [1,5,9]
+          (ids || []).forEach(id => selectedAttendees.add(String(id)));
         }
-        const isEdit = !!inpId.value;
-        const url = isEdit ? API.eventOne(inpId.value) : API.create;
-        const method = isEdit ? 'PUT' : 'POST';
-        const res = await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error();
+      } catch {}
+      memberFilterEl.value = '';
+      renderMemberList('');
 
-        const saved = isEdit ? { id: inpId.value } : await res.json();
-
-        // 참석자 저장 (별도 엔드포인트)
-        const attendeeIds = payload.attendeeIds || [];  // ← camelCase로 고정
-        await fetch(API.eventOne(saved.id) + '/attendees', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ attendeeIds })
-        });
-
-        showToast(isEdit ? '일정을 수정했습니다' : '일정을 추가했습니다');
-        closePopup();
-        calendar.refetchEvents();
-      } catch {
-        showToast('저장에 실패했습니다', false);
-      }
-    });
-
-    btnDelete?.addEventListener('click', async function () {
-      if (!inpId.value) return;
-      if (!confirm('이 일정을 삭제할까요?')) return;
-      try {
-        const res = await fetch(API.eventOne(inpId.value), { method: 'DELETE' });
-        if (!res.ok) throw new Error();
-        showToast('삭제되었습니다');
-        closePopup();
-        calendar.refetchEvents();
-      } catch {
-        showToast('삭제 실패', false);
-      }
-    });
-
-    function hookCalendarResizeFix() {
-      function ensureCalendarSized() {
-        if (calendar) { try { calendar.updateSize(); } catch (_) {} }
-      }
-      window.addEventListener('resize', ensureCalendarSized);
-      document.addEventListener('shown.bs.tab', (e) => {
-        const target = e.target?.getAttribute('href') || e.target?.getAttribute('data-bs-target') || '';
-        if (target.includes('calendar')) ensureCalendarSized();
-      });
-      document.addEventListener('click', (e) => {
-        const tabBtn = e.target.closest('[data-tab="calendar"], .tab-calendar, a[href*="calendar"]');
-        if (tabBtn) setTimeout(ensureCalendarSized, 0);
-      });
-      try {
-        const io = new IntersectionObserver((entries) => {
-          entries.forEach((ent) => { if (ent.isIntersecting) ensureCalendarSized(); });
-        }, { root: null, threshold: 0.01 });
-        io.observe(document.getElementById('calendar'));
-      } catch (_) {}
+      openPopup();
     }
-  }
 
-  window.initProjectCalendar = function () {
-    if (inited) return;
-    inited = true;
-    actuallyInit();
-  };
+    // ---- 종일 토글 ----
+    allDayCheckbox.addEventListener('change', () => handleAllDayChange(allDayCheckbox.checked));
+    function handleAllDayChange(isAllDay, startDate, endDate) {
+      startDate = startDate || new Date(startInput.value || Date.now());
+      endDate   = endDate   || new Date(endInput.value   || startDate);
+      if (isAllDay) {
+        startInput.type = 'date'; endInput.type = 'date';
+        startInput.value = toLocalDate(startDate); endInput.value = toLocalDate(endDate);
+      } else {
+        startInput.type = 'datetime-local'; endInput.type = 'datetime-local';
+        startInput.value = toLocalDateTime(startDate); endInput.value = toLocalDateTime(endDate);
+      }
+    }
 
-  if (document.readyState !== 'loading') {
-    if (document.getElementById('calendar-container')) window.initProjectCalendar();
-  } else {
-    document.addEventListener('DOMContentLoaded', () => {
-      if (document.getElementById('calendar-container')) window.initProjectCalendar();
+    // ---- 반복 요일 선택 ----
+    daySelector.addEventListener('click', (ev) => {
+      if (ev.target.classList.contains('day-btn')) ev.target.classList.toggle('active');
     });
-  }
-})();
+
+    // ---- 저장(생성/수정) ----
+    btnSave.addEventListener('click', async function (e) {
+      e.preventDefault();
+
+      // 시간 검증
+      if (!allDayCheckbox.checked) {
+        const st = new Date(startInput.value), en = new Date(endInput.value);
+        if (isFinite(st) && isFinite(en) && en <= st) {
+          showToast('종료일은 시작일 이후여야 합니다.', 'error', { position: 'bottom-end' });
+          return;
+        }
+      }
+
+      const eventId = document.getElementById('event-id').value;
+      const selectedDays = Array.from(daySelector.querySelectorAll('.day-btn.active')).map(b => b.dataset.day);
+      const weekdays = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+      const bydayString = selectedDays.map(d => weekdays[d]).join(',');
+
+      const payload = {
+        id: eventId || null,
+        title: document.getElementById('event-title').value,
+        start: startInput.value,
+        end: endInput.value,
+        allDay: allDayCheckbox.checked,
+        rrule: bydayString ? `FREQ=WEEKLY;BYDAY=${bydayString}` : null,
+        backgroundColor: document.getElementById('event-color').value,
+        extendedProps: {
+          location: document.getElementById('event-location').value,
+          memo: document.getElementById('event-memo').value,
+          relatedTaskId: relatedTaskSelect.value || null
+        }
+      };
+
+      if (eventId && String(eventId).startsWith('T-')) {
+        showToast('태스크 일정은 태스크 화면에서 수정하세요.', 'warning');
+        closePopup();
+        return;
+      }
+
+      const method = eventId ? 'PUT' : 'POST';
+      const url = eventId
+        ? `${ctx}/api/projects/${projectId}/calendar/events/${eventId}`
+        : `${ctx}/api/projects/${projectId}/calendar/events`;
+
+      try {
+        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error('save failed');
+        const saved = await res.json(); // EventDto
+        const savedId = saved?.id || eventId;
+
+        // ✅ 참석자 교체
+        if (savedId && !String(savedId).startsWith('T-')) {
+          await api.attendeesReplace(savedId, [...selectedAttendees].map(Number));
+        }
+
+        calendar.refetchEvents();
+        showToast(eventId ? '일정이 수정되었습니다.' : '일정이 등록되었습니다.', 'success', { duration: 2500, position: 'bottom-end' });
+      } catch (err) {
+        showToast('처리에 실패했습니다. 다시 시도해주세요.', 'error', { position: 'bottom-end' });
+      } finally {
+        closePopup();
+      }
+    });
+
+    // ---- 삭제 ----
+    btnDelete.addEventListener('click', function () {
+      const eventId = document.getElementById('event-id').value;
+      fetch(`${ctx}/api/projects/${projectId}/calendar/events/${eventId}`, { method: 'DELETE' })
+        .then(() => {
+          calendar.refetchEvents();
+          showToast('일정이 삭제되었습니다.', 'warning', { duration: 2500, position: 'bottom-end' });
+        })
+        .finally(closePopup);
+    });
+
+    // ---- 모달 바깥 클릭/닫기 버튼 ----
+    const popup = document.getElementById('event-popup');
+    document.querySelectorAll('.popup-close').forEach(b => b.addEventListener('click', closePopup));
+    popup.addEventListener('click', (e) => { if (e.target === popup) closePopup(); });
+
+    // ---- 토스트 ----
+    function showToast(message = '완료되었습니다.', type = 'success', opts = {}) {
+      const el = document.getElementById('planToast'); if (!el) return;
+      const container = el.closest('.toast-container');
+      const pos = opts.position || 'top-end';
+      container.className = `toast-container position-fixed p-3 ${pos.includes('bottom') ? 'bottom-0' : 'top-0'} ${pos.includes('start') ? 'start-0' : 'end-0'}`;
+      el.className = 'toast clean-toast'; el.classList.add(`toast-${type}`);
+      el.querySelector('.toast-body').textContent = message;
+      el.querySelector('.toast-icon').textContent = ({ success: '✔', error: '✖', warning: '!', info: 'ℹ' })[type] || 'ℹ';
+      const delay = Number(opts.duration || 2200);
+      const t = bootstrap.Toast.getOrCreateInstance(el, { autohide: true, delay });
+      t.show();
+    }
+  };
+}
