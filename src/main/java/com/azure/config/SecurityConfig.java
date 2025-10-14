@@ -17,30 +17,18 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    /** 보안 설정 */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // CSRF 보호 비활성화
+                .csrf(csrf -> csrf.disable()) // 개발 중에는 CSRF 비활성화
                 .authorizeHttpRequests(auth -> auth
-                        // ❗️ 로그인, 회원가입, JSP 뷰 경로, 정적 리소스 등은 누구나 접근 가능하도록 허용
-                        .requestMatchers(
-                                "/login", "/signup", "/noInvitePage",
-                                "/WEB-INF/**", // ❗️ 무한 루프 해결을 위한 핵심 코드!
-                                "/css/**", "/js/**", "/images/**", "/favicon.ico"
-                        ).permitAll()
-                        // 그 외 나머지 모든 요청은 인증(로그인)이 필요함
-                        .anyRequest().authenticated()
+                        .requestMatchers("/**").permitAll() // 모든 요청 허용 (테스트용)
                 )
-                .formLogin(form -> form
-                        .loginPage("/login")
-                        .loginProcessingUrl("/login")
-                        .defaultSuccessUrl("/home", true)
-                        .failureUrl("/login?error=true")
-                        .permitAll()
-                )
+                .formLogin(login -> login.disable())
                 .logout(logout -> logout
-                        .logoutUrl("/logout")
-                        .logoutSuccessUrl("/login")
+                        .logoutUrl("/logout")       // 로그아웃 URL
+                        .logoutSuccessUrl("/login") // 로그아웃 후 이동 페이지
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
                         .permitAll()
@@ -50,4 +38,3 @@ public class SecurityConfig {
         return http.build();
     }
 }
-
