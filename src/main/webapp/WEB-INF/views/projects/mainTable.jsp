@@ -3,18 +3,7 @@
 
 
 <div class="main-wrapper">
-  <div class="main-wrapper-header">
-    <div class="main-search-wrapper">
-      <div class="main-search-body">
-        <i class="bi bi-search"></i>
-        <input id="task-search-input" type="text" placeholder="검색" aria-label="태스크 검색" />
-        <button id="task-sort-btn">
-          <i class="bi bi-funnel"></i>
-          정렬
-        </button>
-      </div>
-    </div>
-  </div>
+
 
   <div  class="main-wrapper-body"
         id="project-tab-root"             
