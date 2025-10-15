@@ -14,6 +14,8 @@ import org.springframework.data.jpa.repository.Query;
 
 import com.azure.model.project.Project;
 
+import jakarta.transaction.Transactional;
+
 public interface ProjectRepository extends JpaRepository<Project, Long> { 
          /** 하나의 조직에 속한 프로젝트들 페이징 조회 */
     Page<Project> findByOrganizationId(Long organizationId, Pageable pageable);
@@ -28,4 +30,8 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     @Query("update Project p set p.startDate = :start, p.dueDate = :due where p.id = :projectId")
     void updateDates(Long projectId, LocalDate start, LocalDate due);
 
+    @Modifying
+    @Transactional
+    @Query("delete from Project p where p.id = :projectId")
+    void deleteByIdHard(Long projectId);
 }

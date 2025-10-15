@@ -4,10 +4,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import com.azure.model.project.ProjectMember;
 import com.azure.model.project.ProjectMemberId;
+
+import jakarta.transaction.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -30,4 +34,8 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Pr
     @EntityGraph(attributePaths = "user")
     Page<ProjectMember> findById_ProjectId(Long projectId, Pageable pageable);
 
+    @Modifying
+    @Transactional
+    @Query("delete from ProjectMember pm where pm.id.projectId = :projectId")
+    void deleteByProjectId(Long projectId);
 }
