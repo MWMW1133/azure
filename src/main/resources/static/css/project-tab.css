@@ -384,3 +384,12 @@
 .toast-info {
   border-left: 4px solid #3b82f6;
 }
+
+#inviteToastContainer {
+  top: 56px;
+  z-index: 9999;
+  pointer-events: none;
+}
+#inviteToastContainer .toast {
+  pointer-events: auto;
+}

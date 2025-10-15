@@ -3,6 +3,7 @@ package com.azure.service.impl;
 import com.azure.event.ProjectMemberAddedEvent;
 import com.azure.event.ProjectMemberRemovedEvent;
 import com.azure.model.Organization;
+import com.azure.model.enums.OrganizationRole;
 import com.azure.model.project.Project;
 import com.azure.model.project.ProjectMember;
 import com.azure.model.project.ProjectMemberId;
@@ -125,6 +126,7 @@ public class ProjectServiceImpl implements ProjectService {
         pm.setId(id);
         pm.setProject(project);
         pm.setUser(user);
+        pm.setRole(OrganizationRole.MEMBER);
 
         ProjectMember saved = projectMemberRepository.save(pm);
 

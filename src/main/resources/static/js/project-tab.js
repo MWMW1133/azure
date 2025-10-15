@@ -7,6 +7,49 @@
   const rootEl = document.getElementById('project-tab-root') || document.getElementById('project-tab-view-root'); //수정
   const APP_CONTEXT = (rootEl?.dataset.contextPath || window.APP_CONTEXT || '').replace(/\/$/, '');
   const apiUrl = (p) => `${APP_CONTEXT}${p}`;
+  function ensureNodeToBody(id) {
+    const el = document.getElementById(id);
+    if (el && el.parentElement !== document.body) document.body.appendChild(el);
+  }
+
+  function placeToastBelowTopbar({ topbarSelector = '#topbar', containerId = 'inviteToastContainer' } = {}) {
+    const topbar = document.querySelector(topbarSelector);
+    const container = document.getElementById(containerId);
+    if (!topbar || !container) return;
+
+    const update = () => {
+      const h = Math.ceil(topbar.getBoundingClientRect().height || 0);
+      container.style.top = `${h}px`;
+      // 탑바 z-index보다 1 크게
+      const z = parseInt(getComputedStyle(topbar).zIndex || '0', 10);
+      if (!Number.isNaN(z) && z >= 0) container.style.zIndex = String(z + 1);
+    };
+
+    update();
+
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(update);
+      ro.observe(topbar);
+    }
+    window.addEventListener('resize', update);
+  }
+  function showInviteToast(message, type = 'success', delay = 2200) {
+    ensureNodeToBody('inviteToastContainer');
+    placeToastBelowTopbar({ topbarSelector: '#topbar', containerId: 'inviteToastContainer' });
+
+    const toastEl = document.getElementById('inviteToast');
+    const bodyEl = toastEl?.querySelector('.toast-body');
+    if (!toastEl || !bodyEl) return;
+
+    toastEl.classList.remove('bg-success', 'bg-danger', 'bg-info', 'bg-warning');
+    const map = { success: 'bg-success', error: 'bg-danger', info: 'bg-info', warning: 'bg-warning' };
+    toastEl.classList.add(map[type] || 'bg-success');
+
+    bodyEl.textContent = message;
+
+    const toast = bootstrap.Toast.getOrCreateInstance(toastEl, { autohide: true, delay });
+    toast.show();
+  }
 
   // ------- 프로젝트 컨텍스트 -------
   const PROJECT_ID = (rootEl?.dataset.projectId || window.PROJECT_ID || '').trim();
@@ -113,25 +156,23 @@
       const projectId = PROJECT_ID;
       const ctx = APP_CONTEXT;
 
-
-    const map = {
-      table: `${ctx}/projects/${projectId}/table`,   // ✅ 수정
-      card: `${ctx}/projects/${projectId}/card`,
-      gantt: `${ctx}/projects/${projectId}/gantt`,
-      chart: `${ctx}/projects/${projectId}/chart`,
-      calendar: `${ctx}/projects/${projectId}/calendar`,
-      files: `${ctx}/projects/${projectId}/documents`,
-      members: `${ctx}/projects/${projectId}/members`,
-    };
-
+      const map = {
+        table: `${ctx}/projects/${projectId}/table`,
+        card: `${ctx}/projects/${projectId}/card`,
+        gantt: `${ctx}/projects/${projectId}/gantt`,
+        chart: `${ctx}/projects/${projectId}/chart`,
+        calendar: `${ctx}/projects/${projectId}/calendar`,
+        files: `${ctx}/projects/${projectId}/documents`,
+        management: `${ctx}/projects/${projectId}/management`,
+      };
 
       const url = map[name];
       if (!url) return render('<h1>Not Found</h1>');
 
-    fetch(url, { cache: 'no-cache', credentials: 'include' }) // credentialㄴ 추가
-      .then((r) => r.text())
-      .then((html) => {
-        render(html);
+      fetch(url, { cache: 'no-cache', credentials: 'include' }) // credentialㄴ 추가
+        .then((r) => r.text())
+        .then((html) => {
+          render(html);
 
           // ====== 간트 ======
           if (name === 'gantt' && typeof window.initGantt === 'function') {
@@ -159,6 +200,15 @@
               }
             });
           }
+
+          // 관리탭ㅂ
+          if (main.querySelector('.management-wrapper')) {
+            try {
+              initManagementTab();
+            } catch (e) {
+              console.error('initManagementTab failed', e);
+            }
+          }
         })
         .catch((err) => {
           console.error('[Router] error:', err);
@@ -180,6 +230,13 @@
           window.initProjectCalendar();
         } catch (e) {
           console.error('initProjectCalendar failed', e);
+        }
+      }
+      if (main.querySelector('.management-wrapper')) {
+        try {
+          initManagementTab();
+        } catch (e) {
+          console.error('initManagementTab failed', e);
         }
       }
 
@@ -328,11 +385,21 @@
     if (!openBtn || !panel) return;
 
     const selected = new Set();
+    const existingIds = new Set();
 
+    async function preloadExistingMembers() {
+      const r = await fetch(apiUrl(`/projects/${PROJECT_ID}/members/list?size=1000`), { cache: 'no-cache' });
+      if (!r.ok) return;
+      const page = await r.json(); // { content: [...], ... }
+      (page.content || []).forEach((m) => {
+        if (m.userId != null) existingIds.add(String(m.userId));
+      });
+    }
     async function loadList(q = '') {
       const users = await api.searchUsers(q);
+      const filtered = (users || []).filter((u) => !existingIds.has(String(u.id)));
       list.innerHTML = '';
-      users.forEach((u) => {
+      filtered.forEach((u) => {
         const li = document.createElement('li');
         li.className = 'invite-item' + (selected.has(u.id) ? ' is-selected' : '');
         li.dataset.id = u.id;
@@ -351,11 +418,13 @@
       submitBtn.disabled = selected.size === 0;
     }
 
-    openBtn.addEventListener('click', () => {
+    openBtn.addEventListener('click', async () => {
       const nameEl = $('#invite-project-name');
       if (nameEl) nameEl.textContent = PROJECT_NAME || '';
       panel.classList.add('is-open');
-      loadList('');
+      selected.clear();
+      await preloadExistingMembers();
+      await loadList('');
       if (searchInput) {
         searchInput.value = '';
         searchInput.focus();
@@ -388,11 +457,16 @@
     submitBtn?.addEventListener('click', async () => {
       if (selected.size === 0) return;
       try {
-        await api.invite([...selected]);
+        const ids = [...selected];
+        await api.invite(ids);
+        showInviteToast(`${ids.length}명을 초대했습니다`, 'success');
+        ids.forEach((id) => existingIds.add(String(id)));
         selected.clear();
         panel.classList.remove('is-open');
         submitBtn.disabled = true;
+        await loadList(searchInput?.value.trim() || '');
       } catch (err) {
+        showInviteToast('초대 실패했습니다', 'error', 3000);
         console.warn('invite failed', err);
       }
     });
