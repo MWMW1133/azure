@@ -38,7 +38,7 @@
   </div>
 
   <!-- 작성일 -->
-  <div class="pplan-cell pplan-created-at-cell">${projectPlan.createdAt}</div>
+  <div class="pplan-cell pplan-created-at-cell">${fn:substring(projectPlan.createdAt, 0, 10)}</div>
 
   <!-- 상태 -->
   <div class="pplan-cell pplan-status-cell">
