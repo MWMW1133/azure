@@ -27,7 +27,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import jakarta.persistence.PersistenceContext;  // ⬅️ 추가
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -46,8 +46,11 @@ public class ProjectServiceImpl implements ProjectService {
     // ✅ 워크플로우 생성 책임은 전담 서비스에 위임
     private final WorkflowService workflowService;
 
+    
     // 📢 프로젝트 멤버 추가/삭제 이벤트 발행
     private final ApplicationEventPublisher publisher;
+    
+     @PersistenceContext              // ⬅️ 이 애노테이션 추가
     private EntityManager em; // 🔹 flush/clear용
 
     @Override
