@@ -13,6 +13,9 @@ import com.azure.repository.ProjectRepository;
 import com.azure.repository.UserRepository;
 import com.azure.service.ProjectProposalService;
 import com.azure.service.exception.NotFoundException;
+import com.azure.model.notify.NotificationType;
+import com.azure.service.NotificationService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -21,7 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -34,6 +39,10 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
     private final OrganizationRepository organizationRepository;
     private final ApplicationEventPublisher publisher;
     private final ProjectServiceImpl projectService;
+
+    // ✅ 바로 알림 전송용
+    private final NotificationService notificationService;
+    private final ObjectMapper objectMapper;
 
     // 🔹 엔티티 → DTO 변환 메서드
     private ProjectProposalDTO toDto(ProjectProposal entity) {
@@ -88,7 +97,7 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
 
         ProjectProposal saved = proposalRepository.save(proposal);
 
-        // 📢 이벤트 발행
+        // 📢 이벤트 발행(관리자 등에게 신규 제안 알림 리스너에서 처리 가능)
         publisher.publishEvent(new ProposalCreatedEvent(saved.getId()));
 
         return saved;
@@ -107,12 +116,11 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
         // 이미 프로젝트가 연결된 승인 상태면 그대로 반환 (멱등 처리)
         if (proposal.getStatus() == ProjectProposal.Status.APPROVED && proposal.getProject() != null) {
             Project existing = proposal.getProject();
-            // 멤버십 보정(혹시 빠졌으면 넣기)
             ensureProposerMembership(existing.getId(), proposal.getProposer().getId());
             return existing;
         }
 
-        // 1) 프로젝트 생성 (owner는 approver로 설정하는 것을 기본값으로 가정)
+        // 1) 프로젝트 생성 (owner는 approver로 설정)
         Project project = projectService.create(
                 proposal.getOrganization().getId(),
                 approverId,
@@ -124,36 +132,48 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
         LocalDate s = proposal.getStartDate();
         LocalDate d = proposal.getDueDate();
         if (s != null || d != null) {
-            projectRepository.updateDates(project.getId(), s, d); // 아래 1-1) 참고 (간단 업데이트 쿼리)
+            projectRepository.updateDates(project.getId(), s, d);
         }
 
-        // 2) 제안 상태/연결 갱신
+        // 2) 제안 상태/연결 갱신 후 저장
         proposal.setStatus(ProjectProposal.Status.APPROVED);
         proposal.setProject(project);
-        proposalRepository.save(proposal);
-
-        // 3) 제안자 → 프로젝트 멤버 자동 추가 (중복 방지)
-        ensureProposerMembership(project.getId(), proposal.getProposer().getId());
-
-        proposal.setStatus(ProjectProposal.Status.APPROVED);
-        proposal.setProject(project);
-
-        // ✅ 저장 결과를 saved에 대입
         ProjectProposal saved = proposalRepository.save(proposal);
 
         // 3) 제안자 → 프로젝트 멤버 자동 추가 (중복 방지)
         ensureProposerMembership(project.getId(), proposal.getProposer().getId());
 
-        // ✅ 이벤트 발행 (saved 사용)
-        publisher.publishEvent(new ProposalStatusChangedEvent(
-        saved.getId(), saved.getStatus().name()
-        ));
+        // ✅ 바로 알림(제안자에게) — 프론트에서 딥링크/메시지 구성에 쓰는 키 포함
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("proposalId", saved.getId());
+            payload.put("projectId", project.getId());
+            payload.put("organizationId", saved.getOrganization().getId());
+            payload.put("status", saved.getStatus().name());
+            payload.put("name", saved.getName());
+            payload.put("message", "‘" + saved.getName() + "’ 제안이 승인되었습니다.");
+
+            notificationService.notifyUser(
+                    saved.getProposer().getId(),
+                    NotificationType.PROPOSAL_STATUS_CHANGED.name(),
+                    objectMapper.writeValueAsString(payload)
+            );
+        } catch (Exception ignore) {
+            // JSON 직렬화 실패 시에도 최소 문자열로 발사
+            notificationService.notifyUser(
+                    saved.getProposer().getId(),
+                    NotificationType.PROPOSAL_STATUS_CHANGED.name(),
+                    "‘" + saved.getName() + "’ 제안이 승인되었습니다."
+            );
+        }
+
+        // 📢 이벤트도 발행(리스너가 AFTER_COMMIT에서 보조 동작 가능)
+        publisher.publishEvent(new ProposalStatusChangedEvent(saved.getId(), saved.getStatus().name()));
 
         return project;
     }
 
     private void ensureProposerMembership(Long projectId, Long proposerUserId) {
-        // 중복 체크 후 추가 (ProjectService 내 중복 안전 addMember 사용)
         if (!projectService.existsMember(projectId, proposerUserId)) {
             projectService.addMember(projectId, proposerUserId);
         }
@@ -170,6 +190,29 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
 
         proposal.setStatus(ProjectProposal.Status.REJECTED);
         ProjectProposal saved = proposalRepository.save(proposal);
+
+        // ✅ 바로 알림(제안자에게)
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("proposalId", saved.getId());
+            payload.put("projectId", null);
+            payload.put("organizationId", saved.getOrganization().getId());
+            payload.put("status", saved.getStatus().name());
+            payload.put("name", saved.getName());
+            payload.put("message", "‘" + saved.getName() + "’ 제안이 거절되었습니다.");
+
+            notificationService.notifyUser(
+                    saved.getProposer().getId(),
+                    NotificationType.PROPOSAL_STATUS_CHANGED.name(),
+                    objectMapper.writeValueAsString(payload)
+            );
+        } catch (Exception ignore) {
+            notificationService.notifyUser(
+                    saved.getProposer().getId(),
+                    NotificationType.PROPOSAL_STATUS_CHANGED.name(),
+                    "‘" + saved.getName() + "’ 제안이 거절되었습니다."
+            );
+        }
 
         // 📢 이벤트 발행
         publisher.publishEvent(new ProposalStatusChangedEvent(saved.getId(), saved.getStatus().name()));

@@ -47,16 +47,20 @@ public class ProposalNotificationListener {
 
         try {
             String json = objectMapper.writeValueAsString(payload);
+
+            System.out.println("[PROPOSAL] notify type=" + NotificationType.PROPOSAL_STATUS_CHANGED.name()
+                    + " to=" + p.getProposer().getId() + " payload=" + json);
+
             notificationService.notifyUser(
-                proposerId,
-                NotificationType.PROPOSAL_STATUS_CHANGED.name(),
-                json
-            );
-        } catch (Exception e) {
-            notificationService.notifyUser(
-                proposerId,
-                NotificationType.PROPOSAL_STATUS_CHANGED.name(),
-                message
+                    p.getProposer().getId(),
+                    NotificationType.PROPOSAL_STATUS_CHANGED.name(),
+                    json
+                );
+            } catch (Exception e) {
+                notificationService.notifyUser(
+                    p.getProposer().getId(),
+                    NotificationType.PROPOSAL_STATUS_CHANGED.name(),
+                    message
             );
         }
     }
