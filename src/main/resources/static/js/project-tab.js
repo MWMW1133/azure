@@ -157,13 +157,13 @@
       const ctx = APP_CONTEXT;
 
       const map = {
-        table: `${ctx}/projects/${projectId}/table`, // ✅ 수정
+        table: `${ctx}/projects/${projectId}/table`,
         card: `${ctx}/projects/${projectId}/card`,
         gantt: `${ctx}/projects/${projectId}/gantt`,
         chart: `${ctx}/projects/${projectId}/chart`,
         calendar: `${ctx}/projects/${projectId}/calendar`,
         files: `${ctx}/projects/${projectId}/documents`,
-        members: `${ctx}/projects/${projectId}/members`,
+        management: `${ctx}/projects/${projectId}/management`,
       };
 
       const url = map[name];
@@ -200,6 +200,15 @@
               }
             });
           }
+
+          // 관리탭ㅂ
+          if (main.querySelector('.management-wrapper')) {
+            try {
+              initManagementTab();
+            } catch (e) {
+              console.error('initManagementTab failed', e);
+            }
+          }
         })
         .catch((err) => {
           console.error('[Router] error:', err);
@@ -221,6 +230,13 @@
           window.initProjectCalendar();
         } catch (e) {
           console.error('initProjectCalendar failed', e);
+        }
+      }
+      if (main.querySelector('.management-wrapper')) {
+        try {
+          initManagementTab();
+        } catch (e) {
+          console.error('initManagementTab failed', e);
         }
       }
 

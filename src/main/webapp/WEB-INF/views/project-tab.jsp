@@ -6,6 +6,8 @@
 <link href="/css/projects/mainTable.css" rel="stylesheet">
 <link href="/css/taskRow.css" rel="stylesheet">
 <link href="/css/projects/taskForm.css" rel="stylesheet">
+<link href="/css/projects/managementTab.css" rel="stylesheet">
+
 <link rel="stylesheet" href="https://unpkg.com/frappe-gantt/dist/frappe-gantt.css" />
 <script src="https://unpkg.com/frappe-gantt/dist/frappe-gantt.umd.js"></script>
 
@@ -73,7 +75,7 @@
       <button class="project-tab" role="tab" aria-selected="false" data-view="chart"><span>차트</span></button>
       <button class="project-tab" role="tab" aria-selected="false" data-view="calendar"><span>캘린더</span></button>
       <button class="project-tab" role="tab" aria-selected="false" data-view="files"><span>파일</span></button>
-      <button class="project-tab" role="tab" aria-selected="false" data-view="members"><span>멤버</span></button>
+      <button class="project-tab" role="tab" aria-selected="false" data-view="management"><span>관리</span></button>
     </div>
   </nav>
   </div>
@@ -100,3 +102,4 @@
 <script src="/js/projects/ganttTab.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <script src="/js/projects/chartTab.js"></script>
+<script src="/js/projects/managementTab.js"></script>

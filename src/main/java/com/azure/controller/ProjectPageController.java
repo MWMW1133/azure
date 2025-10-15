@@ -1,17 +1,22 @@
 package com.azure.controller;
 
+import com.azure.config.WebUserAdvice;
 import com.azure.dto.ProjectMemberDTO;
 import com.azure.model.project.Project;
 import com.azure.model.project.ProjectMember;
 import com.azure.model.task.Task;
 import com.azure.service.ProjectService;
 import com.azure.service.TaskService;
+
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,6 +32,7 @@ public class ProjectPageController {
 
     private final ProjectService projectService;
     private final TaskService taskService;
+    private final WebUserAdvice webUserAdvice;
 
     /** 프로젝트 메인 페이지 (사이드바 + 탭 진입) */
     @GetMapping
@@ -99,10 +105,15 @@ public class ProjectPageController {
         return "projects/files";
     }
 
-    /** 멤버 탭 */
-    @GetMapping("/members")
-    public String members(@PathVariable Long projectId) {
-        return "projects/members";
+    /** 관리 탭 */
+    @GetMapping("/management")
+    public String management(@PathVariable Long projectId, Model model) {
+        Project p = projectService.get(projectId);
+        model.addAttribute("projectId", p.getId());
+        model.addAttribute("projectName", p.getName());
+        model.addAttribute("activePage", "project");
+        model.addAttribute("activeProjectId", projectId);
+        return "projects/fragments/managementTab";
     }
 
     /** 메인 테이블 탭 */
@@ -125,6 +136,7 @@ public class ProjectPageController {
         return "projects/mainTable";
     }
 
+    //프로젝트 멤버 리스트 가져오기
     @GetMapping("/members/list")
     @ResponseBody
     public Page<ProjectMemberDTO> listMembers(@PathVariable Long projectId, Pageable pageable) {
@@ -137,5 +149,23 @@ public class ProjectPageController {
             dto.setUserAvatarUrl(u != null ? u.getAvatarUrl() : null);
             return dto;
         });
+    }
+
+    //프로젝트 멤버 삭제
+    @DeleteMapping("/members/{userId}")
+    @ResponseBody
+    public ResponseEntity<Void> removeMember(@PathVariable Long projectId, @PathVariable Long userId, HttpSession session) {
+      Long me = webUserAdvice.currentUserId(session);
+
+        projectService.removeMember(projectId, userId, me);
+        return ResponseEntity.noContent().build(); 
+    }
+
+    //프로젝트 삭제
+    @DeleteMapping
+    @ResponseBody
+    public ResponseEntity<Void> deleteProject(@PathVariable Long projectId) {
+        projectService.delete(projectId);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); 
     }
 }
