@@ -412,43 +412,106 @@ document.addEventListener('DOMContentLoaded', function () {
     statusPopover.hidden = true;
     activeStatusPopover = null;
   }
+  // 단계 하한(폴백) 계산: N단계면 step=100/N, i번째 floor=i*step, terminal은 100
+  function computeFloorPctFromWorkflows(workflows, wfId, isTerminal) {
+    if (!Array.isArray(workflows) || workflows.length === 0) return 0;
+    const n = workflows.length;
+    const step = Math.max(1, Math.floor(100 / n));
+    if (isTerminal === true) return 100;
+    const idx = Math.max(
+      0,
+      workflows.findIndex((w) => Number(w.id) === Number(wfId))
+    );
+    if (idx < 0) return 0;
+    return idx * step;
+  }
+
   async function populateStatusList(taskId, cell) {
     const list = statusPopover.querySelector('.status-list');
     list.innerHTML = '<li>불러오는 중...</li>';
+
     try {
-      const statuses = [
-        { id: 1, name: 'Assignments', color: '#e3e3e3' },
-        { id: 2, name: 'in-progress', color: '#b5e6ff' },
-        { id: 3, name: 'Reviewing', color: '#87cbfb' },
-        { id: 4, name: 'Completed', color: '#3041ff' },
-      ];
+      const res = await fetch(API.workflows);
+      if (!res.ok) throw new Error('워크플로우 로드 실패');
+      const workflows = await res.json(); // [{id,name,color,isTerminal,...}]
+
       list.innerHTML = '';
-      statuses.forEach((s) => {
+      workflows.forEach((wf) => {
         const li = document.createElement('li');
         li.className = 'status-list-item';
-        li.dataset.statusId = s.id;
-        li.dataset.statusName = s.name;
-        li.innerHTML = `<span class="status-color-dot" style="background-color:${s.color};"></span><span>${s.name}</span>`;
+        li.dataset.statusId = wf.id;
+        li.dataset.statusName = wf.name;
+        li.innerHTML = `
+        <span class="status-color-dot" style="background-color:${wf.color || '#e5e7eb'};"></span>
+        <span>${wf.name}</span>`;
         list.appendChild(li);
       });
-      statusPopover.querySelector('.status-list').onclick = (e) => {
+
+      list.onclick = async (e) => {
         const item = e.target.closest('.status-list-item');
         if (!item) return;
-        const statusName = item.dataset.statusName;
-        const statusSpan = cell.querySelector('.status');
-        statusSpan.textContent = statusName;
-        statusSpan.className = `status ${statusName}`;
-        hideStatusPopover();
+        const wfId = Number(item.dataset.statusId);
+
+        const row = cell.closest('.task-row');
+        const id = row?.dataset.taskId;
+
+        let saved = null;
+        let pct = 0;
+
+        try {
+          const resp = await fetch(API.setWorkflow(id), {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ workflowId: wfId }),
+          });
+
+          const raw = await resp.text();
+          console.log('[PATCH /workflow] status=', resp.status, 'body=', raw);
+
+          if (!resp.ok) {
+            showToast('상태 변경 실패', 'error');
+            return;
+          }
+
+          if (raw && raw.trim().length > 0) {
+            try {
+              saved = JSON.parse(raw);
+            } catch (err) {
+              console.warn('JSON parse fail:', err);
+            }
+          }
+
+          const badgeBtn = cell.querySelector('.status-badge');
+          const textEl = badgeBtn?.querySelector('.status-text');
+          const dotEl = badgeBtn?.querySelector('.status-dot');
+
+          const savedWf = saved?.workflow;
+          if (textEl) textEl.textContent = savedWf?.name ?? item.dataset.statusName;
+          if (dotEl) dotEl.style.background = savedWf?.color || item.querySelector('.status-color-dot')?.style.backgroundColor || '#e5e7eb';
+          row.dataset.workflowId = savedWf?.id ?? wfId;
+
+          if (saved?.progressPct != null) {
+            pct = Number(saved.progressPct);
+          } else {
+            pct = computeFloorPctFromWorkflows(workflows, wfId, savedWf?.isTerminal);
+          }
+
+          row.dataset.progress = pct;
+          const pv = row.querySelector('.progress-value');
+          const bar = row.querySelector('.task-progress-bar');
+          if (pv) pv.textContent = `${pct}%`;
+          if (bar) bar.dataset.progress = pct;
+          updateAllProgressBars();
+
+          hideStatusPopover();
+          showToast('상태가 변경되었습니다.', 'success');
+        } catch (err) {
+          console.error(err);
+          showToast('상태 변경 중 오류가 발생했습니다.', 'error');
+        }
       };
-      statusPopover.querySelector('.status-add-input').onkeydown = async (e) => {
-        if (e.key !== 'Enter') return;
-        const newStatusName = e.target.value.trim();
-        if (!newStatusName) return;
-        showToast(`'${newStatusName}' 상태가 추가되었습니다.`, 'success');
-        e.target.value = '';
-        await populateStatusList(taskId, cell);
-      };
-    } catch {
+    } catch (err) {
+      console.error(err);
       list.innerHTML = '<li>목록을 불러오지 못했습니다.</li>';
     }
   }

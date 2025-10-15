@@ -36,4 +36,18 @@ public class Organization {
     // 실제로는 organization_members 테이블과 매핑된다고 보면 됨
     @OneToMany(mappedBy = "organization")
     private List<OrganizationMember> members = new ArrayList<>();
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null) return false;
+        if (org.hibernate.Hibernate.getClass(this) != org.hibernate.Hibernate.getClass(o)) return false;
+        Organization that = (Organization) o;
+        return id != null && java.util.Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return org.hibernate.Hibernate.getClass(this).hashCode();
+    }
 }

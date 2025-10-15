@@ -49,4 +49,17 @@ public class User {
     this.createdAt = LocalDateTime.now();
     }
     
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null) return false;
+        if (org.hibernate.Hibernate.getClass(this) != org.hibernate.Hibernate.getClass(o)) return false;
+        User that = (User) o;
+        return id != null && java.util.Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return org.hibernate.Hibernate.getClass(this).hashCode();
+    }
 }
