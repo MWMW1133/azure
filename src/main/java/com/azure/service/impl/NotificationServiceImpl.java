@@ -30,7 +30,6 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final ProjectMemberRepository projectMemberRepository;
-//    private final SimpMessagingTemplate messagingTemplate;
     private final SimpMessageSendingOperations messagingTemplate;
 
     // 채팅 메시지 도착 알림
@@ -42,7 +41,6 @@ public class NotificationServiceImpl implements NotificationService {
         n.setType(type);
         n.setPayload(payload);
         n.setRead(false);                     // ← 엔티티 필드명이 read
-//        return notificationRepository.save(n);
 
         Notification saved = notificationRepository.save(n);
 
@@ -50,18 +48,23 @@ public class NotificationServiceImpl implements NotificationService {
         Map<String, Object> msg = new HashMap<>();
         msg.put("id", saved.getId());
         msg.put("type", saved.getType());
-        msg.put("payload", saved.getPayload());
+        // msg.put("payload", saved.getPayload());
         msg.put("createdAt", saved.getCreatedAt());
 
         // payload를 실제 객체(JSON)로 변환해서 전달 (원래 문자열이엇슴)
         try {
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            Object jsonPayload = mapper.readValue(saved.getPayload(), Object.class);
+            // Object jsonPayload = mapper.readValue(saved.getPayload(), Object.class);
+            Object jsonPayload = mapper.readValue(payload, Object.class);
             msg.put("payload", jsonPayload);
         } catch (Exception e) {
             System.err.println("[WARN] payload JSON 파싱 실패 → 문자열 그대로 전송");
-            msg.put("payload", saved.getPayload());
+            msg.put("payload", payload);
+            // msg.put("payload", saved.getPayload());
         }
+
+        System.out.println("[STEP2] sendToUser=" + userId);
+        System.out.println("[STEP2] msg=" + msg);
 
         System.out.println("[DEBUG] send STOMP → /topic/notifications/" + userId + " payload=" + msg);
         messagingTemplate.convertAndSend("/topic/notifications/" + userId, msg);

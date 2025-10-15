@@ -12,6 +12,8 @@ function renderNotifs(data) {
     const notifList = document.getElementById("notifList");
     if (!notifList) return;
     notifList.innerHTML = "";
+
+    // 다른 알림 오면 렌더링 확장 가능
     data.forEach(n => {
         let actionsHtml = "";
         if (n.type === "INVITE_ORGANIZATION") {
@@ -58,14 +60,23 @@ window.connectNotificationSocket = function (userId) {
         reconnectDelay: 5000,
     });
 
+    // 소켓으로 연결하는 데이터는 확인이 안돼서 로그 남겨둡니다
     client.onConnect = () => {
         console.log("Notification WebSocket connected");
         client.subscribe(`/topic/notifications/${userId}`, (msg) => {
+            console.log("[STEP3] raw msg:", msg.body);
             const data = JSON.parse(msg.body);
+            console.log("[STEP3] parsed data:", data);
+            console.log("[STEP3] typeof payload:", typeof data.payload);
+            console.log("[STEP3] payload content:", data.payload);
+
             const payload = data.payload;
+
+            // 알림 추가하실분.. 여기서 switch문으로 분기 추가하시면 될겁니다
             const newNotif = {
                 id: data.id || Date.now(),
                 type: data.type,
+                payload: payload,  // 원본 payload 전체를 저장
                 title:
                     data.type === "INVITE_ORGANIZATION"
                         ? "조직 초대 알림"
@@ -79,6 +90,8 @@ window.connectNotificationSocket = function (userId) {
                 createdAt: new Date().toLocaleString(),
                 isRead: false
             };
+
+
             window.notifications.unshift(newNotif);
             renderNotifs(window.notifications);
 
@@ -108,13 +121,29 @@ window.connectNotificationSocket = function (userId) {
 /** ======================================
  *  [5] 초대 수락/거절 처리
  * ====================================== */
+// 클릭 시 다른 api랑 연동 및 insert 되어야 하므로
+// 일반적인 알람은 이렇게안해도됨
 window.handleInviteAction = function (notifId, action) {
     const notif = window.notifications.find(n => n.id === notifId);
     if (!notif) return;
+
+    const orgId = notif.payload?.organizationId;
+    if (!orgId) {
+        alert("organizationId가 없습니다. (payload 오류)");
+        return;
+    }
+
+    const bodyData = { organizationId: orgId };
+
+    console.log("[FETCH] sending body =", bodyData); // 🔍 확인용 로그
+    console.log("[FETCH] JSON.stringify =", JSON.stringify(bodyData));
+
     fetch(`/api/invite/${action}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId: notif.organizationId })
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(bodyData)
     })
         .then(res => res.json())
         .then(data => {
@@ -122,6 +151,5 @@ window.handleInviteAction = function (notifId, action) {
             window.notifications = window.notifications.filter(n => n.id !== notifId);
             renderNotifs(window.notifications);
         })
-        .catch(err => alert("처리 중 오류 발생"));
+        .catch(err => alert("처리 중 오류 발생: " + err));
 };
-

@@ -45,8 +45,8 @@ public interface PersonalCalendarRepository extends JpaRepository<PersonalCalend
         select e
           from PersonalCalendar e
          where e.createdBy.id = :userId
-           and e.startAt <= :end
-           and e.endAt   >= :start
+           and e.startAt < :end
+           and e.endAt   > :start
         """)
     List<PersonalCalendar> findOverlappingForUser(@Param("userId") Long userId,
                                                   @Param("start") LocalDateTime start,

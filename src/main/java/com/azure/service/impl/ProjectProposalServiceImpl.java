@@ -33,6 +33,7 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
     private final ApplicationEventPublisher publisher;
+    private final ProjectServiceImpl projectService;
 
     // 🔹 엔티티 → DTO 변환 메서드
     private ProjectProposalDTO toDto(ProjectProposal entity) {
@@ -95,33 +96,53 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
 
     // 제안 승인
     @Override
+    @Transactional
     public Project approve(Long proposalId, Long approverId) {
         ProjectProposal proposal = get(proposalId);
 
-        if (proposal.getStatus() != ProjectProposal.Status.PENDING) {
-            throw new IllegalStateException("Proposal is not in PENDING state");
+        if (proposal.getStatus() == ProjectProposal.Status.REJECTED) {
+            throw new IllegalStateException("이미 거절된 제안입니다.");
         }
 
+        // 이미 프로젝트가 연결된 승인 상태면 그대로 반환 (멱등 처리)
+        if (proposal.getStatus() == ProjectProposal.Status.APPROVED && proposal.getProject() != null) {
+            Project existing = proposal.getProject();
+            // 멤버십 보정(혹시 빠졌으면 넣기)
+            ensureProposerMembership(existing.getId(), proposal.getProposer().getId());
+            return existing;
+        }
+
+        // 1) 프로젝트 생성 (owner는 approver로 설정하는 것을 기본값으로 가정)
+        Project project = projectService.create(
+                proposal.getOrganization().getId(),
+                approverId,
+                proposal.getName(),
+                proposal.getDescription()
+        );
+
+        // 옵션: 제안서 기간을 프로젝트 기간에 반영
+        LocalDate s = proposal.getStartDate();
+        LocalDate d = proposal.getDueDate();
+        if (s != null || d != null) {
+            projectRepository.updateDates(project.getId(), s, d); // 아래 1-1) 참고 (간단 업데이트 쿼리)
+        }
+
+        // 2) 제안 상태/연결 갱신
         proposal.setStatus(ProjectProposal.Status.APPROVED);
-
-        // 프로젝트 생성
-        Project project = new Project();
-        project.setName(proposal.getName());
-        project.setDescription(proposal.getDescription());
-        project.setOwner(proposal.getProposer());
-        project.setOrganization(proposal.getOrganization());
-        project.setStartDate(proposal.getStartDate());
-        project.setDueDate(proposal.getDueDate());
-
-        Project savedProject = projectRepository.save(project);
-
-        proposal.setProject(savedProject);
+        proposal.setProject(project);
         proposalRepository.save(proposal);
 
-        // 📢 이벤트 발행
-        publisher.publishEvent(new ProposalStatusChangedEvent(proposal.getId(), proposal.getStatus().name()));
+        // 3) 제안자 → 프로젝트 멤버 자동 추가 (중복 방지)
+        ensureProposerMembership(project.getId(), proposal.getProposer().getId());
 
-        return savedProject;
+        return project;
+    }
+
+    private void ensureProposerMembership(Long projectId, Long proposerUserId) {
+        // 중복 체크 후 추가 (ProjectService 내 중복 안전 addMember 사용)
+        if (!projectService.existsMember(projectId, proposerUserId)) {
+            projectService.addMember(projectId, proposerUserId);
+        }
     }
 
     // 제안 거절

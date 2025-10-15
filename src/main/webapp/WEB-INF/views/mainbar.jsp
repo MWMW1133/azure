@@ -35,8 +35,8 @@
 
     <!-- ✅ FullCalendar 필수 CSS (CDN + 로컬 폴백) -->
     <link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.css"
-      onerror="this.href='${pageContext.request.contextPath}/lib/fullcalendar/index.global.min.css'">
+      href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js" defer></script>
 
     <!-- ✅ 프로젝트 캘린더 전용 CSS -->
     <link href="${pageContext.request.contextPath}/css/projects/project-calendar.css" rel="stylesheet">

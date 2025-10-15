@@ -32,8 +32,8 @@ public class ProjectProposal {
     private Organization organization;
 
     /** 승인 후 연결된 프로젝트 (projects.id FK) */
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", unique = true)
+    @OneToOne
+    @JoinColumn(name = "project_id")   // proposals.project_id → projects.id
     private Project project;
 
     @Column(nullable = false, length = 255)
