@@ -14,8 +14,14 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
     Page<Meeting> findByProject_Id(Long projectId, Pageable pageable);
     Page<Meeting> findByOrganization_IdAndProject_Id(Long organizationId, Long projectId, Pageable pageable);
 
-    // 👇 JOIN FETCH m.project 를 추가하여 project 정보도 함께 가져오도록 수정
-    @Query("SELECT m FROM Meeting m JOIN FETCH m.event JOIN FETCH m.project WHERE m.id = :id")
+    // 👇 JOIN FETCH를 확장하여 User의 Organization 정보까지 모두 즉시 로딩하도록 수정
+    @Query("SELECT m FROM Meeting m " +
+            "LEFT JOIN FETCH m.organization " +
+            "JOIN FETCH m.project p " +
+            "LEFT JOIN FETCH p.owner o LEFT JOIN FETCH o.organization " +
+            "JOIN FETCH m.event e " +
+            "JOIN FETCH e.createdBy cb LEFT JOIN FETCH cb.organization " +
+            "WHERE m.id = :id")
     Optional<Meeting> findByIdWithEvent(@Param("id") Long id);
 }
 

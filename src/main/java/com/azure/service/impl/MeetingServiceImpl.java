@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List; // ❗️ List import 추가
+import java.util.List;
 
 @Service
 @Transactional
@@ -46,13 +46,10 @@ public class MeetingServiceImpl implements MeetingService {
         ProjectCalendar representativeEvent;
         if (existingEvents.isEmpty()) {
             // 2. 결과가 없으면 새로 생성합니다.
-            System.out.println("대표 일정이 없어 새로 생성합니다: " + roomTitle);
-
             Long currentUserId = WebUserAdvice.currentUserId();
             if (currentUserId == null) {
                 throw new UnauthorizedException();
             }
-
             User currentUser = userRepository.findById(currentUserId)
                     .orElseThrow(() -> new NotFoundException("user"));
 
