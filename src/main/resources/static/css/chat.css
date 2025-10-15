@@ -125,7 +125,7 @@
     padding: 4px 8px;
 }
 
-.dm-item.disabled { opacity: .5; pointer-events: none; }
+
 
 /* 채팅창 */
 .chat-window {
@@ -133,7 +133,7 @@
     display: flex;
     flex-direction: column;
 }
-F
+
 /* 채팅 헤더 (공용) */
 .chat-header {
     padding: 6px 12px;

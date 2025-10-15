@@ -30,8 +30,37 @@ public interface ChatService {
     void addMember(Long channelId, Long userId);
     void removeMember(Long channelId, Long userId);
 
-    /** 메시지 전송(파일/답글 옵션 포함). 내용 공백/멤버십/참조 유효성 체크. */
-    Message postMessage(Long channelId, Long authorId, String body, Long fileId, Long replyToId);
+    /**
+     * 메시지 전송(파일/답글 옵션 포함). 내용 공백/멤버십/참조 유효성 체크.
+     *
+     * <p><b>하위호환 전송 API</b> — 번역을 사용하지 않는 기존 호출부는 이 메서드를 그대로 사용.</p>
+     * 구현체에서는 이 메서드가 {@link #postMessage(Long, Long, String, Long, Long, Boolean, String)}
+     * 을 기본값(translateEnabled=false, targetLang="en")으로 위임하도록 하면 됨.
+     */
+    default Message postMessage(Long channelId, Long authorId, String body, Long fileId, Long replyToId) {
+        // 구현체가 오버라이드하지 않아도 컴파일 가능하도록 디폴트 위임 시그니처를 제공
+        return postMessage(channelId, authorId, body, fileId, replyToId, Boolean.FALSE, "en");
+    }
+
+    /**
+     * 메시지 전송(번역 옵션 포함).
+     *
+     * @param channelId        채널 ID
+     * @param authorId         작성자 ID
+     * @param body             원문 메시지 본문(최대 3줄 권장 — 스텁 번역기 정책)
+     * @param fileId           첨부 파일 ID(없으면 null)
+     * @param replyToId        답글 대상 메시지 ID(없으면 null)
+     * @param translateEnabled true면 전송 직전에 번역 적용
+     * @param targetLang       타겟 언어 코드("en" | "ko" | "ja" | "zh" 등). null/라벨이면 구현체에서 정규화
+     * @return 저장된 메시지
+     */
+    Message postMessage(Long channelId,
+                        Long authorId,
+                        String body,
+                        Long fileId,
+                        Long replyToId,
+                        Boolean translateEnabled,
+                        String targetLang);
 
     /** 메시지 목록(페이징). 보통 채널 멤버만 열람 가능. */
     Page<Message> listMessages(Long channelId, Pageable pageable);

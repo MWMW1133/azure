@@ -9,8 +9,24 @@
   <div class="chat-modal__backdrop" onclick="closeChatModal()"></div>
 
   <div class="chat-modal__panel" role="dialog" aria-modal="true">
-    <header class="chat-modal__header">
-      <h3 id="chatHeaderTitle">대화방</h3>
+    <header class="chat-modal__header" style="display:flex; align-items:center; gap:12px;">
+      <h3 id="chatHeaderTitle" style="margin:0; flex:1 1 auto;">대화방</h3>
+
+      <!-- ▼▼▼ [NEW] 번역 컨트롤 (헤더 오른쪽) -->
+      <div class="d-flex align-items-center gap-2" style="flex:0 0 auto;">
+        <label class="form-check-label d-flex align-items-center" style="gap:6px; margin:0;">
+          <input type="checkbox" id="tg-translate" class="form-check-input"/>
+          <span>번역</span>
+        </label>
+        <select id="sel-target" class="form-select form-select-sm" style="width:auto;">
+          <option value="en">영어</option>
+          <option value="ko">한국어</option>
+          <option value="ja">일본어</option>
+          <option value="zh">중국어</option>
+        </select>
+      </div>
+      <!-- ▲▲▲ [NEW] -->
+
       <button type="button" class="btn btn-light" onclick="closeChatModal()">
         <i class="bi bi-x-lg"></i>
       </button>
@@ -59,7 +75,7 @@
             </div>
             <div class="col-auto">
               <button type="button" class="btn btn-primary btn-sm"
-                      id="btnChatSend" onclick="sendMessage()"> 
+                      id="btnChatSend" onclick="sendMessage()">
                 보내기
               </button>
             </div>
