@@ -90,7 +90,6 @@ public class ProjectServiceImpl implements ProjectService {
             pm.setUser(owner);
             pm.setRole(OrganizationRole.MEMBER); // <- 이 줄 필수
             projectMemberRepository.save(pm);
-            publisher.publishEvent(new ProjectMemberAddedEvent(saved.getId(), owner.getId(), owner.getId()));
         }
 
         return saved;
@@ -110,7 +109,7 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public ProjectMember addMember(Long projectId, Long userId) {
+    public ProjectMember addMember(Long projectId, Long userId, String actorName) {
         Project project = get(projectId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
@@ -130,8 +129,7 @@ public class ProjectServiceImpl implements ProjectService {
         pm.setRole(OrganizationRole.MEMBER);
 
         ProjectMember saved = projectMemberRepository.save(pm);
-
-        publisher.publishEvent(new ProjectMemberAddedEvent(projectId, userId, project.getOwner().getId()));
+        publisher.publishEvent(new ProjectMemberAddedEvent(projectId, project.getName(), actorName, user.getId()));
         return saved;
     }
 

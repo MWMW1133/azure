@@ -27,7 +27,7 @@ public interface ProjectService {
 
     /** 멤버 추가(역할 라벨: 예 "OWNER", "MEMBER"). */
     // ProjectMember addMember(Long projectId, Long userId, UserRole role);
-    ProjectMember addMember(Long projectId, Long userId);
+    ProjectMember addMember(Long projectId, Long userId, String actorName);
 
     /** 멤버 제거(존재하지 않으면 무시). */
     void removeMember(Long projectId, Long userId, Long removedByUserId);
