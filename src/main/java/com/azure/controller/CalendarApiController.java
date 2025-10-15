@@ -1,16 +1,20 @@
+// src/main/java/com/azure/controller/CalendarApiController.java
 package com.azure.controller;
 
 import com.azure.dto.EventDto;
+import com.azure.dto.TopbarTodoItem;
 import com.azure.model.calendar.PersonalCalendar;
 import com.azure.repository.PersonalCalendarRepository;
 import com.azure.service.CalendarService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-   
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,17 +26,15 @@ public class CalendarApiController {
     private final CalendarService calendarService;
     private final PersonalCalendarRepository personalCalendarRepository;
 
+    /* ========== FullCalendar: 개인 일정 CRUD ========== */
 
-
-    // ───────────── 조회 ─────────────
     @GetMapping("/events")
     public List<EventDto> getEvents(
-        @ModelAttribute("currentUserId") Long uid,
-        @RequestParam(required = false) String start,
-        @RequestParam(required = false) String end) {
+            @ModelAttribute("currentUserId") Long uid,
+            @RequestParam(required = false) String start,
+            @RequestParam(required = false) String end) {
 
-        if (uid == null) throw new org.springframework.web.server.ResponseStatusException(
-            org.springframework.http.HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+        if (uid == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
 
         LocalDateTime from = (start != null && !start.isBlank())
                 ? parseFlexibleForAllDay(start, false, false)
@@ -42,56 +44,43 @@ public class CalendarApiController {
                 ? parseFlexibleForAllDay(end, true, false)
                 : LocalDate.now().plusMonths(2).atTime(23, 59, 59);
 
-        List<PersonalCalendar> rows =
-                personalCalendarRepository.findByCreatedBy_IdAndStartAtBetween(uid, from, to);
-
+        var rows = personalCalendarRepository.findByCreatedBy_IdAndStartAtBetween(uid, from, to);
         return rows.stream().map(this::toEventDto).collect(Collectors.toList());
     }
 
-    // ───────────── 생성 ─────────────
     @PostMapping("/events")
     public EventDto createEvent(@ModelAttribute("currentUserId") Long uid,
                                 @RequestBody EventDto in) {
-        if (uid == null) throw new org.springframework.web.server.ResponseStatusException(
-            org.springframework.http.HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+        if (uid == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
 
         boolean allDay = in.isAllDay();
         LocalDateTime startAt = parseFlexibleForAllDay(in.getStart(), false, allDay);
         LocalDateTime endAt   = parseFlexibleForAllDay(in.getEnd(),   true,  allDay);
 
-        // rrule은 top-level 우선, 없으면 extendedProps에서
-        String rrule = nvl(in.getRrule(), ext(in, "rrule"));
-        String memo = ext(in, "memo");
+        String rrule    = nvl(in.getRrule(), ext(in, "rrule"));
+        String memo     = ext(in, "memo");
         String location = ext(in, "location");
 
         PersonalCalendar saved = calendarService.schedulePersonalEvent(
-                uid,
-                nvl(in.getTitle(), ""),
-                memo,
-                startAt,
-                endAt,
-                allDay,
-                rrule,
-                location
+                uid, nvl(in.getTitle(), ""), memo, startAt, endAt, allDay, rrule, location
         );
 
-        // 색상 컬럼 반영
         if (in.getBackgroundColor() != null && !in.getBackgroundColor().isBlank()) {
             saved.setColor(in.getBackgroundColor());
             saved = personalCalendarRepository.save(saved);
         }
-
-        // 참고: JS가 보내는 "reminder"는 DTO에 없어도 스프링이 무시(기본 설정). 필요 시 별도 처리 추가.
-
         return toEventDto(saved);
     }
 
-    // ───────────── 수정 ─────────────
     @PutMapping("/events/{id}")
-    public EventDto updateEvent(@ModelAttribute("currentUserId") long uid, @PathVariable("id") String id, @RequestBody EventDto in) {
+    public EventDto updateEvent(@ModelAttribute("currentUserId") Long uid,
+                                @PathVariable("id") String id,
+                                @RequestBody EventDto in) {
+        if (uid == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+
         Long eid = Long.valueOf(id);
         PersonalCalendar e = personalCalendarRepository.findById(eid)
-                .orElseThrow(() -> new RuntimeException("Event not found: " + id));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found: " + id));
 
         boolean allDay = in.isAllDay();
         LocalDateTime startAt = parseFlexibleForAllDay(in.getStart(), false, allDay);
@@ -113,24 +102,68 @@ public class CalendarApiController {
         return toEventDto(e);
     }
 
-    // ───────────── 삭제 ─────────────
     @DeleteMapping("/events/{id}")
-    public ResponseEntity<Void> deleteEvent(@ModelAttribute("currentUserId") Long uid, @PathVariable("id") String id) {
+    public ResponseEntity<Void> deleteEvent(@ModelAttribute("currentUserId") Long uid,
+                                            @PathVariable("id") String id) {
+        if (uid == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
         calendarService.deletePersonalEvent(Long.valueOf(id));
         return ResponseEntity.ok().build();
     }
 
-    // ───────────── 변환/유틸 ─────────────
+    /* ========== Topbar To-do: 홈과 동일 ‘겹침’ 기준 ========== */
+
+    @GetMapping("/today")
+    public List<TopbarTodoItem> listToday(@ModelAttribute("currentUserId") Long uid) {
+        if (uid == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+
+        LocalDate today = LocalDate.now();
+        LocalDateTime start = today.atStartOfDay();
+        LocalDateTime end   = today.plusDays(1).atStartOfDay(); // [start, end) 구간
+
+        var events = calendarService.listPersonalEventsBetween(uid, start, end);
+
+        return events.stream().map(e -> {
+            TopbarTodoItem t = new TopbarTodoItem();
+            t.setId(e.getId());
+            t.setTitle(e.getTitle());
+            t.setMemo(e.getDescription());
+            t.setStartAt(e.getStartAt() != null ? e.getStartAt().toString() : null);
+            t.setEndAt(e.getEndAt() != null ? e.getEndAt().toString() : null);
+            t.setAllDay(Boolean.TRUE.equals(e.getAllDay()));
+            t.setIsDone(Boolean.TRUE.equals(e.getIsDone()));
+            return t;
+        }).toList();
+    }
+
+    @PostMapping("/{id}/toggle-done")
+    public TopbarTodoItem toggleDone(@ModelAttribute("currentUserId") Long uid,
+                                     @PathVariable Long id,
+                                     @RequestParam boolean done) {
+        if (uid == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+
+        var updated = calendarService.setPersonalEventDone(id, done);
+
+        TopbarTodoItem t = new TopbarTodoItem();
+        t.setId(updated.getId());
+        t.setTitle(updated.getTitle());
+        t.setMemo(updated.getDescription());
+        t.setStartAt(updated.getStartAt() != null ? updated.getStartAt().toString() : null);
+        t.setEndAt(updated.getEndAt() != null ? updated.getEndAt().toString() : null);
+        t.setAllDay(Boolean.TRUE.equals(updated.getAllDay()));
+        t.setIsDone(Boolean.TRUE.equals(updated.getIsDone()));
+        return t;
+    }
+
+    /* ========== 내부 유틸 ========== */
+
     private EventDto toEventDto(PersonalCalendar e) {
         EventDto dto = new EventDto();
         dto.setId(String.valueOf(e.getId()));
         dto.setTitle(e.getTitle());
-        dto.setStart(e.getStartAt().toString()); // "yyyy-MM-ddTHH:mm:ss"
+        dto.setStart(e.getStartAt().toString());
         dto.setEnd(e.getEndAt().toString());
         dto.setAllDay(Boolean.TRUE.equals(e.getAllDay()));
         dto.setBackgroundColor((e.getColor() == null || e.getColor().isBlank()) ? "blue" : e.getColor());
-
-        // rrule은 top-level과 extendedProps에 함께 실어줌(플러그인/프론트 호환성 ↑)
         dto.setRrule(e.getRrule());
 
         Map<String, String> ext = new HashMap<>();
@@ -138,7 +171,6 @@ public class CalendarApiController {
         if (e.getDescription() != null) ext.put("memo", e.getDescription());
         if (e.getRrule() != null)       ext.put("rrule", e.getRrule());
         dto.setExtendedProps(ext);
-
         return dto;
     }
 
@@ -147,15 +179,11 @@ public class CalendarApiController {
         return (m == null) ? null : m.get(key);
     }
 
-    /** s1이 비어있으면 s2 반환 */
     private static String nvl(String s1, String s2) {
         return (s1 != null && !s1.isBlank()) ? s1 : s2;
     }
 
-    /**
-     * "yyyy-MM-dd" 또는 "yyyy-MM-ddTHH:mm[:ss]" 모두 허용.
-     * allDay=true면 시작은 00:00, 종료는 23:59로 보정.
-     */
+    /** "yyyy-MM-dd" 또는 "yyyy-MM-ddTHH:mm[:ss]" 허용. */
     private static LocalDateTime parseFlexibleForAllDay(String s, boolean end, boolean allDay) {
         if (s == null || s.isBlank()) return null;
         String t = s.trim();
@@ -164,64 +192,12 @@ public class CalendarApiController {
             return end ? d.atTime(23, 59) : d.atStartOfDay();
         }
         String iso = t.replace(' ', 'T');
-        if (iso.length() == 16) iso = iso + ":00"; // 초 생략 보정
+        if (iso.length() == 16) iso = iso + ":00";
         return LocalDateTime.parse(iso.substring(0, 19));
     }
 
-    @GetMapping("/today")
-public List<TodoItem> todayTodos(@ModelAttribute("currentUserId") Long uid) {
-    if (uid == null) {
-        throw new org.springframework.web.server.ResponseStatusException(
-                org.springframework.http.HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+    private static String fmtTime(LocalDateTime start, LocalDateTime end, DateTimeFormatter f) {
+        if (start == null || end == null) return "";
+        return start.format(f) + " - " + end.format(f);
     }
-    var today = java.time.LocalDate.now();
-    var from = today.atStartOfDay();
-    var to   = today.atTime(23, 59, 59);
-
-    List<com.azure.model.calendar.PersonalCalendar> rows =
-            personalCalendarRepository.findByCreatedBy_IdAndStartAtBetween(uid, from, to);
-
-    return rows.stream().map(pc -> {
-        TodoItem t = new TodoItem();
-        t.setId(pc.getId());
-        t.setTitle(pc.getTitle());
-        t.setStart(pc.getStartAt());
-        t.setEnd(pc.getEndAt());
-        t.setAllDay(Boolean.TRUE.equals(pc.getAllDay()));
-        t.setMemo(pc.getDescription());
-        t.setDone(Boolean.TRUE.equals(pc.getIsDone()));
-        return t;
-    }).toList();
-}
-
-/** 완료 토글 (done=true/false) */
-@PostMapping("/{id}/toggle-done")
-public ResponseEntity<Void> toggleDone(@PathVariable("id") Long id,
-                                       @RequestParam("done") boolean done,
-                                       @ModelAttribute("currentUserId") Long uid) {
-    if (uid == null) {
-        return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
-    }
-    // (선택) 권한 체크: 본인 소유 이벤트인지 확인하고 싶으면 아래 주석 해제
-    // var e = personalCalendarRepository.findById(id)
-    //         .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(HttpStatus.NOT_FOUND));
-    // if (e.getCreatedBy() == null || !uid.equals(e.getCreatedBy().getId())) {
-    //     throw new org.springframework.web.server.ResponseStatusException(HttpStatus.FORBIDDEN);
-    // }
-
-    calendarService.setPersonalEventDone(id, done);
-    return ResponseEntity.ok().build();
-}
-
-/* To-do 응답용 최소 DTO */
-@lombok.Data
-static class TodoItem {
-    private Long id;
-    private String title;
-    private java.time.LocalDateTime start;
-    private java.time.LocalDateTime end;
-    private boolean allDay;
-    private String memo;
-    private boolean isDone;
-}
 }
