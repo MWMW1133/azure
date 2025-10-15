@@ -24,6 +24,8 @@ window.initCalendar = function () {
 
   // --- FullCalendar 초기화 ---
   const calendar = new FullCalendar.Calendar(calendarEl, {
+    plugins: [ FullCalendar.RRulePlugin ],
+    
     initialView: 'dayGridMonth',
     headerToolbar: {
       left: 'prev,next today',
@@ -142,7 +144,6 @@ window.initCalendar = function () {
       start: startInput.value,
       end: endInput.value,
       allDay: allDayCheckbox.checked,
-      reminder: document.getElementById('event-reminder').value,
       extendedProps: {
         location: document.getElementById('event-location').value,
         memo: document.getElementById('event-memo').value,
