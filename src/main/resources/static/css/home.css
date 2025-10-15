@@ -107,9 +107,18 @@
 
 /* TO DO 카드의 상태 태그 */
 .card-todo-status {
-  color: #ef4444;
-  font-size: 13px;
+  color: #ffffff;
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-size: 12px;
   font-weight: 500;
+}
+
+.card-todo-status.완료 {
+  background-color: green;
+}
+.card-todo-status.미완료 {
+  background-color: red;
 }
 
 .card-task-status,

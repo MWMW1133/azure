@@ -41,4 +41,19 @@ public class Workflow {
     protected void onCreate() {
     this.createdAt = LocalDateTime.now();
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Workflow)) return false;
+        Workflow other = (Workflow) o;
+        // 아직 영속화 전이면 비교 불가 → 객체 동일성 유지
+        if (this.id == null || other.id == null) return false;
+        return this.id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return (id == null) ? System.identityHashCode(this) : id.hashCode();
+    }
 }

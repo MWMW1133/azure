@@ -478,9 +478,12 @@ public class TaskServiceImpl implements TaskService {
         if (!workflow.getProject().getId().equals(task.getProject().getId())) {
             throw new IllegalArgumentException("Workflow does not belong to the same project as the task");
         }
+        applyStageAndProgressRules(task, workflow);
         task.setWorkflow(workflow);
         Task saved = taskRepository.save(task);
-
+        if (saved.getParentTask() != null) {
+            updateParentAggregate(saved.getParentTask().getId());
+        }
         Long afterId   = (saved.getWorkflow()==null? null : saved.getWorkflow().getId());
         String afterNm = (saved.getWorkflow()==null? null : saved.getWorkflow().getName());
         String afterCo = (saved.getWorkflow()==null? null : saved.getWorkflow().getColor());
