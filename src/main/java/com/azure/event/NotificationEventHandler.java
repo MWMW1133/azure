@@ -45,12 +45,17 @@ public class NotificationEventHandler {
     // 3-1) 프로젝트 멤버 추가
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void on(ProjectMemberAddedEvent e) {
-        String payload = Jsons.stringify(Map.of(
-                "projectId", e.projectId(),
-                "addedByUserId", e.addedByUserId()
-        ));
-        notificationService.notifyUser(e.addedUserId(), NotificationType.PROJECT_MEMBER_ADDED.name(), payload);
-    }
+    String payload = Jsons.stringify(Map.of(
+        "projectId",    e.projectId(),
+        "projectTitle", e.projectTitle(),
+        "sender",       e.actorName() 
+    ));
+    notificationService.notifyUser(
+        e.addedUserId(), 
+        NotificationType.PROJECT_MEMBER_ADDED.name(), 
+        payload
+    );
+}
     // 3-2) 프로젝트 멤버 제거
     @TransactionalEventListener
     public void on(ProjectMemberRemovedEvent e) {

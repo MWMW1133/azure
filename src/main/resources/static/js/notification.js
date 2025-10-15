@@ -102,6 +102,21 @@ window.connectNotificationSocket = function (userId) {
           break;
         }
 
+        case 'PROJECT_MEMBER_ADDED': {
+          const memberAddedNotif = {
+            id: data.id || Date.now(),
+            type: data.type,
+            payload,
+            title: '프로젝트 초대 알림',
+            message: `${payload.sender}님이 ${payload.projectTitle} 프로젝트에 초대하셨습니다.`,
+            link: payload.link || '#',
+            createdAt: new Date().toLocaleString(),
+            isRead: false,
+          };
+          window.notifications.unshift(memberAddedNotif);
+          break;
+        }
+
         default: {
           const generic = {
             id: data.id || Date.now(),
