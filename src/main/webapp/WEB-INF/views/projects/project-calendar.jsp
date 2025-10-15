@@ -1,41 +1,12 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 
-<!-- FullCalendar & Bootstrap (순서 중요) -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
-
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/rrule@2.7.2/dist/es5/rrule.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/rrule@6.1.15/index.global.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<style>
-  #calendar{min-height:620px}
-  .event-popup{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center}
-  .event-popup.is-open{display:flex}
-  .popup-content{background:#fff;border-radius:12px;max-width:680px;width:92vw;padding:16px;position:relative}
-  .popup-close{position:absolute;right:12px;top:8px;border:none;background:transparent;font-size:22px;cursor:pointer}
-  .form-row{display:flex;gap:12px}
-  .form-group{margin-bottom:10px;flex:1}
-  .form-group-inline{display:flex;align-items:center;gap:8px}
-  .day-selector-group{display:flex;gap:6px;flex-wrap:wrap}
-  .day-btn{border:1px solid #e5e7eb;background:#f8f9fa;border-radius:6px;padding:6px 10px;cursor:pointer}
-  .day-btn.active{background:#0d6efd;color:#fff;border-color:#0d6efd}
-  .form-actions{display:flex;justify-content:space-between;gap:8px;margin-top:8px}
-  .btn-save,.btn-delete{padding:8px 12px;border-radius:6px;border:none;cursor:pointer}
-  .btn-save{background:#0d6efd;color:#fff}
-  .btn-delete{background:#dc3545;color:#fff}
-  .clean-toast{min-width:260px}
-  .toast-icon{width:22px;text-align:center}
-</style>
-
 <div id="calendar-container"
      data-project-id="${param.projectId != null ? param.projectId : projectId}"
      data-ctx="${pageContext.request.contextPath}">
   <!-- 캘린더 -->
-  <div id="calendar"></div>
+  <div id="calendar" style="min-height:620px"></div>
 
-  <!-- 팝업 -->
+  <!-- 팝업 (컨테이너 내부) -->
   <div id="event-popup" class="event-popup">
     <div class="popup-content">
       <button type="button" class="popup-close" aria-label="닫기">&times;</button>
@@ -147,5 +118,9 @@
   </div>
 </div>
 
-<!-- 우리 JS (FullCalendar/rrule 로드 이후) -->
+<!-- ✅ FullCalendar: 폴백 없이 1개만, 우리 스크립트보다 먼저 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+
+<!-- 우리 스크립트 (FullCalendar 로드 후) -->
 <script src="${pageContext.request.contextPath}/js/projects/project-calendar.js"></script>

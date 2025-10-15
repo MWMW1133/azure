@@ -37,6 +37,16 @@
           <label for="event-all-day">종일</label>
           <input type="checkbox" id="event-all-day" />
         </div>
+        <div class="form-group-inline">
+          <label for="event-reminder">알림</label>
+          <select id="event-reminder">
+            <option value="none" selected>사용 안 함</option>
+            <option value="ontime">일정 시작시간</option>
+            <option value="tenMbefore">10분 전</option>
+            <option value="oneHbefore">1시간 전</option>
+            <option value="oneDbefore">1일 전</option>
+          </select>
+        </div>
       </div>
 
       <!-- 반복 요일 -->
