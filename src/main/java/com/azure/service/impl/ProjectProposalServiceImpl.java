@@ -135,6 +135,20 @@ public class ProjectProposalServiceImpl implements ProjectProposalService {
         // 3) 제안자 → 프로젝트 멤버 자동 추가 (중복 방지)
         ensureProposerMembership(project.getId(), proposal.getProposer().getId());
 
+        proposal.setStatus(ProjectProposal.Status.APPROVED);
+        proposal.setProject(project);
+
+        // ✅ 저장 결과를 saved에 대입
+        ProjectProposal saved = proposalRepository.save(proposal);
+
+        // 3) 제안자 → 프로젝트 멤버 자동 추가 (중복 방지)
+        ensureProposerMembership(project.getId(), proposal.getProposer().getId());
+
+        // ✅ 이벤트 발행 (saved 사용)
+        publisher.publishEvent(new ProposalStatusChangedEvent(
+        saved.getId(), saved.getStatus().name()
+        ));
+
         return project;
     }
 
