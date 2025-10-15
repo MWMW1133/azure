@@ -1,18 +1,23 @@
 package com.azure.controller;
 
+import com.azure.dto.ProjectMemberDTO;
 import com.azure.model.project.Project;
+import com.azure.model.project.ProjectMember;
 import com.azure.model.task.Task;
 import com.azure.service.ProjectService;
 import com.azure.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.time.Instant;
 import java.util.List;
 
 @Controller
@@ -118,5 +123,19 @@ public class ProjectPageController {
         model.addAttribute("archivedTasks", archivedTasks);
 
         return "projects/mainTable";
+    }
+
+    @GetMapping("/members/list")
+    @ResponseBody
+    public Page<ProjectMemberDTO> listMembers(@PathVariable Long projectId, Pageable pageable) {
+        return projectService.listMembers(projectId, pageable).map(pm -> {
+            var u = pm.getUser();
+            var dto = new ProjectMemberDTO();
+            dto.setProjectId(projectId);
+            dto.setUserId(u != null ? u.getId() : null);
+            dto.setUserName(u != null ? u.getName() : null);
+            dto.setUserAvatarUrl(u != null ? u.getAvatarUrl() : null);
+            return dto;
+        });
     }
 }

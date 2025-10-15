@@ -79,6 +79,19 @@
   </div>
   <div class="project-body"></div>
 </div>
+<!-- 초대 알림 -->
+<div id="inviteToastContainer"
+     class="toast-container position-fixed end-0 p-3"
+     aria-live="polite" aria-atomic="true">
+  <div id="inviteToast" class="toast align-items-center text-white border-0" role="status">
+    <div class="d-flex">
+      <div class="toast-body"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
 
 
 <script src="/js/project-tab.js"></script>
