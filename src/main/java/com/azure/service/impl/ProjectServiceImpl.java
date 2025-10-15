@@ -88,6 +88,7 @@ public class ProjectServiceImpl implements ProjectService {
             pm.setId(pmId);
             pm.setProject(saved);
             pm.setUser(owner);
+            pm.setRole(OrganizationRole.MEMBER); // <- 이 줄 필수
             projectMemberRepository.save(pm);
             publisher.publishEvent(new ProjectMemberAddedEvent(saved.getId(), owner.getId(), owner.getId()));
         }
