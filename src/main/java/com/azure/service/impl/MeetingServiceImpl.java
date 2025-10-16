@@ -1,22 +1,28 @@
 package com.azure.service.impl;
 
-import com.azure.dto.MeetingDTO;
+import com.azure.config.WebUserAdvice;
+import com.azure.dto.MeetingDTO; // ✅ DTO 임포트
+import com.azure.model.Organization;
+import com.azure.model.calendar.ProjectCalendar;
 import com.azure.model.meeting.Meeting;
+import com.azure.model.enums.MeetingStatus; // ✅ Status Enum 임포트
+import com.azure.model.project.Project;
+import com.azure.model.user.User;
 import com.azure.repository.MeetingRepository;
-import com.azure.repository.OrganizationRepository;
+import com.azure.repository.ProjectCalendarRepository;
 import com.azure.repository.ProjectRepository;
+import com.azure.repository.UserRepository;
 import com.azure.service.MeetingService;
-import com.azure.service.exception.NotFoundException;
+import com.azure.websocket.error.NotFoundException;
+import com.azure.websocket.error.UnauthorizedException;
+import jakarta.persistence.EntityNotFoundException; // ✅ JPA 예외 사용 권장
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.azure.event.MeetingStartedEvent;
-import com.azure.event.MeetingEndedEvent;
+
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @Transactional
@@ -24,104 +30,75 @@ import java.time.LocalDateTime;
 public class MeetingServiceImpl implements MeetingService {
 
     private final MeetingRepository meetingRepository;
-    private final OrganizationRepository organizationRepository;
     private final ProjectRepository projectRepository;
-    private final ApplicationEventPublisher publisher;
+    private final ProjectCalendarRepository calendarRepository;
+    private final UserRepository userRepository;
+
+    @Value("${aws.s3.public-base-url}")
+    private String s3BaseUrl;
+
+    private static final String PERMANENT_MEETING_ROOM_TITLE_FORMAT = "[%s] 상시 회의실";
+
     @Override
-    public Meeting startMeeting(Long organizationId, Long projectId, LocalDateTime startedAt) {
-        var org = organizationRepository.findById(organizationId)
-                .orElseThrow(() -> new NotFoundException("Organization not found: " + organizationId));
-        var project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new NotFoundException("Project not found: " + projectId));
+    public MeetingDTO startMeeting(Long organizationId, Long projectId) { // ✅ 반환 타입 MeetingDTO로 변경
 
-        Meeting m = new Meeting();
-        m.setOrganization(org);
-        m.setProject(project);
-        m.setStartedAt(startedAt != null ? startedAt : LocalDateTime.now());
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new NotFoundException("project"));
 
-        Meeting saved = meetingRepository.save(m);
+        String roomTitle = String.format(PERMANENT_MEETING_ROOM_TITLE_FORMAT, project.getName());
+        List<ProjectCalendar> existingEvents = calendarRepository.findByProjectIdAndTitle(projectId, roomTitle);
 
-        // 📢 회의 시작 이벤트 발행
-        publisher.publishEvent(new MeetingStartedEvent(saved));
+        ProjectCalendar representativeEvent;
+        if (existingEvents.isEmpty()) {
+            Long currentUserId = WebUserAdvice.currentUserId();
+            if (currentUserId == null) {
+                throw new UnauthorizedException();
+            }
+            User currentUser = userRepository.findById(currentUserId)
+                    .orElseThrow(() -> new NotFoundException("user"));
 
-        return saved;
+            ProjectCalendar newEvent = new ProjectCalendar();
+            newEvent.setProject(project);
+            newEvent.setTitle(roomTitle);
+            newEvent.setStartAt(LocalDateTime.now());
+            newEvent.setEndAt(LocalDateTime.now());
+            newEvent.setCreatedBy(currentUser);
+
+            representativeEvent = calendarRepository.save(newEvent);
+        } else {
+            representativeEvent = existingEvents.get(0);
+        }
+
+        Meeting newMeeting = new Meeting();
+        if (organizationId != null) {
+            var o = new Organization();
+            o.setId(organizationId);
+            newMeeting.setOrganization(o);
+        }
+        newMeeting.setProject(project);
+        newMeeting.setStartedAt(LocalDateTime.now());
+        newMeeting.setEvent(representativeEvent);
+        newMeeting.setStatus(MeetingStatus.RECORDING); // ✅ 시작 시 상태를 '녹음중'으로 설정
+
+        Meeting savedMeeting = meetingRepository.save(newMeeting);
+
+        // ✅ 엔티티를 DTO로 변환하여 반환
+        return MeetingDTO.fromEntity(savedMeeting, s3BaseUrl);
     }
 
     @Override
-    public Meeting endMeeting(Long meetingId, LocalDateTime endedAt) {
+    public MeetingDTO endMeeting(Long meetingId) { // ✅ 반환 타입 MeetingDTO로 변경
+        // findByIdWithEvent 대신 일반 findById 사용 권장 (이후에 DTO로 변환할 것이므로)
         Meeting m = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new NotFoundException("Meeting not found: " + meetingId));
+                .orElseThrow(() -> new EntityNotFoundException("Meeting not found with id: " + meetingId));
 
-        if (m.getEndedAt() != null) {
-            throw new IllegalStateException("Meeting already ended at " + m.getEndedAt());
+        if (m.getEndedAt() == null) {
+            m.setEndedAt(LocalDateTime.now());
+            // 필요 시 상태 변경: m.setStatus(MeetingStatus.COMPLETED); (이 상태는 Transcribe 완료 후 변경하는 것이 더 적합)
         }
+        Meeting savedMeeting = meetingRepository.save(m);
 
-        m.setEndedAt(endedAt != null ? endedAt : LocalDateTime.now());
-        Meeting saved = meetingRepository.save(m);
-
-        // 📢 회의 종료 이벤트 발행
-        publisher.publishEvent(new MeetingEndedEvent(saved));
-
-        return saved;
-    }
-
-    @Override
-    public MeetingDTO create(MeetingDTO dto) {
-        var org = organizationRepository.findById(dto.getOrganizationId())
-                .orElseThrow(() -> new NotFoundException("Organization not found"));
-        var project = projectRepository.findById(dto.getProjectId())
-                .orElseThrow(() -> new NotFoundException("Project not found"));
-
-        Meeting m = new Meeting();
-        m.setOrganization(org);
-        m.setProject(project);
-        m.setStartedAt(dto.getStartedAt());
-        m.setEndedAt(dto.getEndedAt());
-
-        return toDto(meetingRepository.save(m));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public MeetingDTO get(Long meetingId) {
-        return meetingRepository.findById(meetingId)
-                .map(this::toDto)
-                .orElseThrow(() -> new NotFoundException("Meeting not found: " + meetingId));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<MeetingDTO> listByOrganization(Long organizationId, Pageable pageable) {
-        return meetingRepository.findByOrganization_Id(organizationId, pageable)
-                .map(this::toDto);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<MeetingDTO> listByProject(Long projectId, Pageable pageable) {
-        return meetingRepository.findByProject_Id(projectId, pageable)
-                .map(this::toDto);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<MeetingDTO> listByOrganizationAndProject(Long organizationId, Long projectId, Pageable pageable) {
-        return meetingRepository.findByOrganization_IdAndProject_Id(organizationId, projectId, pageable)
-                .map(this::toDto);
-    }
-
-    private MeetingDTO toDto(Meeting m) {
-        MeetingDTO dto = new MeetingDTO();
-        dto.setId(m.getId());
-        dto.setOrganizationId(m.getOrganization().getId());
-        dto.setOrganizationName(m.getOrganization().getName());
-        dto.setProjectId(m.getProject().getId());
-        dto.setProjectName(m.getProject().getName());
-        dto.setStartedAt(m.getStartedAt());
-        dto.setEndedAt(m.getEndedAt());
-        if (m.getRecordingFile() != null) {
-            dto.setRecordingFileUrl("/files/" + m.getRecordingFile().getId());
-        }
-        return dto;
+        // ✅ 엔티티를 DTO로 변환하여 반환
+        return MeetingDTO.fromEntity(savedMeeting, s3BaseUrl);
     }
 }

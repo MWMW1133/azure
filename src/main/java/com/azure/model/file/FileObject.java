@@ -1,3 +1,4 @@
+// src/main/java/com/azure/model/file/FileObject.java
 package com.azure.model.file;
 
 import jakarta.persistence.*;
