@@ -55,7 +55,7 @@ public interface UserService {
                 String name, String avatarUrl, User.WorkStatus workStatus,
                 boolean isAdminSignup, String companyName);
 
-    User update(String passwordHash, String name, String avatarUrl, User.WorkStatus workStatus);
+    User update(Long currentUserId, String passwordHash, String name, String avatarUrl, User.WorkStatus workStatus);
     void delete(Long userId);
     Optional<User> findByLoginId(String loginId);
     boolean existsByLoginId(String loginId);
