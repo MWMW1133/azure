@@ -8,11 +8,14 @@ import com.azure.model.project.Project;
 import com.azure.model.user.User;
 import com.azure.repository.*;
 import com.azure.service.ChatService;
+import com.azure.service.chat.ChatNlpService;
 import com.azure.service.exception.BadRequestException;
 import com.azure.service.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.DataIntegrityViolationException; // ★ 중복 생성 경합 처리
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>파일/답글 참조는 존재 여부 + 동일 채널 여부 확인</li>
  * </ul>
  */
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -40,6 +44,11 @@ public class ChatServiceImpl implements ChatService {
     private final UserRepository userRepository;
     private final FileObjectRepository fileObjectRepository;
     private final ApplicationEventPublisher publisher;
+    private final ChatNlpService chatNlpService;
+
+    /** 강제 번역(디버그용) - application.properties: mt.force=true */
+    @Value("${mt.force:false}")
+    private boolean mtForce;
 
     // ───────────────────────── 내부 유틸(멤버십/검증) ─────────────────────────
 
@@ -48,32 +57,33 @@ public class ChatServiceImpl implements ChatService {
         return channelMemberRepository.existsById_ChannelIdAndId_UserId(channelId, userId);
     }
 
+    /** 라벨/널 방어하여 언어코드 정규화 */
+    private String normalizeTarget(String t) {
+        if (t == null) return "en";
+        String s = t.trim().toLowerCase();
+        return switch (s) {
+            case "en", "english", "영어" -> "en";
+            case "ko", "korean", "한국어", "한글" -> "ko";
+            case "ja", "japanese", "일본어" -> "ja";
+            case "zh", "chinese", "중국어", "zh-cn", "cn" -> "zh";
+            default -> "en";
+        };
+    }
+
     // ───────────────────────── DM 채널 get-or-create ─────────────────────────
-    /**
-     * 두 사용자(meId, peerId) 사이의 DM 채널을 찾고, 없으면 생성해서 채널 ID 반환.
-     * - (a,b) 순으로 정규화해 중복 생성을 방지
-     * - 동시 생성 경합은 DataIntegrityViolationException 캐치 후 재조회
-     */
     @Override
     public Long getOrCreateDmChannel(long me, long peer) {
-        if (me == peer) {
-            throw new BadRequestException("me == peer");
-        }
+        if (me == peer) throw new BadRequestException("me == peer");
 
-        // 1) 정규화 (작은 id, 큰 id)
         final long a = Math.min(me, peer);
         final long b = Math.max(me, peer);
 
-        // 2) 기존 채널 조회 (양 방향 메서드를 모두 시도)
-        //   - 프로젝트에 이미 존재하는 메서드 시그니처에 맞춰 호출
         var found = chatChannelRepository.findDmChannelIdByTwoMembers(a, b);
         if (found.isPresent()) return found.get();
 
-        // 혹시 구현이 (me,peer) 순서로만 되어 있다면 역순도 시도
         var foundReverse = chatChannelRepository.findDmChannelIdByTwoMembers(b, a);
         if (foundReverse.isPresent()) return foundReverse.get();
 
-        // 3) 없으면 생성 (유저 존재 확인)
         var meUser   = userRepository.findById(me)
                 .orElseThrow(() -> new NotFoundException("me not found"));
         var peerUser = userRepository.findById(peer)
@@ -82,23 +92,20 @@ public class ChatServiceImpl implements ChatService {
         try {
             ChatChannel dm = new ChatChannel();
             dm.setChannelType(ChannelType.DM);
-            // 이름은 가벼운 식별용(실제 표시는 프론트에서 상대 이름 사용)
             dm.setName("DM:" + a + ":" + b);
 
             ChatChannel saved = chatChannelRepository.save(dm);
 
-            // 멤버 두 명 추가(멱등)
             addMember(saved.getId(), meUser.getId());
             addMember(saved.getId(), peerUser.getId());
 
             return saved.getId();
         } catch (DataIntegrityViolationException e) {
-            // 동시 생성 경합 발생 시 재조회하여 id 반환
             var again = chatChannelRepository.findDmChannelIdByTwoMembers(a, b);
             if (again.isPresent()) return again.get();
             var again2 = chatChannelRepository.findDmChannelIdByTwoMembers(b, a);
             if (again2.isPresent()) return again2.get();
-            throw e; // 정말 없다면 원인 파악 위해 그대로 던짐
+            throw e;
         }
     }
 
@@ -129,7 +136,6 @@ public class ChatServiceImpl implements ChatService {
         id.setChannelId(channel.getId());
         id.setUserId(user.getId());
 
-        // 멱등 처리: 이미 멤버면 조용히 반환
         if (channelMemberRepository.existsById(id)) return;
 
         ChannelMember m = new ChannelMember();
@@ -144,13 +150,27 @@ public class ChatServiceImpl implements ChatService {
         ChannelMemberId id = new ChannelMemberId();
         id.setChannelId(channelId);
         id.setUserId(userId);
-        channelMemberRepository.deleteById(id); // 존재하지 않아도 멱등
+        channelMemberRepository.deleteById(id);
     }
 
     // ───────────────────────── 메시지 ─────────────────────────
 
+    /** 기존 시그니처는 새 오버로드로 위임 (하위호환) */
     @Override
     public Message postMessage(Long channelId, Long authorId, String body, Long fileId, Long replyToId) {
+        return postMessage(channelId, authorId, body, fileId, replyToId, Boolean.FALSE, "en");
+    }
+
+    /** 번역 옵션이 포함된 새 오버로드 (인터페이스 요구사항) */
+    @Override
+    public Message postMessage(Long channelId,
+                               Long authorId,
+                               String body,
+                               Long fileId,
+                               Long replyToId,
+                               Boolean translateEnabled,
+                               String targetLang) {
+
         ChatChannel channel = chatChannelRepository.findById(channelId)
                 .orElseThrow(() -> new NotFoundException("Channel not found: " + channelId));
         User author = userRepository.findById(authorId)
@@ -163,10 +183,23 @@ public class ChatServiceImpl implements ChatService {
             throw new BadRequestException("메시지 내용은 비어 있을 수 없습니다.");
         }
 
+        // ===== 전송 직전 번역 적용 (mt.force=true면 체크박스 무시하고 강제 번역) =====
+        String normalized = normalizeTarget(targetLang);
+        boolean doTranslate = mtForce || Boolean.TRUE.equals(translateEnabled);
+        log.info("[MT] opts tr?={}, force={}, tgt={}", translateEnabled, mtForce, normalized);
+
+        String finalBody = doTranslate
+                ? chatNlpService.translate(body, normalized)
+                : body;
+
+        log.info("[MT] result preview={}",
+                finalBody.length() > 40 ? finalBody.substring(0, 40) + "..." : finalBody);
+        // =====================================================================
+
         Message msg = new Message();
         msg.setChannel(channel);
         msg.setAuthor(author);
-        msg.setBody(body);
+        msg.setBody(finalBody);
 
         if (fileId != null) {
             FileObject f = fileObjectRepository.findById(fileId)
@@ -185,8 +218,8 @@ public class ChatServiceImpl implements ChatService {
 
         Message saved = messageRepository.save(msg);
 
-        // 알림 이벤트 발행
-        String preview = body.length() > 20 ? body.substring(0, 20) + "..." : body;
+        // 알림 이벤트 발행 (번역 적용된 본문 기준)
+        String preview = finalBody.length() > 20 ? finalBody.substring(0, 20) + "..." : finalBody;
         publisher.publishEvent(new ChatMessageCreatedEvent(channelId, saved.getId(), authorId, preview));
 
         return saved;

@@ -4,6 +4,8 @@ import com.azure.model.calendar.PersonalCalendar;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,5 +40,15 @@ public interface PersonalCalendarRepository extends JpaRepository<PersonalCalend
     // 오늘 일정 조회
     List<PersonalCalendar> findByCreatedBy_IdAndStartAtBetween(Long userId, LocalDateTime start, LocalDateTime end);
 
-
+    /** 특정 유저의 일정 중, [start,end] 구간과 겹치는 개인일정 모두 반환 */
+    @Query("""
+        select e
+          from PersonalCalendar e
+         where e.createdBy.id = :userId
+           and e.startAt < :end
+           and e.endAt   > :start
+        """)
+    List<PersonalCalendar> findOverlappingForUser(@Param("userId") Long userId,
+                                                  @Param("start") LocalDateTime start,
+                                                  @Param("end") LocalDateTime end);
 }

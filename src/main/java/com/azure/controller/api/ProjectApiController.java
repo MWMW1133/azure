@@ -1,12 +1,21 @@
 package com.azure.controller.api;
 
+import com.azure.config.WebUserAdvice;
 import com.azure.dto.ProjectDTO;
 import com.azure.dto.TagDTO;
 import com.azure.dto.UserDTO;
+import com.azure.event.ProjectMemberAddedEvent;
+import com.azure.model.project.Project;
 import com.azure.model.tag.Tag;
+import com.azure.model.task.Task;
 import com.azure.model.user.User;
+import com.azure.service.NotificationService;
 import com.azure.service.ProjectService;
 import com.azure.service.TagService;
+import com.azure.service.UserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.servlet.http.HttpSession;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
@@ -17,6 +26,8 @@ import java.util.Map;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -26,7 +37,10 @@ import org.springframework.web.bind.annotation.*;
 public class ProjectApiController {
     private final ProjectService projectService;
     private final TagService tagService;
-    
+    private final WebUserAdvice webUserAdvice;
+    private final NotificationService notificationService;
+    private final UserService userService;
+
     @GetMapping("/{projectId}")
   public ProjectDTO get(@PathVariable Long projectId) {
     var p = projectService.get(projectId);
@@ -134,5 +148,27 @@ public class ProjectApiController {
                     return dto;
                 })
                 .toList();
-            }
+    }
+
+  public record InviteMembersRequest(List<Long> userIds) {}
+  @PostMapping("/{projectId}/invitations")
+  public ResponseEntity<Void> inviteAsMembers(@PathVariable Long projectId, @RequestBody InviteMembersRequest req, HttpSession session) {
+    //권한 체크......... 어케하쥥;
+    Long userId = webUserAdvice.currentUserId(session);
+    User me = userService.get(userId);
+    if (req.userIds() == null || req.userIds().isEmpty()) {
+      return ResponseEntity.noContent().build();
+    }
+    for (Long uid : req.userIds()) {
+      // 이미 멤버면 스킵
+      if (projectService.existsMember(projectId, uid)) continue;
+      projectService.addMember(projectId, uid, me.getName());
+    }
+    
+
+
+
+
+    return ResponseEntity.noContent().build(); // 프런트는 바디 안 씀
+  }
 }

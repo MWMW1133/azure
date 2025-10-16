@@ -123,7 +123,9 @@
     <span class="updated-at-text">
       <c:choose>
         <c:when test="${empty currentTask.updatedAt}">-</c:when>
-        <c:otherwise>${currentTask.updatedAt}</c:otherwise>
+        <c:otherwise>
+          <c:out value="${fn:substring(currentTask.updatedAt, 0, 10)}" />
+        </c:otherwise>
       </c:choose>
     </span>
   </div>

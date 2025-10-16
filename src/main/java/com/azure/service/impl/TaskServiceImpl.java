@@ -19,9 +19,11 @@ import com.azure.repository.UserRepository;
 import com.azure.repository.WorkflowRepository;
 import com.azure.security.SecurityUtil;
 import com.azure.service.AuditService;
+import com.azure.service.NotificationService;
 import com.azure.service.TaskService;
 import com.azure.service.UserService;
 import com.azure.service.exception.NotFoundException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,7 +60,7 @@ public class TaskServiceImpl implements TaskService {
     private final ApplicationEventPublisher publisher;
     private final ProjectRepository projectRepository;
     private final AuditService auditService;
-
+    private final NotificationService notificationService;
     // =========================================================
     // 기본 조회
     // =========================================================
@@ -475,13 +478,17 @@ public class TaskServiceImpl implements TaskService {
         if (!workflow.getProject().getId().equals(task.getProject().getId())) {
             throw new IllegalArgumentException("Workflow does not belong to the same project as the task");
         }
+        applyStageAndProgressRules(task, workflow);
         task.setWorkflow(workflow);
         Task saved = taskRepository.save(task);
-
+        if (saved.getParentTask() != null) {
+            updateParentAggregate(saved.getParentTask().getId());
+        }
         Long afterId   = (saved.getWorkflow()==null? null : saved.getWorkflow().getId());
         String afterNm = (saved.getWorkflow()==null? null : saved.getWorkflow().getName());
         String afterCo = (saved.getWorkflow()==null? null : saved.getWorkflow().getColor());
 
+        //로그남기기
         auditService.log(
             actor,
             com.azure.model.enums.AuditEnums.EntityType.TASK,
@@ -492,6 +499,22 @@ public class TaskServiceImpl implements TaskService {
                 .put("workflowName", beforeNm, afterNm)
                 .put("workflowColor",beforeCo, afterCo)
         );
+
+        //알??림
+        ObjectMapper om = new ObjectMapper();
+        Map<String,Object> payload = new java.util.HashMap<>();
+        payload.put("taskTitle", saved.getTitle());
+        payload.put("from", beforeNm);
+        payload.put("to", afterNm);
+        payload.put("sender", actor != null ? actor.getName() : null);
+
+        try {
+            String json = om.writeValueAsString(payload);
+            notificationService.notifyProjectMembers(saved.getProject().getId(), "TASK_WORKFLOW_CHANGED", json);
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
+
         return saved;
     }
 
@@ -609,16 +632,6 @@ public class TaskServiceImpl implements TaskService {
                 .orElseThrow(() -> new NotFoundException("File not found: " + fileId));
         file.setTask(task);
         fileObjectRepository.save(file);
-
-//        auditService.log(
-//            actor,
-//            com.azure.model.enums.AuditEnums.EntityType.TASK,
-//            taskId,
-//            ActionType.FILE_ATTACHED,
-//            new AuditDiff()
-//                .put("fileId",   null, file.getId())
-//                .put("fileName", null, file.getFileName())
-//        );
     }
 
     @Override
@@ -629,16 +642,6 @@ public class TaskServiceImpl implements TaskService {
             String beforeName = file.getFileName();
             file.setTask(null);
             fileObjectRepository.save(file);
-
-//            auditService.log(
-//                actor,
-//                com.azure.model.enums.AuditEnums.EntityType.TASK,
-//                taskId,
-//                ActionType.FILE_REMOVED,
-//                new AuditDiff()
-//                    .put("fileId",   fileId, null)
-//                    .put("fileName", beforeName, null)
-//            );
         }
     }
 

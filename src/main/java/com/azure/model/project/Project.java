@@ -43,4 +43,7 @@ public class Project {
 
     @OneToMany(mappedBy = "project")
     private List<ProjectMember> members = new ArrayList<>();
+
+    @OneToOne(mappedBy = "project")
+    private ProjectProposal proposal;
 }

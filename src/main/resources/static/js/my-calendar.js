@@ -142,7 +142,6 @@ window.initCalendar = function () {
       start: startInput.value,
       end: endInput.value,
       allDay: allDayCheckbox.checked,
-      reminder: document.getElementById('event-reminder').value,
       extendedProps: {
         location: document.getElementById('event-location').value,
         memo: document.getElementById('event-memo').value,

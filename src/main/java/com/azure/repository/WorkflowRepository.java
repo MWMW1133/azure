@@ -1,6 +1,8 @@
 package com.azure.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
@@ -8,6 +10,8 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.azure.model.workflow.Workflow;
+
+import jakarta.transaction.Transactional;
 
 public interface WorkflowRepository extends JpaRepository<Workflow, Long> {
     /** 특정 프로젝트에 속한 워크플로우 목록 페이징 조회 */
@@ -25,5 +29,10 @@ public interface WorkflowRepository extends JpaRepository<Workflow, Long> {
     Optional<Workflow> findFirstByProject_IdOrderBySortOrderAsc(Long projectId);
     /** 프로젝트의 마지막 워크플로우 (sortOrder 기준) */
     Optional<Workflow> findFirstByProject_IdOrderBySortOrderDesc(Long projectId);
+
+    @Modifying
+    @Transactional
+    @Query("delete from Workflow w where w.project.id = :projectId")
+    void deleteByProjectId(Long projectId);
     
 }

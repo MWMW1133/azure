@@ -203,35 +203,41 @@ document.addEventListener('DOMContentLoaded', function () {
   `;
   }
 
-  function findSubTaskContainer(taskRow) {
-    let el = taskRow.nextElementSibling;
-    while (el && !(el.classList && el.classList.contains('sub-task-container'))) {
-      el = el.nextElementSibling;
-    }
-    return el || null;
+  function findSubTaskContainerById(taskId, scope = document) {
+    return scope.querySelector(`.sub-task-container[data-parent-task-id="${taskId}"]`);
   }
 
   function ensureSubTaskContainer(taskRow) {
-    const exist = findSubTaskContainer(taskRow);
+    const taskId = taskRow?.dataset.taskId;
+    if (!taskId) return null;
+
+    // 같은 taskId를 갖는 '다른' 컨테이너가 어딘가에 이미 있다면 제거(중복 방지)
+    document.querySelectorAll(`.sub-task-container[data-parent-task-id="${taskId}"]`).forEach((el) => {
+      // 바로 다음 형제가 아니면 제거(유실/이동된 유령 컨테이너)
+      if (el.previousElementSibling !== taskRow) el.remove();
+    });
+
+    let exist = findSubTaskContainerById(taskId, taskRow.parentElement || document);
     if (exist) return exist;
 
     const wrapper = document.createElement('div');
     wrapper.className = 'sub-task-container hidden';
+    wrapper.dataset.parentTaskId = taskId;
     wrapper.innerHTML = `
-      <div class="task-list-header sub-task-header">
-        <div class="task-cell task-actions-cell"></div>
-        <div class="task-cell task-title-cell">하위 태스크</div>
-        <div class="task-cell assignee-cell">담당자</div>
-        <div class="task-cell started-at-cell">시작일</div>
-        <div class="task-cell duedate-cell">마감일</div>
-        <div class="task-cell status-cell">상태</div>
-        <div class="task-cell priority-cell">우선순위</div>
-        <div class="task-cell progress-cell">진행률</div>
-        <div class="task-cell file-cell">파일</div>
-        <div class="task-cell updated-at-cell">최근 수정일</div>
-      </div>
-      <div class="task-list-body sub-task-body"></div>
-    `;
+    <div class="task-list-header sub-task-header">
+      <div class="task-cell task-actions-cell"></div>
+      <div class="task-cell task-title-cell">하위 태스크</div>
+      <div class="task-cell assignee-cell">담당자</div>
+      <div class="task-cell started-at-cell">시작일</div>
+      <div class="task-cell duedate-cell">마감일</div>
+      <div class="task-cell status-cell">상태</div>
+      <div class="task-cell priority-cell">우선순위</div>
+      <div class="task-cell progress-cell">진행률</div>
+      <div class="task-cell file-cell">파일</div>
+      <div class="task-cell updated-at-cell">최근 수정일</div>
+    </div>
+    <div class="task-list-body sub-task-body"></div>
+  `;
     taskRow.insertAdjacentElement('afterend', wrapper);
 
     // 상위 행에 토글 아이콘 보장
@@ -246,7 +252,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     return wrapper;
   }
-
   async function loadChildrenOnce(container, parentId) {
     if (container.dataset.loaded) return;
     if (container.__busy) return;
@@ -407,49 +412,113 @@ document.addEventListener('DOMContentLoaded', function () {
     statusPopover.hidden = true;
     activeStatusPopover = null;
   }
+  // 단계 하한(폴백) 계산: N단계면 step=100/N, i번째 floor=i*step, terminal은 100
+  function computeFloorPctFromWorkflows(workflows, wfId, isTerminal) {
+    if (!Array.isArray(workflows) || workflows.length === 0) return 0;
+    const n = workflows.length;
+    const step = Math.max(1, Math.floor(100 / n));
+    if (isTerminal === true) return 100;
+    const idx = Math.max(
+      0,
+      workflows.findIndex((w) => Number(w.id) === Number(wfId))
+    );
+    if (idx < 0) return 0;
+    return idx * step;
+  }
+
   async function populateStatusList(taskId, cell) {
     const list = statusPopover.querySelector('.status-list');
     list.innerHTML = '<li>불러오는 중...</li>';
+
     try {
-      const statuses = [
-        { id: 1, name: 'Assignments', color: '#e3e3e3' },
-        { id: 2, name: 'in-progress', color: '#b5e6ff' },
-        { id: 3, name: 'Reviewing', color: '#87cbfb' },
-        { id: 4, name: 'Completed', color: '#3041ff' },
-      ];
+      const res = await fetch(API.workflows);
+      if (!res.ok) throw new Error('워크플로우 로드 실패');
+      const workflows = await res.json(); // [{id,name,color,isTerminal,...}]
+
       list.innerHTML = '';
-      statuses.forEach((s) => {
+      workflows.forEach((wf) => {
         const li = document.createElement('li');
         li.className = 'status-list-item';
-        li.dataset.statusId = s.id;
-        li.dataset.statusName = s.name;
-        li.innerHTML = `<span class="status-color-dot" style="background-color:${s.color};"></span><span>${s.name}</span>`;
+        li.dataset.statusId = wf.id;
+        li.dataset.statusName = wf.name;
+        li.innerHTML = `
+        <span class="status-color-dot" style="background-color:${wf.color || '#e5e7eb'};"></span>
+        <span>${wf.name}</span>`;
         list.appendChild(li);
       });
-      statusPopover.querySelector('.status-list').onclick = (e) => {
+
+      list.onclick = async (e) => {
         const item = e.target.closest('.status-list-item');
         if (!item) return;
-        const statusName = item.dataset.statusName;
-        const statusSpan = cell.querySelector('.status');
-        statusSpan.textContent = statusName;
-        statusSpan.className = `status ${statusName}`;
-        hideStatusPopover();
+        const wfId = Number(item.dataset.statusId);
+
+        const row = cell.closest('.task-row');
+        const id = row?.dataset.taskId;
+
+        let saved = null;
+        let pct = 0;
+
+        try {
+          const resp = await fetch(API.setWorkflow(id), {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ workflowId: wfId }),
+          });
+
+          const raw = await resp.text();
+          console.log('[PATCH /workflow] status=', resp.status, 'body=', raw);
+
+          if (!resp.ok) {
+            showToast('상태 변경 실패', 'error');
+            return;
+          }
+
+          if (raw && raw.trim().length > 0) {
+            try {
+              saved = JSON.parse(raw);
+            } catch (err) {
+              console.warn('JSON parse fail:', err);
+            }
+          }
+
+          const badgeBtn = cell.querySelector('.status-badge');
+          const textEl = badgeBtn?.querySelector('.status-text');
+          const dotEl = badgeBtn?.querySelector('.status-dot');
+
+          const savedWf = saved?.workflow;
+          if (textEl) textEl.textContent = savedWf?.name ?? item.dataset.statusName;
+          if (dotEl) dotEl.style.background = savedWf?.color || item.querySelector('.status-color-dot')?.style.backgroundColor || '#e5e7eb';
+          row.dataset.workflowId = savedWf?.id ?? wfId;
+
+          if (saved?.progressPct != null) {
+            pct = Number(saved.progressPct);
+          } else {
+            pct = computeFloorPctFromWorkflows(workflows, wfId, savedWf?.isTerminal);
+          }
+
+          row.dataset.progress = pct;
+          const pv = row.querySelector('.progress-value');
+          const bar = row.querySelector('.task-progress-bar');
+          if (pv) pv.textContent = `${pct}%`;
+          if (bar) bar.dataset.progress = pct;
+          updateAllProgressBars();
+
+          hideStatusPopover();
+          showToast('상태가 변경되었습니다.', 'success');
+        } catch (err) {
+          console.error(err);
+          showToast('상태 변경 중 오류가 발생했습니다.', 'error');
+        }
       };
-      statusPopover.querySelector('.status-add-input').onkeydown = async (e) => {
-        if (e.key !== 'Enter') return;
-        const newStatusName = e.target.value.trim();
-        if (!newStatusName) return;
-        showToast(`'${newStatusName}' 상태가 추가되었습니다.`, 'success');
-        e.target.value = '';
-        await populateStatusList(taskId, cell);
-      };
-    } catch {
+    } catch (err) {
+      console.error(err);
       list.innerHTML = '<li>목록을 불러오지 못했습니다.</li>';
     }
   }
 
   // ---------- 클릭(단일) ----------
   document.body.addEventListener('click', function (e) {
+    if (performance.now() < suppressClickUntil) return;
     // 더블클릭 직후 발생하는 click 무시
     if (e.__assigneeHandled || e.target.closest('.assignee-cell, .assignee-panel')) {
       e.stopImmediatePropagation();
@@ -466,6 +535,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const deleteBtn = e.target.closest('#task-delete-btn');
     if (deleteBtn) {
       handleDeleteTask();
+      selectedIds.forEach((id) => {
+        const row = document.querySelector(`.task-row[data-task-id="${id}"]`);
+        if (row) {
+          const cont = document.querySelector(`.sub-task-container[data-parent-task-id="${id}"]`);
+          if (cont) cont.remove();
+          row.remove();
+        }
+      });
       return;
     }
 
@@ -481,15 +558,21 @@ document.addEventListener('DOMContentLoaded', function () {
     const toggleIcon = e.target.closest('.js-toggle-subtasks');
     if (toggleIcon) {
       e.stopPropagation();
+
       const row = toggleIcon.closest('.task-row');
       if (!row) return;
-      const container = findSubTaskContainer(row) || ensureSubTaskContainer(row);
-      if (container.__busy) return;
+
+      const taskId = row.dataset.taskId;
+      if (!taskId) return;
+
+      const scope = row.parentElement || document;
+      const container = findSubTaskContainerById(taskId, scope) || ensureSubTaskContainer(row);
+      if (!container || container.__busy) return;
 
       if (isHidden(container)) {
         (async () => {
           try {
-            await loadChildrenOnce(container, row.dataset.taskId);
+            await loadChildrenOnce(container, taskId); // ★ 안전
             showEl(container);
             toggleIcon.classList.add('open');
           } catch (err) {
