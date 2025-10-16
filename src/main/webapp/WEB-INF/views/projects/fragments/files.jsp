@@ -98,16 +98,26 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body d-flex flex-wrap gap-3">
-                <div class="border rounded p-3 text-center flex-fill template-card" style="cursor:pointer;">
-                    <i class="bi bi-journal-text fs-2 mb-2"></i><br>회의록 양식
+                <div class="border rounded p-3 text-center flex-fill template-card"
+                     style="cursor:pointer;"
+                     onclick="selectTemplate('meeting')">
+                    <i class="bi bi-journal-text fs-2 mb-2"></i><br>회의록 작성
                 </div>
-                <div class="border rounded p-3 text-center flex-fill template-card" style="cursor:pointer;">
+                <div class="border rounded p-3 text-center flex-fill template-card"
+                     style="cursor:pointer;"
+                     onclick="selectTemplate('report')">
                     <i class="bi bi-file-earmark-bar-graph fs-2 mb-2"></i><br>프로젝트 보고서
                 </div>
-                <div class="border rounded p-3 text-center flex-fill template-card" style="cursor:pointer;">
+                <div class="border rounded p-3 text-center flex-fill template-card"
+                     style="cursor:pointer;"
+                     onclick="selectTemplate('plan')">
                     <i class="bi bi-pencil-square fs-2 mb-2"></i><br>기획 문서
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<%--<script>--%>
+<%--    window.PROJECT_ID = "${projectId}";--%>
+<%--</script>--%>

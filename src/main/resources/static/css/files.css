@@ -68,3 +68,77 @@
 .file-menu.open .menu-dropdown {
     display: block;
 }
+
+/* 제목 입력창 영역 */
+#docForm {
+    margin: 0 auto;
+    text-align: left;
+}
+
+#docForm label[for="title"] {
+    display: block;
+    font-weight: 600;
+    font-size: 1.05rem;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+/* 제목 입력창 */
+#title {
+    width: 70%;              /* 폭 줄이기 */
+    font-size: 1rem;
+    padding: 8px 12px;
+    border: 2px solid #d0d7de;
+    border-radius: 8px;
+    background-color: #fafafa;
+    transition: all 0.25s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+#title:focus {
+    border-color: #0d6efd;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(13,110,253,0.25);
+}
+
+/* 저장 버튼 스타일 */
+button.btn-primary {
+    background-color: #0d6efd;
+    border: none;
+    padding: 10px 28px;
+    font-size: 1rem;
+    border-radius: 30px;           /* pill 모양 */
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 5px rgba(13,110,253,0.25);
+}
+
+button.btn-primary:hover {
+    background-color: #0b5ed7;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(13,110,253,0.3);
+}
+
+button.btn-primary:active {
+    transform: scale(0.98);
+    box-shadow: 0 1px 3px rgba(13,110,253,0.3);
+}
+
+/* 기존 유지 + 아래만 추가 */
+
+/* 저장 버튼 텍스트 흰색 */
+button.btn-primary {
+    color: #fff; /* 흰색 글씨 */
+}
+
+/* 파일 업로드 버튼 전용 축소 스타일 */
+#uploadBtn.btn.btn-primary {
+    font-size: 0.9rem;    /* 글씨 살짝 작게 */
+    padding: 6px 16px;    /* 버튼 높이 줄이기 */
+    border-radius: 24px;  /* pill 형태 유지 */
+}
+
+#uploadBtn.btn.btn-primary i {
+    font-size: 1rem;      /* 아이콘 크기 조정 */
+}
