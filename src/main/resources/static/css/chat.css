@@ -40,14 +40,66 @@
 /*    z-index: 2000;*/
 /*}*/
 
-/* 헤더 */
-#chatModal .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    border-bottom: 1px solid #ddd;
+/* ===== 공통 헤더 ===== */
+#chatModal .modal-header,
+.chat-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #ddd;
 }
+
+/* 좌/우 2열 레이아웃일 때 리스트 쪽 스크롤 허용 */
+#chatModal .modal-body { 
+  display: flex; 
+  flex: 1 1 auto; 
+  min-height: 0; /* ← 중요 */
+}
+
+/* 좌측 패널 */
+#chatModal .left-pane {
+  width: 240px;
+  border-right: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* ← 중요 */
+}
+
+/* 그룹 검색 박스 */
+#groupSearchBox { margin-top: 6px; }
+#groupSearchInput.form-control-sm { height: 30px; font-size: .9rem; }
+
+/* 그룹 목록 스크롤 */
+#chatModal #groupChatList { 
+  max-height: 260px;   /* 필요 시 조절 */
+  overflow-y: auto; 
+}
+
+/* DM 목록 스크롤 유지 */
+#chatModal #dmList {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+
+/* 리스트 아이템(가독성) */
+.chat-list li,
+.dm-list li {
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.chat-list li:hover,
+.dm-list li:hover { background: #f5f7fb; }
+.chat-list li.active,
+.dm-list li.active { background: #e8f0ff; }
+
+/* 좌측 패널 스크롤이 생기도록 */
+#chatModal .chat-modal__sidebar { display:flex; flex-direction:column; min-height:0; width:240px; border-right:1px solid #eee; }
+#groupSearchBox, #dmSearchBox { margin: 4px 8px; }
+#groupChatList { max-height: 260px; overflow-y: auto; }
+#dmList { max-height: 220px; overflow-y: auto; }
 
 /* 닫기 버튼을 모달 오른쪽 위에 고정 */
 .close-btn {
@@ -414,4 +466,11 @@
 #createChatModal .project-list li.active {
     background:#e9f5ff;
     font-weight:600;
+}
+
+#btnGroupToggle { 
+  color: #212529 !important;    /* 제목과 같은 진회색 */
+}
+#btnGroupToggle .bi { 
+  color: #212529 !important; 
 }

@@ -152,7 +152,6 @@
   <!-- 파일 -->
   <div class="task-cell file-cell" data-cell="files">
     <c:if test="${currentTask.hasFile}">
-      <span class="file-icon"><i class="fa-solid fa-paperclip"></i></span>
     </c:if>
   </div>
 

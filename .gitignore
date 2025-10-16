@@ -1,18 +1,9 @@
-### build outputs ###
-/uploads/
-/recordings/
-/var/azure/uploads/
 HELP.md
 target/
-build/
-out/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### IDE ###
-.idea/
-.vscode/
 ### STS ###
 .apt_generated
 .classpath
@@ -28,31 +19,26 @@ out/
 *.iml
 *.ipr
 
-
-
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
+build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### Spring/Secrets ###
-# .env 류
-.env
-*.env
-*.env.*
 ### VS Code ###
 .vscode/
 ﻿.env
-
-# keystore 등
+*.env
 application.properties
 application.yml
 *.p12
 *.keystore
-
+target/
+build/
+out/
 .vscode/
 .idea/

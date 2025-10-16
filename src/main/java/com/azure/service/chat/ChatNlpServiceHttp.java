@@ -1,17 +1,25 @@
 package com.azure.service.chat;
 
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
-
-import java.time.Duration;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class ChatNlpServiceHttp implements ChatNlpService {
@@ -62,12 +70,35 @@ public class ChatNlpServiceHttp implements ChatNlpService {
         String target = normalize(targetLang);
         List<String> endpoints = resolveEndpoints(); // properties에서 읽어온 리스트
 
+        // ===== 워크어라운드: source 강제 결정 =====
+        // 영어(ASCII)만 있으면 true
+        boolean asciiOnly = text.codePoints().allMatch(cp -> cp <= 0x7F);
+        // 한글/가나/한자 포함 여부
+        boolean hasKo = text.codePoints().anyMatch(cp ->
+                (cp >= 0x1100 && cp <= 0x11FF) || (cp >= 0x3130 && cp <= 0x318F) || (cp >= 0xAC00 && cp <= 0xD7A3));
+        boolean hasJa = text.codePoints().anyMatch(cp ->
+                (cp >= 0x3040 && cp <= 0x309F) || (cp >= 0x30A0 && cp <= 0x30FF));
+        boolean hasZh = text.codePoints().anyMatch(cp -> (cp >= 0x4E00 && cp <= 0x9FFF));
+
+        String source = "auto";
+        // EN -> CJK
+        if (asciiOnly && (target.equals("ko") || target.equals("ja") || target.equals("zh"))) {
+            source = "en";
+        }
+        // KO/JA/ZH -> EN
+        else if (target.equals("en")) {
+            if (hasKo) source = "ko";
+            else if (hasJa) source = "ja";
+            else if (hasZh) source = "zh";
+        }
+        // ==================================================
+
         for (String base : endpoints) {
             String url = base.endsWith("/") ? base + "translate" : base + "/translate";
             try {
                 Map<String, Object> body = new HashMap<>();
                 body.put("q", text);
-                body.put("source", "auto");
+                body.put("source", source);     // ← auto 대신 계산된 source 사용
                 body.put("target", target);
                 body.put("format", "text");
                 if (StringUtils.hasText(apiKey)) body.put("api_key", apiKey);
@@ -80,7 +111,7 @@ public class ChatNlpServiceHttp implements ChatNlpService {
 
                 ResponseEntity<Map> resp = rest.postForEntity(url, req, Map.class);
 
-                // 3xx → Location으로 '한 번만' 재-POST
+                // 3xx → Location으로 한 번만 재-POST
                 if (resp.getStatusCode().is3xxRedirection() && resp.getHeaders().getLocation() != null) {
                     String loc = resp.getHeaders().getLocation().toString();
                     String redir = loc.contains("/translate")
@@ -89,6 +120,10 @@ public class ChatNlpServiceHttp implements ChatNlpService {
                     log.debug("[mt] retry POST -> {}", redir);
                     resp = rest.postForEntity(redir, req, Map.class);
                 }
+
+                // 디버그 로깅
+                log.info("[mt] req base={} source={} target={} asciiOnly={} hasKo/Ja/Zh={}/{}/{} status={}",
+                        base, source, target, asciiOnly, hasKo, hasJa, hasZh, resp.getStatusCode());
 
                 if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
                     Object t = resp.getBody().get("translatedText");
@@ -120,5 +155,21 @@ public class ChatNlpServiceHttp implements ChatNlpService {
             case "zh", "chinese", "중국어", "zh-cn", "cn" -> "zh";
             default -> "en";
         };
+    }
+
+    private String guessSource(String s) {
+    if (s == null || s.isBlank()) return "auto";
+    // 한글
+    boolean ko = s.codePoints().anyMatch(cp ->
+        (cp>=0x1100 && cp<=0x11FF) || (cp>=0x3130 && cp<=0x318F) || (cp>=0xAC00 && cp<=0xD7A3));
+    if (ko) return "ko";
+    // 일본어
+    boolean ja = s.codePoints().anyMatch(cp ->
+        (cp>=0x3040 && cp<=0x309F) || (cp>=0x30A0 && cp<=0x30FF));
+    if (ja) return "ja";
+    // 중국어
+    boolean zh = s.codePoints().anyMatch(cp -> (cp>=0x4E00 && cp<=0x9FFF));
+    if (zh) return "zh";
+    return "en"; // 기본: 영문
     }
 }
