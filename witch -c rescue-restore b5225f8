@@ -1,0 +1,25 @@
+[33mb5225f8[m HEAD@{Thu Oct 16 12:48:50 2025}: commit: 프로필 사진 + 이름 + 비번 변경
+[33m9659b64[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mrescue[m[33m, [m[1;31morigin/subin[m[33m, [m[1;32msubin[m[33m)[m HEAD@{Wed Oct 15 21:25:52 2025}: commit: 멤버추가알림띵~
+[33m29bf9bc[m HEAD@{Wed Oct 15 20:19:09 2025}: commit: 알림되는듯????
+[33m19f63b9[m HEAD@{Wed Oct 15 19:28:21 2025}: commit: 날짜 포맷
+[33m8ece597[m HEAD@{Wed Oct 15 19:00:44 2025}: commit: 채팅 검색 부활
+[33m1716442[m HEAD@{Wed Oct 15 17:25:35 2025}: commit: 검색은 죽은거지!!
+[33m34889c8[m HEAD@{Wed Oct 15 16:52:20 2025}: commit: 관리탭 된 것 같음!!!!!! 아님말고
+[33mdad3194[m HEAD@{Wed Oct 15 12:58:46 2025}: commit: 프로젝트 초대 하긴 했는데 권한 체크가 없어서 개나소나 다 될듯
+[33me17eda9[m HEAD@{Wed Oct 15 11:16:24 2025}: commit: 진행률(약간 모자라지만 사랑해주세요)
+[33mc70ba36[m HEAD@{Tue Oct 14 18:35:35 2025}: commit: 토글 고쳐진 것 같기도 하고 아닌 것 같기도 하고 아닐시 죽음
+[33ma949ed0[m HEAD@{Tue Oct 14 17:52:38 2025}: commit: 홈을 수정해보앗어요.
+[33m9127c0f[m HEAD@{Tue Oct 14 12:40:19 2025}: commit: 내태스크(날짜포맷이안돼 ㅁㅊ) + 로그 저장할 때 로그인된 아이디로 들어감
+[33m5180dd5[m HEAD@{Mon Oct 13 19:08:03 2025}: commit: 간트차트에서... 드래그나 사이즈조절로 일정 조절이 됨니다
+[33mf1d0884[m HEAD@{Mon Oct 13 18:00:25 2025}: commit: 차트 서브태스크 나오게 수정
+[33m438e69c[m HEAD@{Mon Oct 13 17:01:25 2025}: commit: 간트랑 차트랑 나와욘
+[33m97a90e1[m HEAD@{Sun Oct 12 17:22:05 2025}: commit: 서브까지 수정내역 나옴
+[33mc9bdd25[m HEAD@{Sun Oct 12 16:39:58 2025}: commit: 태스크 로그 남겨지는거 + 수정일 클릭하면 수정 내역까지
+[33m663fd96[m HEAD@{Sat Oct 11 22:07:14 2025}: commit: 우선순위랑 이것저것띠
+[33m123e8f7[m HEAD@{Sat Oct 11 17:37:43 2025}: commit: 상태변경 완
+[33m9460df3[m HEAD@{Fri Oct 10 18:38:30 2025}: commit: 담당자 배정 + 좀 모자란 상태 변경
+[33mc1f1267[m HEAD@{Thu Oct 9 18:04:30 2025}: commit: 하위태스크 수정
+[33mb28bf3e[m HEAD@{Sun Oct 5 13:46:49 2025}: commit: 1005 - 1
+[33m253f2eb[m HEAD@{Wed Oct 1 20:16:02 2025}: commit: 수정, 프로젝트 화면 틀 추가 등...
+[33m12bf3c7[m HEAD@{Tue Sep 30 17:43:13 2025}: commit: example 수정
+[33m7b9ffa8[m HEAD@{Tue Sep 30 15:38:59 2025}: commit: 0930 백업
