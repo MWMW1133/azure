@@ -16,7 +16,7 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
     Page<Meeting> findByProject_Id(Long projectId, Pageable pageable);
     Page<Meeting> findByOrganization_IdAndProject_Id(Long organizationId, Long projectId, Pageable pageable);
     // 폴러용: 상태가 TRANSCRIBING이고 녹음 파일이 존재하는 회의만
-    List<Meeting> findByStatusAndRecordingFileIsNotNull(MeetingStatus status);
+    List<Meeting> findByStatus(MeetingStatus status);
     // 👇 JOIN FETCH를 확장하여 User의 Organization 정보까지 모두 즉시 로딩하도록 수정
     @Query("SELECT m FROM Meeting m " +
             "LEFT JOIN FETCH m.organization " +

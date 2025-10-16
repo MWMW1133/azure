@@ -34,6 +34,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import software.amazon.awssdk.services.transcribe.model.ListTranscriptionJobsRequest;
+import software.amazon.awssdk.services.transcribe.model.ListTranscriptionJobsResponse;
 
 @Slf4j
 @Component
@@ -61,61 +63,68 @@ public class TranscriptJobPoller {
     // 기본: 5초 딜레이, 최초 10초 대기 — application.properties 로 조절 가능
     // transcribe.poll.fixed-delay=5000
     // transcribe.poll.initial-delay=10000
+
     @Scheduled(
             fixedDelayString = "${transcribe.poll.fixed-delay:5000}",
             initialDelayString = "${transcribe.poll.initial-delay:10000}"
     )
     @Transactional
     public void poll() {
-        List<Meeting> targets = meetingRepository.findByStatusAndRecordingFileIsNotNull(MeetingStatus.TRANSCRIBING);
+        List<Meeting> targets = meetingRepository.findByStatus(MeetingStatus.TRANSCRIBING);
         if (targets.isEmpty()) return;
 
         for (Meeting m : targets) {
-            FileObject rec = m.getRecordingFile();
-            if (rec == null || rec.getStorageKey() == null) continue;
+            String prefix = "meeting-" + m.getId() + "-";
 
-            String jobName = buildJobName(m.getId(), rec.getStorageKey());
-            try {
-                TranscriptionJob job = transcribeClient.getTranscriptionJob(
-                        GetTranscriptionJobRequest.builder()
-                                .transcriptionJobName(jobName).build()
-                ).transcriptionJob();
+            // 최신 잡 하나 고르기
+            ListTranscriptionJobsResponse listResp = transcribeClient.listTranscriptionJobs(
+                    ListTranscriptionJobsRequest.builder()
+                            .jobNameContains(prefix)  // 이름에 prefix 포함
+                            .maxResults(50)
+                            .build()
+            );
 
-                TranscriptionJobStatus st = job.transcriptionJobStatus();
-                switch (st) {
-                    case IN_PROGRESS, QUEUED -> {
-                        // 진행 중: 아무 것도 하지 않음
-                    }
-                    case COMPLETED -> {
-                        String transcriptText = fetchTranscriptText(jobName, job.transcript().transcriptFileUri());
-                        persistResult(m, transcriptText, detectLangFromJobName(jobName));
-                        resetCounters(m.getId());
-                        log.info("Transcribe COMPLETED: meeting={}, job={}", m.getId(), jobName);
-                    }
-                    case FAILED -> {
-                        m.setStatus(MeetingStatus.FAILED);
-                        meetingRepository.save(m);
-                        resetCounters(m.getId());
-                        log.warn("Transcribe FAILED: meeting={}, job={}", m.getId(), jobName);
-                    }
-                    default -> { /* no-op */ }
-                }
-            } catch (BadRequestException e) {
-                // 이름/레이스 문제로 job을 못 찾을 때: 일정 횟수까지는 대기, 초과 시 FAILED
+            var jobOpt = listResp.transcriptionJobSummaries().stream()
+                    .filter(s -> s.transcriptionJobName().startsWith(prefix))
+                    .sorted((a,b) -> b.creationTime().compareTo(a.creationTime())) // 최신 우선
+                    .findFirst();
+
+            if (jobOpt.isEmpty()) {
                 int c = notFoundCounts.merge(m.getId(), 1, Integer::sum);
-                if (c == 1 || c % 12 == 0) { // 1회 및 매 분마다만 경고 로그
-                    log.warn("Transcribe job not found yet ({} / {}): meeting={}, job={}",
-                            c, NOT_FOUND_MAX, m.getId(), jobName);
+                if (c == 1 || c % 12 == 0) {
+                    log.warn("Transcribe job not found yet ({} / {}): meeting={}, prefix={}",
+                            c, NOT_FOUND_MAX, m.getId(), prefix);
                 }
                 if (c >= NOT_FOUND_MAX) {
                     m.setStatus(MeetingStatus.FAILED);
                     meetingRepository.save(m);
                     resetCounters(m.getId());
-                    log.error("Marking as FAILED due to repeated 'job not found': meeting={}, job={}", m.getId(), jobName);
+                    log.error("Marking as FAILED due to repeated 'job not found': meeting={}, prefix={}", m.getId(), prefix);
                 }
-            } catch (Exception e) {
-                // 기타 오류: 로그만, 상태 보존(다음 틱에 재시도)
-                log.error("Unexpected error while polling meeting={}, job={}: {}", m.getId(), jobName, e.toString());
+                continue;
+            }
+
+            String jobName = jobOpt.get().transcriptionJobName();
+            // 상세 조회
+            TranscriptionJob job = transcribeClient.getTranscriptionJob(
+                    GetTranscriptionJobRequest.builder().transcriptionJobName(jobName).build()
+            ).transcriptionJob();
+
+            switch (job.transcriptionJobStatus()) {
+                case IN_PROGRESS, QUEUED -> { /* 대기 */ }
+                case COMPLETED -> {
+                    String text = fetchTranscriptText(jobName, job.transcript().transcriptFileUri());
+                    persistResult(m, text, detectLangFromJobName(jobName));
+                    resetCounters(m.getId());
+                    log.info("Transcribe COMPLETED: meeting={}, job={}", m.getId(), jobName);
+                }
+                case FAILED -> {
+                    m.setStatus(MeetingStatus.FAILED);
+                    meetingRepository.save(m);
+                    resetCounters(m.getId());
+                    log.warn("Transcribe FAILED: meeting={}, job={}", m.getId(), jobName);
+                }
+                default -> { /* no-op */ }
             }
         }
     }
@@ -128,54 +137,61 @@ public class TranscriptJobPoller {
     }
 
     /** 결과 JSON에서 transcripts[0].transcript 추출 */
-    private String parseTranscriptJson(byte[] jsonBytes) throws Exception {
-        JsonNode root = om.readTree(jsonBytes);
-        JsonNode transcripts = root.path("results").path("transcripts");
-        if (transcripts.isArray() && transcripts.size() > 0) {
-            JsonNode first = transcripts.get(0);
-            if (first.hasNonNull("transcript")) {
-                return first.get("transcript").asText("");
+    private String parseTranscriptJson(byte[] jsonBytes) {
+        try {
+            JsonNode root = om.readTree(jsonBytes);
+            JsonNode transcripts = root.path("results").path("transcripts");
+            if (transcripts.isArray() && transcripts.size() > 0) {
+                JsonNode first = transcripts.get(0);
+                if (first.hasNonNull("transcript")) {
+                    return first.get("transcript").asText("");
+                }
             }
+            return "";
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to parse transcript JSON", e);
         }
-        return "";
     }
 
     /** 결과 버킷이 있으면 S3에서, 없으면 transcriptFileUri(HTTP)에서 가져옴 */
-    private String fetchTranscriptText(String jobName, String transcriptFileUri) throws Exception {
-        String bucket = transcribeProps.getResultsBucket();
-        String prefix = transcribeProps.getOutputPrefix();
-        String key = (prefix == null || prefix.isBlank())
-                ? (jobName + ".json")
-                : (prefix.replaceAll("/+$", "") + "/" + jobName + ".json");
+    private String fetchTranscriptText(String jobName, String transcriptFileUri) {
+        try {
+            String bucket = transcribeProps.getResultsBucket();
+            String prefix = transcribeProps.getOutputPrefix();
+            String key = (prefix == null || prefix.isBlank())
+                    ? (jobName + ".json")
+                    : (prefix.replaceAll("/+$", "") + "/" + jobName + ".json");
 
-        byte[] jsonBytes = null;
+            byte[] jsonBytes = null;
 
-        if (bucket != null && !bucket.isBlank()) {
-            try (InputStream in = s3Client.getObject(GetObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(key)
-                    .build())) {
-                jsonBytes = readAll(in);
-            } catch (NoSuchKeyException e) {
-                log.warn("Transcript JSON not found in S3. bucket={}, key={}, fallback to URI", bucket, key);
+            if (bucket != null && !bucket.isBlank()) {
+                try (InputStream in = s3Client.getObject(GetObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(key)
+                        .build())) {
+                    jsonBytes = readAll(in);
+                } catch (NoSuchKeyException e) {
+                    log.warn("Transcript JSON not found in S3. bucket={}, key={}, fallback to URI", bucket, key);
+                }
             }
-        }
 
-        if (jsonBytes == null) {
-            // outBucket=null 인 경우 등: AWS가 준 pre-signed URL 사용
-            HttpRequest req = HttpRequest.newBuilder()
-                    .uri(URI.create(transcriptFileUri))
-                    .timeout(Duration.ofSeconds(20))
-                    .GET()
-                    .build();
-            HttpResponse<byte[]> resp = http.send(req, HttpResponse.BodyHandlers.ofByteArray());
-            if (resp.statusCode() / 100 != 2) {
-                throw new IllegalStateException("Failed to download transcript from URI: " + resp.statusCode());
+            if (jsonBytes == null) {
+                HttpRequest req = HttpRequest.newBuilder()
+                        .uri(URI.create(transcriptFileUri))
+                        .timeout(Duration.ofSeconds(20))
+                        .GET()
+                        .build();
+                HttpResponse<byte[]> resp = http.send(req, HttpResponse.BodyHandlers.ofByteArray());
+                if (resp.statusCode() / 100 != 2) {
+                    throw new IllegalStateException("Failed to download transcript from URI: " + resp.statusCode());
+                }
+                jsonBytes = resp.body();
             }
-            jsonBytes = resp.body();
-        }
 
-        return parseTranscriptJson(jsonBytes);
+            return parseTranscriptJson(jsonBytes);
+        } catch (Exception e) {
+            throw new IllegalStateException("fetchTranscriptText failed for job=" + jobName, e);
+        }
     }
 
     private static byte[] readAll(InputStream in) throws Exception {

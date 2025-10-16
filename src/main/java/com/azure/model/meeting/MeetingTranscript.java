@@ -2,6 +2,8 @@ package com.azure.model.meeting;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Data
 @Entity
@@ -21,6 +23,7 @@ public class MeetingTranscript {
 
     /** 전사 본문 — TINYTEXT/LONGTEXT 대응을 위해 @Lob 권장 */
     @Lob
-    @Column(name = "content")
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
+    @Column(columnDefinition = "LONGTEXT")
     private String content;
 }

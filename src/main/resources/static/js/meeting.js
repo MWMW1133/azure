@@ -18,6 +18,7 @@ function CFG() {
         startUrl: d.startUrl,
         endUrl: d.endUrl,
         submitUrl: d.submitUrl,
+        transcriptLatestUrl: (meetingId) => tpl(d.transcriptLatestUrl, { meetingId }),
         // --- 👇 Agora 관련 설정 추가 ---
         agoraAppId: d.agoraAppId,
         agoraTokenUrl: (channel) => tpl(d.agoraTokenUrl, { channel })
@@ -47,6 +48,25 @@ async function apiMe(){
     if (window.__ME) return window.__ME;
     window.__ME = await api('GET', CFG().meUrl);
     return window.__ME;
+}
+async function waitAndLoadTranscript(meetingId, { maxWaitSec = 120, intervalSec = 3, onTick } = {}) {
+    const buildUrl = CFG().transcriptLatestUrl || ((id) => `/api/transcripts/${id}/latest`);
+    const deadline = Date.now() + maxWaitSec * 1000;
+
+    while (Date.now() < deadline) {
+        try {
+            const res = await fetch(buildUrl(meetingId), { credentials: 'same-origin' });
+            if (res.ok) {
+                const text = await res.text();
+                if (text && text.trim().length > 0) return text; // ✅ DB에 내용이 들어오면 즉시 반환
+            }
+        } catch (e) {
+            // 무시하고 재시도
+        }
+        if (onTick) onTick(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+        await new Promise(r => setTimeout(r, intervalSec * 1000));
+    }
+    return ''; // 타임아웃
 }
 
 async function apiListProjects(){
@@ -307,6 +327,110 @@ function getSelectedProjectId(root=document){
         let localAudioTrack = null;
         // --- 👆 Agora 관련 변수 추가 ---
 
+        // --- 전사 폴링 상태 ---
+        let pollTimer = null;
+        let pollCount = 0;
+        const MAX_POLL = 120;   // 최대 120회 시도 (약 2분: 1초 간격 가정)
+        const POLL_MS  = 1000;  // 1초 간격
+
+        function setNotes(text){
+            if (!notesBody) return;
+            notesBody.textContent = text && text.trim() ? text : '(아직 내용이 없습니다)';
+        }
+
+        function showNotesStatus(msg){
+            if (!notesBody) return;
+            notesBody.textContent = `⏳ ${msg}`;
+        }
+
+        function extractTranscriptText(payload){
+            // AWS Transcribe 기본 포맷: results.transcripts[0].transcript
+            try {
+                if (typeof payload === 'string') {
+                    // S3가 text/plain으로 내려오면 그대로 사용
+                    return payload;
+                }
+                if (payload?.results?.transcripts?.length) {
+                    return payload.results.transcripts.map(t => t.transcript).join('\n');
+                }
+                // (선택) 향후 diarization 파싱은 payload.results.speaker_labels / items 활용
+                return JSON.stringify(payload);
+            } catch(_) {
+                return '';
+            }
+        }
+
+        async function fetchTranscriptOnce(transcriptKey){
+            const url = `/download/transcript?s3Key=${encodeURIComponent(transcriptKey)}`;
+            const res = await fetch(url, { redirect: 'follow' });
+            if (!res.ok) return { ok:false, status:res.status };
+
+            const ct = res.headers.get('content-type') || '';
+            const body = ct.includes('application/json') ? await res.json() : await res.text();
+            const text = extractTranscriptText(body);
+            return { ok:true, text };
+        }
+
+        function stopPolling(){
+            if (pollTimer) clearTimeout(pollTimer);
+            pollTimer = null; pollCount = 0;
+        }
+
+        // ✅ DB에서 최신 회의록 텍스트를 받아온다 (비어 있으면 빈 문자열 반환)
+        async function fetchTranscriptFromDB(meetingId) {
+            try {
+                const res = await fetch(`/api/transcripts/${meetingId}/latest`, {
+                    headers: { 'Accept': 'text/plain' }
+                });
+                if (!res.ok) return '';
+                const text = (await res.text() || '').trim();
+                return text;
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function pollTranscript(immediate) {
+            if (pollTimer) stopPolling();
+            pollCount = 0;
+
+            const tick = async () => {
+                pollCount++;
+                try {
+                    // 1) ✅ 먼저 DB에서 최신 회의록을 확인한다.
+                    const dbText = await fetchTranscriptFromDB(meetingId);
+                    if (dbText && dbText.length > 0) {
+                        setNotes(dbText);   // 화면에 고정
+                        stopPolling();      // 더 이상 대기/폴링 안 함
+                        return;
+                    }
+
+                    // 2) ⛳ 폴백: S3(프리사인) 경로에 결과 파일이 있으면 그걸 사용
+                    const out = await fetchTranscriptOnce();
+                    if (out.ok) {
+                        setNotes(out.text);
+                        stopPolling();
+                        return;
+                    }
+
+                    // 3) 아직 결과 없음 ⇒ 대기 메시지 업데이트 후 재시도
+                    showNotesStatus(`전사 파일 대기 중... (${pollCount * Math.round(POLL_MS/1000)}s)`);
+                    pollTimer = setTimeout(tick, POLL_MS);
+                } catch (e) {
+                    // 네트워크 오류 등 ⇒ 계속 재시도
+                    showNotesStatus(`전사 파일 대기 중... (${pollCount * Math.round(POLL_MS/1000)}s)`);
+                    pollTimer = setTimeout(tick, POLL_MS);
+                }
+            };
+
+            if (immediate) {
+                tick();
+            } else {
+                pollTimer = setTimeout(tick, POLL_MS);
+            }
+        }
+
+
         async function startCapture(){
             console.log("🎤 startCapture: 캡처 및 Agora 연결을 시작합니다...");
             try {
@@ -404,7 +528,10 @@ function getSelectedProjectId(root=document){
 
                 openBtn?.classList.add('show');
                 endToast('회의가 종료되었습니다.');
-            }catch(e){
+                // ✅ 전사 폴링 시작 (바로 한 번 시도)
+                pollTranscript(true);
+            }
+            catch(e){
                 console.error(e);
                 endToast('업로드 또는 처리 중 오류가 발생했습니다.');
             }finally{
@@ -445,21 +572,44 @@ function getSelectedProjectId(root=document){
             return `${CFG().publicBaseUrl}/${key}`;
         }
 
-        function openNotes(){ notesModal?.setAttribute('aria-hidden','false'); }
+        function openNotes(){
+            notesModal?.setAttribute('aria-hidden','false');
+            if (!notesBody) return;
+
+            // 대기 메시지
+            let remainEl = notesBody.querySelector('small');
+            if (!remainEl) {
+                notesBody.innerHTML = '⏳ 전사 파일 대기 중... <small></small>';
+                remainEl = notesBody.querySelector('small');
+            }
+
+            const id = meetingId; // 이미 startMeeting 할 때 세팅됨
+            waitAndLoadTranscript(id, {
+                maxWaitSec: 120,
+                intervalSec: 3,
+                onTick: (sec) => { if (remainEl) remainEl.textContent = `(${sec}s)`; }
+            }).then(text => {
+                notesBody.textContent = (text && text.trim()) ? text : '(아직 내용이 없습니다)';
+            }).catch(err => {
+                notesBody.textContent = '불러오기 실패: ' + (err?.message || err);
+            });
+        }
+
         function closeNotesFn(){ notesModal?.setAttribute('hidden','true'); }
         openBtn?.addEventListener('click', openNotes);
         closeNotes?.addEventListener('click', closeNotesFn);
         clearNotes?.addEventListener('click', ()=>{ if(notesBody) notesBody.textContent='(아직 내용이 없습니다)'; });
-        exportNotes?.addEventListener('click', ()=>{
-            if (!lastUploadedS3Key) {
-                alert("업로드된 회의 파일이 없습니다.");
-                return;
-            }
-            // Transcribe 결과 파일 이름은 원본 파일 이름에서 확장자만 .json으로 바뀝니다.
-            const transcriptKey = lastUploadedS3Key.replace('.webm', '.json');
-            // 백엔드에 만든 다운로드 API를 호출합니다.
-            window.location.href = `/download/transcript?s3Key=${encodeURIComponent(transcriptKey)}`;
+        exportNotes?.addEventListener('click', () => {
+            if (!notesBody) return;
+            const text = notesBody.textContent || '';
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `meeting-${meetingId}-transcript.txt`;
+            a.click();
+            URL.revokeObjectURL(a.href);
         });
+
 
         function endToast(msg){ showEndToastAtHangup(msg, endBtn); }
 
