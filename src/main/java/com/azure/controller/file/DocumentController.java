@@ -1,10 +1,8 @@
 package com.azure.controller.file;
 
 import com.azure.model.user.User;
-import com.azure.service.ProjectService;
 import com.azure.service.file.DocumentService;
 import com.azure.service.file.FileServiceImpl;
-import com.azure.service.file.FileStorageService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -12,8 +10,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
-
+import com.azure.model.file.FileObject;
+import com.azure.model.document.Document;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -21,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 @Controller
 @RequiredArgsConstructor
@@ -28,13 +27,9 @@ import java.nio.file.Paths;
 public class DocumentController {
 
     private final DocumentService documentService;
-    private final FileStorageService fileStorageService;
     private final FileServiceImpl fileServiceImpl;
-    private final ProjectService projectService;
 
-    /**
-     * 📂 파일 목록 불러오기 (JSP fragment)
-     */
+    // 📂 파일 목록 불러오기 (JSP fragment)
     @GetMapping
     public String listDocuments(@PathVariable Long projectId,
                                 Pageable pageable,
@@ -42,22 +37,16 @@ public class DocumentController {
                                 HttpSession session) {
         System.out.println("[DEBUG] listDocuments 호출됨 projectId=" + projectId);
 
-//        var page = documentService.listByProject(projectId, pageable);
+        var page = documentService.listByProject(projectId, pageable);
         // 회의록(webm 등) 제외
-        var page = documentService.listByProject(projectId, pageable)
-                .map(d -> {
-                    if (d.getTitle() != null && d.getTitle().toLowerCase().contains(".webm")) {
-                        System.out.println("[WARN] 회의록(webm) 문서 제외: " + d.getTitle());
-                        return null;
-                    }
-                    return d;
-                }).filter(d -> d != null);
+        List<Document> documents = page.getContent().stream()
+                .filter(d -> d.getTitle() == null || !d.getTitle().toLowerCase().contains(".webm"))
+                .toList();
 
-//        model.addAttribute("documents", page.getContent());
-        model.addAttribute("documents", page.toList());
+        model.addAttribute("documents", documents);
         model.addAttribute("projectId", projectId);
 
-        //  세션에서 로그인 유저 수동 주입
+        // 세션에서 로그인 유저 수동 주입
         var loginUser = (User) session.getAttribute("loginUser");
         if (loginUser != null) {
             System.out.println("[DEBUG] loginUser.id=" + loginUser.getId());
@@ -66,12 +55,10 @@ public class DocumentController {
             System.out.println("[DEBUG] 세션에 loginUser 없음 (null)");
         }
 
-        return "projects/fragments/files"; // JSP fragment 경로
+        return "projects/fragments/files";
     }
 
-    /**
-     *  파일 업로드
-     */
+    // 파일 업로드
     @PostMapping("/upload")
     public String upload(@PathVariable Long projectId,
                          @RequestParam("file") MultipartFile file,
@@ -87,11 +74,10 @@ public class DocumentController {
         }
 
         try {
-            // 파일 업로드 (IOException 처리)
             Long orgId = loginUser.getOrganization().getId();
 
             // 파일 저장 (file_objects insert)
-            var fileObject = fileServiceImpl.upload(orgId, authorId, file);
+            FileObject fileObject = fileServiceImpl.upload(orgId, authorId, file);
 
             // 문서 생성 (documents insert)
             var document = documentService.create(projectId, authorId, file.getOriginalFilename(), null);
@@ -106,10 +92,9 @@ public class DocumentController {
             var page = documentService.listByProject(projectId, pageable);
             model.addAttribute("documents", page.getContent());
             model.addAttribute("projectId", projectId);
-            model.addAttribute("user", loginUser); // 중복 변수 제거, 바로 사용
+            model.addAttribute("user", loginUser);
 
             return "projects/fragments/files";
-
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -120,8 +105,7 @@ public class DocumentController {
         }
     }
 
-
-    // 템플릿
+    // 템플릿 로딩
     @GetMapping("/new")
     public String newDocument(@PathVariable Long projectId,
                               @RequestParam(defaultValue = "meeting") String templateKey,
@@ -134,6 +118,7 @@ public class DocumentController {
         return "editor/ckeditor";
     }
 
+    // HTML 저장
     @PostMapping("/save")
     public String saveDocument(@PathVariable Long projectId,
                                @RequestParam("title") String title,
@@ -141,53 +126,26 @@ public class DocumentController {
                                Pageable pageable,
                                Model model,
                                HttpSession session) throws IOException {
-        System.out.println("[DEBUG] saveDocument 호출됨 projectId=" + projectId);
 
         User loginUser = (User) session.getAttribute("loginUser");
         if (loginUser == null || loginUser.getOrganization() == null) {
             throw new IllegalStateException("로그인 사용자나 조직 정보를 찾을 수 없습니다.");
         }
 
-        try {
-            Long orgId = loginUser.getOrganization().getId();
-            Long authorId = loginUser.getId();
+        Long orgId = loginUser.getOrganization().getId();
+        Long authorId = loginUser.getId();
 
-            //  HTML 내용을 임시 파일로 저장
-            Path tempFile = Files.createTempFile("meeting-", ".html");
-            Files.writeString(tempFile, content);
-            var multipartFile = new org.springframework.mock.web.MockMultipartFile(
-                    tempFile.getFileName().toString(),
-                    title + ".html",
-                    "text/html",
-                    Files.readAllBytes(tempFile)
-            );
+        var tempFile = Files.createTempFile("meeting-", ".html");
+        Files.writeString(tempFile, content);
+        var multipartFile = new org.springframework.mock.web.MockMultipartFile(
+                tempFile.getFileName().toString(), title + ".html", "text/html", Files.readAllBytes(tempFile)
+        );
 
-            //  기존 업로드 로직 재사용
-            var fileObject = fileService.upload(orgId, authorId, multipartFile);
-            var document = documentService.create(projectId, authorId, title, null);
-            documentService.addVersion(document.getId(), fileObject.getId(), authorId, null);
+        FileObject fileObject = fileServiceImpl.upload(orgId, authorId, multipartFile);
+        var document = documentService.create(projectId, authorId, title, null);
+        documentService.addVersion(document.getId(), fileObject.getId(), authorId, null);
 
-            System.out.printf("[DEBUG] 회의록 저장 성공: fileId=%d, documentId=%d, authorId=%d%n",
-                    fileObject.getId(), document.getId(), authorId);
-
-            //  목록 갱신 (upload()과 동일)
-            var page = documentService.listByProject(projectId, pageable);
-            model.addAttribute("documents", page.getContent());
-            model.addAttribute("projectId", projectId);
-            model.addAttribute("user", loginUser);
-
-            return "redirect:/projects/" + projectId;
-            // return "projects/fragments/files";
-
-            // return "redirect:/projects/" + projectId + "/documents";
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            model.addAttribute("error", "문서 저장 중 오류가 발생했습니다: " + e.getMessage());
-            model.addAttribute("projectId", projectId);
-            model.addAttribute("user", loginUser);
-            return "projects/fragments/files";
-        }
+        return "redirect:/projects/" + projectId;
     }
 
     @PostMapping("/save/pdf")
@@ -210,7 +168,7 @@ public class DocumentController {
         return saveWithFormat(projectId, title, content, "docx", pageable, model, session);
     }
 
-
+    // 공통 저장 로직 (PDF/DOCX)
     private String saveWithFormat(Long projectId,
                                   String title,
                                   String content,
@@ -237,10 +195,8 @@ public class DocumentController {
                 return "redirect:/projects/" + projectId;
             }
 
-
             if ("pdf".equalsIgnoreCase(format)) {
-
-                //  HTML → PDF 변환
+                // HTML → PDF 변환
                 ByteArrayOutputStream pdfOutput = new ByteArrayOutputStream();
                 com.openhtmltopdf.pdfboxout.PdfRendererBuilder builder =
                         new com.openhtmltopdf.pdfboxout.PdfRendererBuilder();
@@ -265,7 +221,6 @@ public class DocumentController {
                         .replaceAll("(?i)<hr>", "<hr />")
                         .replaceAll("(?i)<img([^>/]*?)>", "<img$1 />");
 
-                // XHTML 래퍼로 감싸기
                 String html = """
                     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
                             "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -283,7 +238,6 @@ public class DocumentController {
                     </html>
                     """;
 
-                // 변환
                 builder.withHtmlContent(html, null);
                 builder.toStream(pdfOutput);
                 builder.run();
@@ -293,8 +247,7 @@ public class DocumentController {
                 extension = ".pdf";
 
             } else if ("docx".equalsIgnoreCase(format)) {
-
-                //  HTML → DOCX 변환
+                // HTML → DOCX 변환 (간단 버전)
                 org.apache.poi.xwpf.usermodel.XWPFDocument doc = new org.apache.poi.xwpf.usermodel.XWPFDocument();
                 org.apache.poi.xwpf.usermodel.XWPFParagraph p = doc.createParagraph();
                 org.apache.poi.xwpf.usermodel.XWPFRun run = p.createRun();
@@ -318,33 +271,24 @@ public class DocumentController {
                     fileBytes
             );
 
-            // 기존 로직 재사용
-            var fileObject = fileService.upload(orgId, authorId, multipartFile);
+            // 업로드 + 문서/버전 생성
+            FileObject fileObject = fileServiceImpl.upload(orgId, authorId, multipartFile);
             var document = documentService.create(projectId, authorId, title, null);
             documentService.addVersion(document.getId(), fileObject.getId(), authorId, null);
-
-            //  목록 갱신 (upload()과 동일)
-            var page = documentService.listByProject(projectId, pageable);
-            model.addAttribute("documents", page.getContent());
-            model.addAttribute("projectId", projectId);
-            model.addAttribute("user", loginUser);
 
             System.out.printf("[DEBUG] ✅ %s 저장 성공: fileId=%d, documentId=%d, authorId=%d%n",
                     format.toUpperCase(), fileObject.getId(), document.getId(), authorId);
 
             return "redirect:/projects/" + projectId;
 
-
         } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("error", "문서 저장 중 오류 발생: " + e.getMessage());
             model.addAttribute("projectId", projectId);
+            // ⚠️ 여기서 loginUser 재선언하지 않고, 위에서 만든 변수 그대로 사용
+           
             model.addAttribute("user", loginUser);
             return "redirect:/projects/" + projectId;
-
         }
     }
-
-
-
 }

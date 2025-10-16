@@ -1,10 +1,11 @@
-package com.azure.service.agora;
+package com.azure.service.impl;
 
 import com.azure.config.AgoraProps;
 import io.agora.media.RtcTokenBuilder;
 import io.agora.media.RtcTokenBuilder.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.azure.service.agora.AgoraTokenService;
 
 @Service
 @RequiredArgsConstructor
