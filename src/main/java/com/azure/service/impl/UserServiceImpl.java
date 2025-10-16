@@ -119,8 +119,7 @@ public class UserServiceImpl implements UserService {
 
     // 로그인된 사용자 정보 수정 (비밀번호, 이름, 아바타, 근무 상태)
     @Override
-    public User update(String passwordHash, String name, String avatarUrl, User.WorkStatus workStatus) {
-        Long currentUserId = com.azure.security.SecurityUtil.getCurrentUserId();
+    public User update(Long currentUserId, String passwordHash, String name, String avatarUrl, User.WorkStatus workStatus) {
         if (currentUserId == null) {
             throw new IllegalStateException("로그인된 사용자가 없습니다.");
         }
