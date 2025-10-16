@@ -9,7 +9,4 @@ import java.util.Optional;
 public interface MeetingTranscriptRepository extends JpaRepository<MeetingTranscript, Long> {
     List<MeetingTranscript> findByMeeting_Id(Long meetingId);
     Optional<MeetingTranscript> findTopByMeeting_IdOrderByIdDesc(Long meetingId);
-
-    // ✅ 추가: 시간 순 정렬
-    List<MeetingTranscript> findByMeeting_IdOrderByIdAsc(Long meetingId);
 }
