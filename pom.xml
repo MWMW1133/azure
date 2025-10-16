@@ -36,6 +36,12 @@
             <optional>true</optional>
         </dependency>
 
+        <dependency>
+            <groupId>me.paulschwarz</groupId>
+            <artifactId>spring-dotenv</artifactId>
+            <version>4.0.0</version> <!-- 스프링 부트 3.x 호환 -->
+        </dependency>
+
         <!-- Spring Web (REST API) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
