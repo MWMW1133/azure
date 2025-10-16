@@ -2,27 +2,25 @@ package com.azure.controller.file;
 
 import com.azure.model.file.FileObject;
 import com.azure.model.user.User;
-import com.azure.service.file.FileService;
+import com.azure.service.file.FileServiceImpl;
 import com.azure.config.S3Props;
+import com.azure.service.s3.S3UploadService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.*;
 
 @Controller
@@ -30,7 +28,8 @@ import java.util.*;
 @RequestMapping("/api/files")
 public class FileController {
 
-    private final FileService fileService;
+    private final FileServiceImpl fileServiceImpl;
+    private final S3UploadService s3UploadService; // ✅ S3UploadService 주입
 
     // ⬇️ 추가
     private final S3Presigner presigner;
@@ -43,7 +42,7 @@ public class FileController {
         if (loginUser == null) return "redirect:/login";
 
         Long orgId = loginUser.getOrganization().getId();
-        List<FileObject> files = fileService.listByOrganization(orgId);
+        List<FileObject> files = fileServiceImpl.listByOrganization(orgId);
 
         model.addAttribute("activePage", "files");
         model.addAttribute("body", "workspace/file-storage.jsp");
@@ -60,7 +59,7 @@ public class FileController {
         if (loginUser == null) throw new RuntimeException("로그인이 필요합니다.");
 
         Long orgId = loginUser.getOrganization().getId();
-        return fileService.upload(orgId, loginUser.getId(), file);
+        return fileServiceImpl.upload(orgId, loginUser.getId(), file);
     }
 
     /** 파일 삭제 */
@@ -72,7 +71,7 @@ public class FileController {
             throw new IllegalStateException("로그인이 필요합니다.");
         }
 
-        fileService.delete(id);
+        fileServiceImpl.delete(id);
         return "OK";
     }
 
@@ -85,13 +84,13 @@ public class FileController {
                          HttpSession session) {
         User loginUser = (User) session.getAttribute("loginUser");
         Long orgId = loginUser.getOrganization().getId();
-        return fileService.searchByName(orgId, q, PageRequest.of(page, size));
+        return fileServiceImpl.searchByName(orgId, q, PageRequest.of(page, size));
     }
 
     // 미리보기
     @GetMapping("/{id}/view")
     public void viewFile(@PathVariable Long id, HttpServletResponse response) throws IOException {
-        FileObject file = fileService.get(id);
+        FileObject file = fileServiceImpl.get(id);
         response.setContentType(file.getMimeType());
         Files.copy(Paths.get(file.getStorageKey()), response.getOutputStream());
     }
@@ -99,36 +98,23 @@ public class FileController {
     // 다운로드
     @GetMapping("/{id}/download")
     public void downloadFile(@PathVariable Long id, HttpServletResponse response) throws IOException {
-        FileObject file = fileService.get(id);
+        FileObject file = fileServiceImpl.get(id);
         response.setContentType(file.getMimeType());
         response.setHeader("Content-Disposition", "attachment; filename=\"" + URLEncoder.encode(file.getFileName(), StandardCharsets.UTF_8) + "\"");
         Files.copy(Paths.get(file.getStorageKey()), response.getOutputStream());
     }
 
-    // ⬇️⬇️⬇️ 여기 추가: 프론트의 GET /api/files/presign?key=...&contentType=...에 대응
+    // ⬇️⬇️⬇️ 이 /presign 메소드를 아래 내용으로 교체하세요 ⬇️⬇️⬇️
     @GetMapping("/presign")
     @ResponseBody
-    public Map<String, Object> presign(@RequestParam String key) {
-        PutObjectRequest put = PutObjectRequest.builder()
-                .bucket(s3Props.getBucket())
-                .key(key)
-                .build(); // ContentType 넣지 않음
+    public ResponseEntity<S3UploadService.PresignResp> presign(
+            @RequestParam String key,
+            // ✅ contentType을 선택적 파라미터로 받도록 변경
+            @RequestParam(required = false) String contentType) {
 
-        PutObjectPresignRequest req = PutObjectPresignRequest.builder()
-                .signatureDuration(Duration.ofSeconds(s3Props.getPresignExpirySeconds()))
-                .putObjectRequest(put)
-                .build();
+        // S3UploadService를 호출하여 Presigned URL 생성
+        S3UploadService.PresignResp presignedResponse = s3UploadService.presignPut(key, contentType);
 
-        PresignedPutObjectRequest signed = presigner.presignPutObject(req);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("url", signed.url().toString());
-        body.put("method", "PUT");
-        body.put("headers", Map.of()); // 비워두기
-        body.put("key", key);
-        String publicUrl = (s3Props.getPublicBaseUrl() != null && !s3Props.getPublicBaseUrl().isBlank())
-                ? s3Props.getPublicBaseUrl() + "/" + key : null;
-        body.put("publicUrl", publicUrl);
-        return body;
+        return ResponseEntity.ok(presignedResponse);
     }
 }

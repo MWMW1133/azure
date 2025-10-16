@@ -4,6 +4,7 @@ import com.azure.model.file.FileObject;
 import com.azure.service.TranscriptService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,35 +12,36 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-// ❗️ API 기본 주소를 /api/transcripts 로 변경합니다.
 @RequestMapping("/api/transcripts")
 public class TranscriptController {
 
     private final TranscriptService transcriptService;
 
-    // --- DTO 클래스 정의 ---
-    // 프론트에서 보낼 데이터 (STT 제출용)
-    public record SubmitRequest(Long meetingId, String audioUrl, String mediaType) {}
-    // 프론트에서 보낼 데이터 (최종본 저장용)
+    public record SubmitRequest(Long meetingId, String audioUrl, String mediaType, String lang) {}
     public record SaveRequest(String lang, String content) {}
 
+    // ✅ JSON 바디로 오는 경우
+    @PostMapping(value="/submit", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String,String>> submitJson(@RequestBody SubmitRequest req) {
+        Long meetingId = req.meetingId();
+        String url      = req.audioUrl();
+        String media    = (req.mediaType() != null) ? req.mediaType() : "audio/webm";
+        String lang     = (req.lang() != null) ? req.lang() : "ko-KR";
 
-    /**
-     * STT(음성-텍스트 변환) 작업을 위해 S3 URL을 제출받는 API
-     * 프론트의 POST /api/transcripts/submit 요청을 처리합니다.
-     */
-    @PostMapping("/submit")
-    public ResponseEntity<Map<String, String>> submitForTranscription(@RequestBody SubmitRequest request) {
+        transcriptService.handleSubmit(meetingId, url, media, lang); // <- 핵심!
+        return ResponseEntity.accepted().body(Map.of("status","accepted"));
+    }
 
-        System.out.println("✅ /api/transcripts/submit API 호출 성공!");
-        System.out.println(" - Meeting ID: " + request.meetingId());
-        System.out.println(" - S3 Audio URL: " + request.audioUrl());
-
-        // TODO: 여기에 실제 Naver Clova STT API를 호출하는 로직을 구현해야 합니다.
-        // transcriptService.startTranscription(request.meetingId(), request.audioUrl());
-
-        // 우선 성공 응답을 반환하여 프론트엔드 에러를 막습니다.
-        return ResponseEntity.ok(Map.of("status", "success", "message", "Transcription job submitted."));
+    // (선택) x-www-form-urlencoded 로 올 때도 수용하고 싶으면 추가
+    @PostMapping(value="/submit", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<Map<String,String>> submitForm(
+            @RequestParam Long meetingId,
+            @RequestParam String audioUrl,
+            @RequestParam(required=false, defaultValue="audio/webm") String mediaType,
+            @RequestParam(required=false, defaultValue="ko-KR") String lang
+    ) {
+        transcriptService.handleSubmit(meetingId, audioUrl, mediaType, lang);
+        return ResponseEntity.accepted().body(Map.of("status","accepted"));
     }
 
     /**

@@ -2,6 +2,7 @@ package com.azure.model.meeting;
 
 import com.azure.model.Organization;
 import com.azure.model.calendar.ProjectCalendar;
+import com.azure.model.enums.MeetingStatus;
 import com.azure.model.file.FileObject;
 import com.azure.model.project.Project;
 import jakarta.persistence.*;
@@ -36,6 +37,11 @@ public class Meeting {
 
     @Column(name = "ended_at")
     private LocalDateTime endedAt;
+
+    // ✅ 1. 회의 진행 상태 필드
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private MeetingStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recording_file")

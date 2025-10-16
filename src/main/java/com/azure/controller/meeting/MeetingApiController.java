@@ -11,22 +11,23 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/meetings")
 @RequiredArgsConstructor
 public class MeetingApiController {
+
     private final MeetingService meetingService;
+    // ❌ 서비스 계층으로 이동했으므로 컨트롤러에서는 S3 URL이 더 이상 필요 없음
 
     public record StartReq(Long organizationId, Long projectId) {}
 
     @PostMapping("/start")
     public ResponseEntity<MeetingDTO> start(@RequestBody StartReq req) {
-        Meeting meetingEntity = meetingService.startMeeting(req.organizationId(), req.projectId());
-        // 엔티티를 DTO로 변환하여 반환
-        return ResponseEntity.ok(MeetingDTO.fromEntity(meetingEntity));
+        // ✅ 서비스가 직접 DTO를 반환하므로 바로 받아서 사용
+        MeetingDTO meetingDTO = meetingService.startMeeting(req.organizationId(), req.projectId());
+        return ResponseEntity.ok(meetingDTO);
     }
 
     @PostMapping("/{meetingId}/end")
     public ResponseEntity<MeetingDTO> end(@PathVariable Long meetingId) {
-        Meeting meetingEntity = meetingService.endMeeting(meetingId);
-        // 엔티티를 DTO로 변환하여 반환
-        return ResponseEntity.ok(MeetingDTO.fromEntity(meetingEntity));
+        MeetingDTO meetingDTO = meetingService.endMeeting(meetingId);
+        return ResponseEntity.ok(meetingDTO);
     }
 }
 

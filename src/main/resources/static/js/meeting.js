@@ -299,6 +299,7 @@ function getSelectedProjectId(root=document){
         let mediaRecorder = null;
         let chunks = [];
         let meetingId = null;
+        let lastUploadedS3Key = null; // ✅ 이 변수를 추가하세요.
 
 
         // --- 👇 Agora 관련 변수 추가 ---
@@ -389,6 +390,7 @@ function getSelectedProjectId(root=document){
                 if (!blob) throw new Error('오디오 블랍이 없습니다.');
 
                 const key = s3Key(orgId, pid, meetingId || 'na');
+                lastUploadedS3Key = key; // ✅ 업로드할 키를 변수에 저장
                 const publicUrl = await uploadViaPresigned(blob, key);
 
                 await api('POST', CFG().submitUrl, {
@@ -449,9 +451,14 @@ function getSelectedProjectId(root=document){
         closeNotes?.addEventListener('click', closeNotesFn);
         clearNotes?.addEventListener('click', ()=>{ if(notesBody) notesBody.textContent='(아직 내용이 없습니다)'; });
         exportNotes?.addEventListener('click', ()=>{
-            const blob = new Blob([notesBody?.textContent||''], {type:'text/plain;charset=utf-8'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'meeting-notes.txt'; a.click();
-            URL.revokeObjectURL(a.href);
+            if (!lastUploadedS3Key) {
+                alert("업로드된 회의 파일이 없습니다.");
+                return;
+            }
+            // Transcribe 결과 파일 이름은 원본 파일 이름에서 확장자만 .json으로 바뀝니다.
+            const transcriptKey = lastUploadedS3Key.replace('.webm', '.json');
+            // 백엔드에 만든 다운로드 API를 호출합니다.
+            window.location.href = `/download/transcript?s3Key=${encodeURIComponent(transcriptKey)}`;
         });
 
         function endToast(msg){ showEndToastAtHangup(msg, endBtn); }

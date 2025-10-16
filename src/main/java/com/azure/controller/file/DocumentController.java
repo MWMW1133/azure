@@ -3,7 +3,7 @@ package com.azure.controller.file;
 import com.azure.model.user.User;
 import com.azure.service.ProjectService;
 import com.azure.service.file.DocumentService;
-import com.azure.service.file.FileService;
+import com.azure.service.file.FileServiceImpl;
 import com.azure.service.file.FileStorageService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ public class DocumentController {
 
     private final DocumentService documentService;
     private final FileStorageService fileStorageService;
-    private final FileService fileService;
+    private final FileServiceImpl fileServiceImpl;
     private final ProjectService projectService;
 
     /**
@@ -73,7 +73,7 @@ public class DocumentController {
             Long orgId = loginUser.getOrganization().getId();
 
             // 파일 저장 (file_objects insert)
-            var fileObject = fileService.upload(orgId, authorId, file);
+            var fileObject = fileServiceImpl.upload(orgId, authorId, file);
 
             // 문서 생성 (documents insert)
             var document = documentService.create(projectId, authorId, file.getOriginalFilename(), null);

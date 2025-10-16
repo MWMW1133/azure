@@ -1,9 +1,11 @@
 package com.azure.service.impl;
 
 import com.azure.config.WebUserAdvice;
+import com.azure.dto.MeetingDTO; // ✅ DTO 임포트
 import com.azure.model.Organization;
 import com.azure.model.calendar.ProjectCalendar;
 import com.azure.model.meeting.Meeting;
+import com.azure.model.enums.MeetingStatus; // ✅ Status Enum 임포트
 import com.azure.model.project.Project;
 import com.azure.model.user.User;
 import com.azure.repository.MeetingRepository;
@@ -13,7 +15,9 @@ import com.azure.repository.UserRepository;
 import com.azure.service.MeetingService;
 import com.azure.websocket.error.NotFoundException;
 import com.azure.websocket.error.UnauthorizedException;
+import jakarta.persistence.EntityNotFoundException; // ✅ JPA 예외 사용 권장
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,22 +34,22 @@ public class MeetingServiceImpl implements MeetingService {
     private final ProjectCalendarRepository calendarRepository;
     private final UserRepository userRepository;
 
+    @Value("${aws.s3.public-base-url}")
+    private String s3BaseUrl;
+
     private static final String PERMANENT_MEETING_ROOM_TITLE_FORMAT = "[%s] 상시 회의실";
 
     @Override
-    public Meeting startMeeting(Long organizationId, Long projectId) {
+    public MeetingDTO startMeeting(Long organizationId, Long projectId) { // ✅ 반환 타입 MeetingDTO로 변경
 
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException("project"));
 
         String roomTitle = String.format(PERMANENT_MEETING_ROOM_TITLE_FORMAT, project.getName());
-
-        // 1. 대표 일정을 List로 조회합니다.
         List<ProjectCalendar> existingEvents = calendarRepository.findByProjectIdAndTitle(projectId, roomTitle);
 
         ProjectCalendar representativeEvent;
         if (existingEvents.isEmpty()) {
-            // 2. 결과가 없으면 새로 생성합니다.
             Long currentUserId = WebUserAdvice.currentUserId();
             if (currentUserId == null) {
                 throw new UnauthorizedException();
@@ -62,7 +66,6 @@ public class MeetingServiceImpl implements MeetingService {
 
             representativeEvent = calendarRepository.save(newEvent);
         } else {
-            // 3. 결과가 있으면, 목록의 첫 번째 항목을 사용합니다.
             representativeEvent = existingEvents.get(0);
         }
 
@@ -75,19 +78,27 @@ public class MeetingServiceImpl implements MeetingService {
         newMeeting.setProject(project);
         newMeeting.setStartedAt(LocalDateTime.now());
         newMeeting.setEvent(representativeEvent);
+        newMeeting.setStatus(MeetingStatus.RECORDING); // ✅ 시작 시 상태를 '녹음중'으로 설정
 
-        return meetingRepository.save(newMeeting);
+        Meeting savedMeeting = meetingRepository.save(newMeeting);
+
+        // ✅ 엔티티를 DTO로 변환하여 반환
+        return MeetingDTO.fromEntity(savedMeeting, s3BaseUrl);
     }
 
     @Override
-    public Meeting endMeeting(Long meetingId) {
-        Meeting m = meetingRepository.findByIdWithEvent(meetingId)
-                .orElseThrow(() -> new NotFoundException("meeting"));
+    public MeetingDTO endMeeting(Long meetingId) { // ✅ 반환 타입 MeetingDTO로 변경
+        // findByIdWithEvent 대신 일반 findById 사용 권장 (이후에 DTO로 변환할 것이므로)
+        Meeting m = meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new EntityNotFoundException("Meeting not found with id: " + meetingId));
 
         if (m.getEndedAt() == null) {
             m.setEndedAt(LocalDateTime.now());
+            // 필요 시 상태 변경: m.setStatus(MeetingStatus.COMPLETED); (이 상태는 Transcribe 완료 후 변경하는 것이 더 적합)
         }
-        return meetingRepository.save(m);
+        Meeting savedMeeting = meetingRepository.save(m);
+
+        // ✅ 엔티티를 DTO로 변환하여 반환
+        return MeetingDTO.fromEntity(savedMeeting, s3BaseUrl);
     }
 }
-
