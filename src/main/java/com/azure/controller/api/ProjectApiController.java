@@ -156,7 +156,6 @@ public class ProjectApiController {
     for (Long uid : req.userIds()) {
       // 이미 멤버면 스킵
       if (projectService.existsMember(projectId, uid)) continue;
-      projectService.addMember(projectId, uid);
     }
     return ResponseEntity.noContent().build(); // 프런트는 바디 안 씀
   }
