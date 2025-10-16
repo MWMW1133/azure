@@ -111,13 +111,6 @@
     </div>
   </div>
 
-  <!-- 파일 -->
-  <div class="task-cell file-cell" data-cell="files">
-    <c:if test="${currentTask.hasFile}">
-      <span class="file-icon"><i class="fa-solid fa-paperclip"></i></span>
-    </c:if>
-  </div>
-
   <!-- 수정일 -->
   <div class="task-cell updated-at-cell" data-cell="updatedAt">
     <span class="updated-at-text">

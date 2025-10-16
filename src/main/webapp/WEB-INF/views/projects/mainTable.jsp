@@ -29,7 +29,6 @@
         <div class="task-cell status-cell">상태</div>
         <div class="task-cell priority-cell">우선순위</div>
         <div class="task-cell progress-cell">진행률</div>
-        <div class="task-cell file-cell">파일</div>
         <div class="task-cell updated-at-cell">최근 수정일</div>
       </div>
 
@@ -56,7 +55,6 @@
         <div class="task-cell status-cell">상태</div>
         <div class="task-cell priority-cell">우선순위</div>
         <div class="task-cell progress-cell">진행률</div>
-        <div class="task-cell file-cell">파일</div>
         <div class="task-cell updated-at-cell">최근 수정일</div>
       </div>
 
