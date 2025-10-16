@@ -1,13 +1,12 @@
-
 <!-- topbar.jsp -->
 <%@ page contentType="text/html;charset=UTF-8" %>
-    <!-- 탑바 -->
-    <div class="topbar">
-        <div class="left">
-            <img src="${pageContext.request.contextPath}/images/logo/azure2.png" alt="Logo" class="logo">
-            <span class="fw-bold">Azura</span>
-        </div>
-        <div class="right">
+<!-- 탑바 -->
+<div class="topbar">
+    <div class="left">
+        <img src="${pageContext.request.contextPath}/images/logo/azure2.png" alt="Logo" class="logo">
+        <span class="fw-bold">Azura</span>
+    </div>
+    <div class="right">
 
         <!-- To-do -->
         <div class="dropdown">
@@ -78,30 +77,6 @@
                 <!-- 메뉴 아이템 -->
                 <li><a class="dropdown-item" href="${pageContext.request.contextPath}/profile"><i class="bi bi-person"></i>View profile</a></li>
 
-                <!-- Settings 서브메뉴 -->
-                <li class="dropdown-submenu">
-                    <a class="dropdown-item" href="#">
-                        <i class="bi bi-gear"></i> Settings
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" data-bs-toggle="collapse" href="#accountSubmenu" role="button" aria-expanded="false" aria-controls="accountSubmenu">
-                                <i class="bi bi-person"></i> Account Settings ▼
-                            </a>
-                            <div class="collapse" id="accountSubmenu">
-                                <a class="dropdown-item change-password" href="#"><i class="bi bi-key"></i> Change Password</a>
-                            </div>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" data-bs-toggle="collapse" href="#notifSubmenu" role="button" aria-expanded="false" aria-controls="notifSubmenu">
-                                <i class="bi bi-bell"></i> Notification Settings ▼
-                            </a>
-                            <div class="collapse" id="notifSubmenu">
-                                <a class="dropdown-item" href="#"><i class="bi bi-toggle-on"></i> Push Notifications</a>
-                            </div>
-                        </li>
-                    </ul>
-                </li>
 
                 <li>
                     <a class="dropdown-item" href="#" id="openInviteModal">
@@ -127,80 +102,57 @@
 
         <div class="modal-body chat-layout">
             <!-- 사이드바 -->
-            <div class="chat-sidebar">
-                <button class="btn btn-success w-100 mb-3" onclick="openCreateChatModal()">
-                    + 그룹 채팅방 생성
-                </button>
+            <aside class="chat-sidebar">
 
-                <!-- 그룹 채팅 -->
-                <div class="fw-bold mt-3">
-                    <i class="bi bi-people-fill me-1"></i> 그룹 채팅
-                </div>
-                <!-- TODO: JS에서 프로젝트 목록(li) 주입 -->
+
+                <div class="fw-bold mt-3"><i class="bi bi-people-fill me-1"></i> 그룹 채팅</div>
                 <ul id="groupChatList" class="chat-room-list"></ul>
 
-                <!-- DM 섹션 -->
-                <div class="section-header d-flex justify-content-between align-items-center"
-                     onclick="toggleDMList()">
-                    <span>
-                        <i class="bi bi-person-fill me-1"></i> DM
-                    </span>
+                <div class="section-header d-flex justify-content-between align-items-center" onclick="toggleDMList()">
+                    <span><i class="bi bi-person-fill me-1"></i> DM</span>
                     <i id="dmToggleIcon" class="bi bi-caret-down-fill"></i>
                 </div>
 
-                <!-- DM 검색창 -->
                 <div id="dmSearchBox" class="mt-2" style="display:none;">
-                    <input type="text" class="form-control form-control-sm"
-                           placeholder="사용자 검색..." onkeyup="filterDM(this.value)">
+                    <input type="text" class="form-control form-control-sm" placeholder="사용자 검색..." onkeyup="filterDM(this.value)">
                 </div>
 
-                <!-- TODO: JS에서 DM 목록(li) 주입 -->
-                <ul id="dmList" class="chat-room-list mt-2">
-                    <%-- <li>홍길동</li><li>김철수</li> --%>
-                </ul>
-            </div>
+                <ul id="dmList" class="chat-room-list mt-2"></ul>
+            </aside>
 
-                        <!-- 채팅창 -->
-                        <div class="chat-window">
-                            <!-- 공용 헤더 -->
-                            <div class="chat-header">
-                                <div class="left">프로젝트 1</div>
-                                <div class="right">
-                                    <div class="translate-toggle">
-                                        <label for="translateToggle">번역</label>
-                                        <input class="form-check-input" type="checkbox" id="translateToggle">
-                                    </div>
-                                    <select class="form-select form-select-sm">
-                                        <option>한국어</option>
-                                        <option>영어</option>
-                                        <option>중국어</option>
-                                        <option>일본어</option>
-                                    </select>
-                                    <button class="btn btn-primary btn-sm">요약</button>
+            <!-- 채팅창 -->
+            <section class="chat-window">
+                <header class="chat-header">
+                    <div class="left" id="chatHeaderTitle">대화방</div>
+                    <div class="right">
+                        <!-- ✅ 번역 컨트롤: 모달에만 존재, ID 고정 -->
+                        <label class="d-flex align-items-center" style="gap:6px; margin:0;">
+                            <input class="form-check-input" type="checkbox" id="mt-enable"> 번역
+                        </label>
 
-                                    <!-- 닫기 버튼-->
-                                    <button type="button" class="close-btn" onclick="closeChatModal()">
-                                        <i class="bi bi-x"></i>
-                                    </button>
-                                </div>
-                            </div>
+                        <select id="mt-target" class="form-select form-select-sm">
+                            <option value="ko">한국어</option>
+                            <option value="en">영어</option>
+                            <option value="zh">중국어</option>
+                            <option value="ja">일본어</option>
+                        </select>
+
+                        <button type="button" class="close-btn" onclick="closeChatModal()">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </header>
 
                 <!-- 메시지 영역 -->
-                <div class="chat-messages" id="chatMessages">
-                    <!-- TODO: JS에서 메시지 렌더링 -->
-                </div>
+                <div class="chat-messages" id="chatMessages"></div>
 
                 <!-- 입력창 -->
                 <div class="chat-input">
-                    <label for="fileInput" class="file-attach">
-                        <i class="bi bi-paperclip"></i>
-                    </label>
-                    <input type="file" id="fileInput" style="display: none;" />
-
-                    <input type="text" id="chatInput" placeholder="메시지를 입력하세요..." />
-                    <button class="btn btn-primary" onclick="sendMessage()">전송</button>
+                    <!-- ✅ client.js가 찾는 ID로 통일 -->
+                    <input type="text" id="chatTextInput" placeholder="메시지를 입력하세요...">
+                    <button id="btnChatSend" class="btn btn-primary">전송</button>
                 </div>
-            </div>
+            </section>
         </div>
     </div>
 </div>

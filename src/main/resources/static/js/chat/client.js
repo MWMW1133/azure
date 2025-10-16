@@ -1,20 +1,15 @@
-// /static/js/chat/client.js
 // WS(STOMP) + REST 연동 클라이언트 (IME 안전 + 견고한 입력 탐색/재시도)
-
 (function (w, d) {
   'use strict';
 
   const APP_CTX = w.APP_CTX || '';
   w.APP = w.APP || {};
+  // ✅ 하드코딩 제거: 서버에서 목록 받아오므로 빈 객체 유지
+  w.APP.channelMap = {};
   w.APP.useBackend = true;
 
-  // 그룹/프로젝트 채널: 정적 매핑(서버에서 주입되면 그대로 사용)
-  w.APP.channelMap = w.APP.channelMap || { '프로젝트 1': 1, '프로젝트 2': 2, '프로젝트 3': 3 };
-
   // (선택) DM 이름→상대 userId 매핑. 이벤트 detail.peerId가 오면 이 맵은 안 써도 됨.
-  w.APP.dmMap = w.APP.dmMap || {
-    // '홍길동': 101, '김철수': 102, '이영희': 103
-  };
+  w.APP.dmMap = w.APP.dmMap || {};
 
   const currentUser = { id: (w.CURRENT_USER_ID || 1), name: '나' };
   const $ = (sel, el = d) => el.querySelector(sel);
@@ -24,8 +19,10 @@
     const modal = d.getElementById('chatModal') || d;
     return (
       modal.querySelector('#chatTextInput') ||
+      modal.querySelector('#chatInput') ||
       modal.querySelector('.chat-input input[type="text"]') ||
       d.querySelector('#chatTextInput') ||
+      d.querySelector('#chatInput') ||
       d.querySelector('.chat-input input[type="text"]')
     );
   }
@@ -76,7 +73,6 @@
     const nearBottom = distanceFromBottom <= threshold;
     if (force || nearBottom) el.scrollTop = el.scrollHeight;
   }
-  // === 끝 ===
 
   // ---- 상태 ----
   let client = null;
@@ -104,11 +100,10 @@
     const rawName =
       (authorId === currentUser.id ? (currentUser.name || '') : (userNameMap[authorId] || ''));
 
-  // 이름이 없으면 라벨 자체를 렌더링하지 않음
-  const nameHtml = rawName ? `<span class="sender">${escapeHTML(rawName)}</span>` : '';
+    const nameHtml = rawName ? `<span class="sender">${escapeHTML(rawName)}</span>` : '';
 
-  div.innerHTML = `
-    ${side === 'left' ? `<img src="${APP_CTX}/images/profile1.png" class="avatar">` : ''}
+    div.innerHTML = `
+      ${side === 'left' ? `<img src="${APP_CTX}/images/profile1.png" class="avatar">` : ''}
       <div class="bubble">
         <div class="meta">
           ${nameHtml}
@@ -121,7 +116,7 @@
 
     chatBox.appendChild(div);
     chatBox.scrollTop = chatBox.scrollHeight;
-  } 
+  }
 
   // ---- STOMP ----
   function ensureWs() {
@@ -201,11 +196,13 @@
       const text = (data.body ?? data.text ?? data.message ?? '').toString();
       if (text.trim() === '') return; // 내용 없으면 렌더 X
 
-      appendMsg({text, authorId: Number(data.authorId ?? data.senderId ?? data.userId),
-      createdAt: (data.createdAt || data.created_at || data.ts || data.time || data.date)
+      appendMsg({
+        text,
+        authorId: Number(data.authorId ?? data.senderId ?? data.userId),
+        createdAt: (data.createdAt || data.created_at || data.ts || data.time || data.date)
+      });
+      requestAnimationFrame(() => scrollToBottom(false));
     });
-    requestAnimationFrame(() => scrollToBottom(false));
-  });
   }
 
   // ---- DM 전용: 채널ID 확보 후 진입 (★ 쿠키 포함) ----
@@ -254,40 +251,41 @@
 
   // === 전송: 서버가 번역하도록 플래그만 전달 ===
   async function _sendNow(text) {
-  if (!client || !client.connected) { console.warn('[chat] not connected'); return; }
-  if (!currentChannelId) { console.warn('[chat] no channel selected'); return; }
+    if (!client || !client.connected) { console.warn('[chat] not connected'); return; }
+    if (!currentChannelId) { console.warn('[chat] no channel selected'); return; }
 
-  // ✅ 번역 토글/타겟을 여러 id로 탐색 (모달 내부 포함)
-  const root = document.getElementById('chatModal') || document;
+    const root = document.getElementById('chatModal') || document;
 
-  // 새 UI(#mt-enable, #mt-target) 우선 → 기존 것들까지 포괄
-  const translateEnabled = !!(
-  root.querySelector('#mt-enable, #tg-translate, #translateToggle, #translateSwitch')?.checked
-  );
+    const translateToggle = root.querySelector('#mt-enable, #tg-translate, #translateToggle, #translateSwitch');
+    const translateEnabled = !!(translateToggle && translateToggle.checked);
 
-  const rawTarget =
-  (root.querySelector('#mt-target, #sel-target, #translateLang, #translateSelect')?.value) || 'en';
+    const rawTarget =
+      root.querySelector('#mt-target, #sel-target, #translateLang, #translateSelect')?.value || 'en';
+    const targetLang = normalizeTarget(rawTarget);
 
-  const targetLang = normalizeTarget(rawTarget);
-
-  
-
-  console.log('[chat] publish ->', { channelId: currentChannelId, text, translateEnabled, targetLang });
-
-  client.publish({
-    destination: `/app/chat/${currentChannelId}/send`,
-    body: JSON.stringify({
+    const payload = {
       channelId: currentChannelId,
       authorId: currentUser.id,
-      body: text,
-      translateEnabled,   // ✅ 서버로 전달
-      targetLang         // ✅ 서버로 전달
-    })
-  });
+      body: text
+    };
 
-  const el = getChatInputEl();
-  if (el) el.value = '';
-  requestAnimationFrame(() => scrollToBottom(true));
+    // ✅ 토글이 켜져 있으면, 대상 언어가 무엇이든 항상 전달
+    if (translateEnabled) {
+      payload.translateEnabled = true;
+      payload.targetLang = targetLang;
+    } else {
+      console.log('[chat] 번역 비활성 상태 → 원문 그대로 전송');
+    }
+
+    console.log('[chat] publish ->', payload);
+    client.publish({
+      destination: `/app/chat/${currentChannelId}/send`,
+      body: JSON.stringify(payload)
+    });
+
+    const el = getChatInputEl();
+    if (el) el.value = '';
+    requestAnimationFrame(() => scrollToBottom(true));
   }
 
   // ---- 방 선택 이벤트 ----
@@ -304,7 +302,7 @@
       await enterDMByPeer(Number(pid), roomName); return;
     }
 
-    const mappedGroupId = channelId || (w.APP.channelMap?.[roomName]);
+    const mappedGroupId = channelId || (w.APP.channelMap?.[roomName]); // channelMap은 비어있음(하위호환)
     if (mappedGroupId) { await enterChannel(Number(mappedGroupId)); return; }
 
     const pid = peerId || w.APP.dmMap?.[roomName] || findPeerIdFromDom(roomName);
@@ -402,4 +400,85 @@ function normalizeTarget(val) {
   if (['ja','japanese','일본어'].includes(s)) return 'ja';
   if (['zh','chinese','중국어','zh-cn','cn'].includes(s)) return 'zh';
   return 'en';
+}
+
+/* ============================
+   프로젝트 방 목록 가져와서 렌더
+   ============================ */
+async function loadProjectRooms() {
+  const ul = document.querySelector('#groupChatList');
+  if (!ul) return;
+
+  // 로딩 표시
+  ul.innerHTML = '<li class="text-muted" style="padding:8px 12px;">불러오는 중…</li>';
+
+  try {
+    // window.CURRENT_USER_ID 가 아직 없을 수도 있으니 방어
+    const me = Number(window.CURRENT_USER_ID || 0) || 1;
+    const res = await fetch(`${(window.APP_CTX||'')}/api/chat/rooms/projects?userId=${encodeURIComponent(me)}`, {
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    /** 기대 형식: [{projectId, name, channelId}] */
+    const rows = await res.json();
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      ul.innerHTML = '<li class="text-muted" style="padding:8px 12px;">프로젝트가 없습니다</li>';
+      return;
+    }
+
+    ul.innerHTML = '';
+    rows.forEach(r => {
+      const li = document.createElement('li');
+      li.className = 'room-item';
+      li.textContent = r.name;
+      li.dataset.room = r.name;
+      if (r.channelId) li.dataset.channelId = r.channelId; // 이미 채널 있으면 바로 사용
+      li.dataset.projectId = r.projectId;                   // 없으면 클릭 시 보장(ensure)
+
+      li.addEventListener('click', async () => {
+        // UI 활성화 토글
+        ul.querySelectorAll('li').forEach(x => x.classList.remove('active'));
+        li.classList.add('active');
+
+        // 1) 채널ID가 있으면 즉시 입장
+        const ch = li.dataset.channelId && Number(li.dataset.channelId);
+        if (ch) {
+          window.dispatchEvent(new CustomEvent('chat:room-selected', {
+            detail: { type: 'CHANNEL', roomName: r.name, channelId: ch }
+          }));
+          return;
+        }
+
+        // 2) 없으면 서버에 보장(ensure) 요청 후 입장
+        try {
+          const res2 = await fetch(
+            `${(window.APP_CTX||'')}/api/chat/rooms/projects/${r.projectId}/ensure-channel?me=${encodeURIComponent(me)}`,
+            { method: 'POST', credentials: 'same-origin' }
+          );
+          if (!res2.ok) throw new Error('HTTP ' + res2.status);
+          const channelId = await res2.json();
+          li.dataset.channelId = channelId;
+
+          window.dispatchEvent(new CustomEvent('chat:room-selected', {
+            detail: { type: 'CHANNEL', roomName: r.name, channelId }
+          }));
+        } catch (e) {
+          console.warn('ensure-channel failed', e);
+          alert('채팅 채널을 만들거나 찾는 데 실패했습니다.');
+        }
+      });
+
+      ul.appendChild(li);
+    });
+
+    const q = document.getElementById('groupSearchBox')?.value || '';
+    if (q) window.filterGroup(q);
+    
+  } catch (e) {
+    console.error('loadProjectRooms failed', e);
+    ul.innerHTML = '<li class="text-danger" style="padding:8px 12px;">목록을 불러오지 못했습니다</li>';
+  }
 }

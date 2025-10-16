@@ -27,4 +27,3 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
             "WHERE m.id = :id")
     Optional<Meeting> findByIdWithEvent(@Param("id") Long id);
 }
-

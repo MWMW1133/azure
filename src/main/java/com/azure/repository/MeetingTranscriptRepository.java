@@ -1,8 +1,7 @@
 package com.azure.repository;
 
-import com.azure.model.meeting.MeetingTranscript;
 import org.springframework.data.jpa.repository.JpaRepository;
-
+import com.azure.model.meeting.MeetingTranscript;
 import java.util.List;
 import java.util.Optional;
 

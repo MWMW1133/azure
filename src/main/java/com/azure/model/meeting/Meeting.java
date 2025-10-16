@@ -19,19 +19,22 @@ public class Meeting {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** project_calendars.id (NOT NULL) */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private ProjectCalendar event;
 
+    /** organizations.id (NULL 허용) */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organization_id")
     private Organization organization;
 
-    // 👇 JSON 관련 어노테이션 제거
+    /** projects.id (NULL 허용) */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
     private Project project;
 
+    /** 회의 시작/종료 시각 */
     @Column(name = "started_at")
     private LocalDateTime startedAt;
 
@@ -43,11 +46,12 @@ public class Meeting {
     @Column(name = "status")
     private MeetingStatus status;
 
+    /** file_objects.id (NULL 허용) */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recording_file")
     private FileObject recordingFile;
 
+    /** DB DEFAULT CURRENT_TIMESTAMP (애플리케이션에서 값 세팅 금지) */
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
 }
-

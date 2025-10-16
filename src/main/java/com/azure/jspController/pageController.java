@@ -5,6 +5,7 @@ import com.azure.model.task.Task;
 import com.azure.model.user.User;
 import com.azure.service.TaskService;
 import com.azure.service.UserService;
+
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
@@ -15,6 +16,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,7 +36,7 @@ public class pageController {
     }
 
     @GetMapping("/profile")
-    public String viewProfile(Model model, HttpSession session) {
+        public String viewProfile(Model model, HttpSession session) {
         User loginUser = (User) session.getAttribute("loginUser");
         if (loginUser == null) return "redirect:/login";
 
@@ -48,14 +50,6 @@ public class pageController {
     public String noInvitePage() {
         return "noInvitePage"; // /WEB-INF/views/noInvitePage.jsp
     }
-
-
-    /*@GetMapping("/meeting")
-    public String meeting(Model model) {
-        model.addAttribute("body", "meeting.jsp");
-        model.addAttribute("activePage", "meeting");
-        return "mainbar";
-    }*/
 
 
 

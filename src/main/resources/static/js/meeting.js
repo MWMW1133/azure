@@ -3,126 +3,126 @@
 // =============================================================
 
 function CFG() {
-    const d = (document.getElementById('meeting-config') || { dataset: {} }).dataset;
-    return {
-        meUrl: d.meUrl,
-        projectsUrl: d.projectsUrl,
-        projectMembersUrl: (id) => tpl(d.projectMembersUrl, { id }),
-        projectInvitationsUrl: (id) => tpl(d.projectInvitationsUrl, { id }),
-        projectInviteUrl: (id) => tpl(d.projectInviteUrl, { id }),
-        projectAcceptUrl: (id) => tpl(d.projectAcceptUrl, { id }),
-        projectDeclineUrl: (id, userId) => tpl(d.projectDeclineUrl, { id, userId }),
-        projectRemoveUrl: (id, userId) => tpl(d.projectRemoveUrl, { id, userId }),
-        presignUrl: d.presignUrl,
-        publicBaseUrl: d.publicBaseUrl,
-        startUrl: d.startUrl,
-        endUrl: d.endUrl,
-        submitUrl: d.submitUrl,
-        transcriptLatestUrl: (meetingId) => tpl(d.transcriptLatestUrl, { meetingId }),
-        // --- 👇 Agora 관련 설정 추가 ---
-        agoraAppId: d.agoraAppId,
-        agoraTokenUrl: (channel) => tpl(d.agoraTokenUrl, { channel })
-    };
+  const d = (document.getElementById('meeting-config') || { dataset: {} }).dataset;
+  return {
+    meUrl: d.meUrl,
+    projectsUrl: d.projectsUrl,
+    projectMembersUrl: (id) => tpl(d.projectMembersUrl, { id }),
+    projectInvitationsUrl: (id) => tpl(d.projectInvitationsUrl, { id }),
+    projectInviteUrl: (id) => tpl(d.projectInviteUrl, { id }),
+    projectAcceptUrl: (id) => tpl(d.projectAcceptUrl, { id }),
+    projectDeclineUrl: (id, userId) => tpl(d.projectDeclineUrl, { id, userId }),
+    projectRemoveUrl: (id, userId) => tpl(d.projectRemoveUrl, { id, userId }),
+    presignUrl: d.presignUrl,
+    publicBaseUrl: d.publicBaseUrl,
+    startUrl: d.startUrl,
+    endUrl: d.endUrl,
+    submitUrl: d.submitUrl,
+    transcriptLatestUrl: (meetingId) => tpl(d.transcriptLatestUrl, { meetingId }),
+    // --- 👇 Agora 관련 설정 추가 ---
+    agoraAppId: d.agoraAppId,
+    agoraTokenUrl: (channel) => tpl(d.agoraTokenUrl, { channel })
+  };
 }
 
 function tpl(t,obj){
-    if (typeof t !== 'string') return '';
-    return t.replace(/\{(\w+)\}/g,(_,k)=>encodeURIComponent(obj[k]??''));
+  if (typeof t !== 'string') return '';
+  return t.replace(/\{(\w+)\}/g,(_,k)=>encodeURIComponent(obj[k]??''));
 }
 
 async function api(method, url, body, headers={}){
-    if (!url) {
-        throw new Error(`API call aborted: URL is ${url}`);
-    }
-    const res = await fetch(url, {
-        method, credentials:'same-origin',
-        headers:{ 'Content-Type':'application/json', ...headers },
-        body: body ? JSON.stringify(body) : undefined
-    });
-    if(!res.ok) throw new Error(`${method} ${url} -> ${res.status}`);
-    const ct = res.headers.get('content-type')||'';
-    return ct.includes('application/json') ? res.json() : res.text();
+  if (!url) {
+    throw new Error(`API call aborted: URL is ${url}`);
+  }
+  const res = await fetch(url, {
+    method, credentials:'same-origin',
+    headers:{ 'Content-Type':'application/json', ...headers },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if(!res.ok) throw new Error(`${method} ${url} -> ${res.status}`);
+  const ct = res.headers.get('content-type')||'';
+  return ct.includes('application/json') ? res.json() : res.text();
 }
 
 async function apiMe(){
-    if (window.__ME) return window.__ME;
-    window.__ME = await api('GET', CFG().meUrl);
-    return window.__ME;
+  if (window.__ME) return window.__ME;
+  window.__ME = await api('GET', CFG().meUrl);
+  return window.__ME;
 }
 async function waitAndLoadTranscript(meetingId, { maxWaitSec = 120, intervalSec = 3, onTick } = {}) {
-    const buildUrl = CFG().transcriptLatestUrl || ((id) => `/api/transcripts/${id}/latest`);
-    const deadline = Date.now() + maxWaitSec * 1000;
+  const buildUrl = CFG().transcriptLatestUrl || ((id) => `/api/transcripts/${id}/latest`);
+  const deadline = Date.now() + maxWaitSec * 1000;
 
-    while (Date.now() < deadline) {
-        try {
-            const res = await fetch(buildUrl(meetingId), { credentials: 'same-origin' });
-            if (res.ok) {
-                const text = await res.text();
-                if (text && text.trim().length > 0) return text; // ✅ DB에 내용이 들어오면 즉시 반환
-            }
-        } catch (e) {
-            // 무시하고 재시도
-        }
-        if (onTick) onTick(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
-        await new Promise(r => setTimeout(r, intervalSec * 1000));
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(buildUrl(meetingId), { credentials: 'same-origin' });
+      if (res.ok) {
+        const text = await res.text();
+        if (text && text.trim().length > 0) return text; // ✅ DB에 내용이 들어오면 즉시 반환
+      }
+    } catch (e) {
+      // 무시하고 재시도
     }
-    return ''; // 타임아웃
+    if (onTick) onTick(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+    await new Promise(r => setTimeout(r, intervalSec * 1000));
+  }
+  return ''; // 타임아웃
 }
 
 async function apiListProjects(){
-    const list = await api('GET', CFG().projectsUrl + '/list');
-    return Array.isArray(list) ? list : [];
+  const list = await api('GET', CFG().projectsUrl + '/list');
+  return Array.isArray(list) ? list : [];
 }
 
 function isAdmin(user) {
-    return user && (user.role === 'ADMIN' || user.role === 'MANAGER');
+  return user && (user.role === 'ADMIN' || user.role === 'MANAGER');
 }
 
 async function apiListProjectMembers(projectId){
-    const url = CFG().projectMembersUrl(projectId);
-    const res = await api('GET', url);
-    if (!Array.isArray(res)) return [];
-    if (typeof res[0] === 'number') {
-        return res.map(id => ({ id, name: `유저#${id}` }));
-    }
-    return res;
+  const url = CFG().projectMembersUrl(projectId);
+  const res = await api('GET', url);
+  if (!Array.isArray(res)) return [];
+  if (typeof res[0] === 'number') {
+    return res.map(id => ({ id, name: `유저#${id}` }));
+  }
+  return res;
 }
 
 async function apiListProjectMemberIds(projectId){
-    const members = await apiListProjectMembers(projectId);
-    return members.map(m => Number(m.id)).filter(Number.isFinite);
+  const members = await apiListProjectMembers(projectId);
+  return members.map(m => Number(m.id)).filter(Number.isFinite);
 }
 
 async function apiListInvitations(projectId){
-    const url = CFG().projectInvitationsUrl(projectId);
-    const res = await api('GET', url);
-    return Array.isArray(res) ? res.map(Number) : [];
+  const url = CFG().projectInvitationsUrl(projectId);
+  const res = await api('GET', url);
+  return Array.isArray(res) ? res.map(Number) : [];
 }
 
 async function apiAccept(projectId, userId){
-    const url = CFG().projectAcceptUrl(projectId);
-    return api('POST', url, { userId });
+  const url = CFG().projectAcceptUrl(projectId);
+  return api('POST', url, { userId });
 }
 
 async function apiDecline(projectId, userId){
-    const url = CFG().projectDeclineUrl(projectId, userId);
-    return api('DELETE', url);
+  const url = CFG().projectDeclineUrl(projectId, userId);
+  return api('DELETE', url);
 }
 
 async function apiRemove(projectId, userId){
-    const url = CFG().projectRemoveUrl(projectId, userId);
-    return api('DELETE', url);
+  const url = CFG().projectRemoveUrl(projectId, userId);
+  return api('DELETE', url);
 }
 
 function getInitialProjectId(){
-    const q = new URLSearchParams(location.search);
-    const v = q.get('project') || q.get('projectId');
-    return v ? Number(v) : null;
+  const q = new URLSearchParams(location.search);
+  const v = q.get('project') || q.get('projectId');
+  return v ? Number(v) : null;
 }
 
 function getSelectedProjectId(root=document){
-    const sel = root.querySelector('#projectSelect');
-    return sel && sel.value ? Number(sel.value) : null;
+  const sel = root.querySelector('#projectSelect');
+  return sel && sel.value ? Number(sel.value) : null;
 }
 
 // =============================================================
@@ -130,15 +130,15 @@ function getSelectedProjectId(root=document){
 // =============================================================
 
 (function (w) {
-    'use strict';
-    if (w.__meetingLoaded) return;
-    w.__meetingLoaded = true;
+  'use strict';
+  if (w.__meetingLoaded) return;
+  w.__meetingLoaded = true;
 
-    function ensureRoomStyles() {
-        if (document.getElementById('meeting-hud-styles')) return;
-        const st = document.createElement('style');
-        st.id = 'meeting-hud-styles';
-        st.textContent = `
+  function ensureRoomStyles() {
+    if (document.getElementById('meeting-hud-styles')) return;
+    const st = document.createElement('style');
+    st.id = 'meeting-hud-styles';
+    st.textContent = `
 :root{--border:#e6ebf3;--muted:#5b6b83;--ink:#0f172a;--ink2:#1f2937;--ink3:#334155;}
 .room-topbar{padding:14px 4px 10px;display:flex;justify-content:flex-start;align-items:center;min-height:56px;}
 .room-title{font-size:clamp(22px,2.0vw,30px);line-height:1.25;font-weight:800;color:var(--ink2);letter-spacing:-.01em;text-align:left;margin-left:18px;}
@@ -233,11 +233,11 @@ function getSelectedProjectId(root=document){
 .room-people.is-manager .rp-search{display:block;}
 @keyframes cc-in{from{transform:translateY(6px);opacity:0}to{transform:translateY(0);opacity:1}}
 `;
-        document.head.appendChild(st);
-    }
+    document.head.appendChild(st);
+  }
 
-    function roomHTML() {
-        return `
+  function roomHTML() {
+    return `
 <section class="room-wrap">
   <section id="lobby-view" class="lobby">
     <div class="lobby-card">
@@ -300,435 +300,435 @@ function getSelectedProjectId(root=document){
       </div>
     </div>
     </section>`;
+  }
+
+  function bindRoomEvents(root){
+    const startBtn = root.querySelector('#hud-notes-start');
+    const stopBtn  = root.querySelector('#hud-notes-stop');
+    const openBtn  = root.querySelector('#hud-open-notes');
+    const endBtn   = root.querySelector('#hud-end');
+    const micSel   = root.querySelector('#hud-mic');
+
+    const notesModal  = document.getElementById('notes-modal');
+    const notesBody   = document.getElementById('notes-body');
+    const closeNotes  = document.getElementById('btn-close-notes');
+    const clearNotes  = document.getElementById('btn-clear-notes');
+    const exportNotes = document.getElementById('btn-export-notes');
+
+    let mediaStream = null;
+    let mediaRecorder = null;
+    let chunks = [];
+    let meetingId = null;
+    let lastUploadedS3Key = null; // ✅ 이 변수를 추가하세요.
+
+
+    // --- 👇 Agora 관련 변수 추가 ---
+    let agoraClient = null;
+    let localAudioTrack = null;
+    // --- 👆 Agora 관련 변수 추가 ---
+
+    // --- 전사 폴링 상태 ---
+    let pollTimer = null;
+    let pollCount = 0;
+    const MAX_POLL = 120;   // 최대 120회 시도 (약 2분: 1초 간격 가정)
+    const POLL_MS  = 1000;  // 1초 간격
+
+    function setNotes(text){
+      if (!notesBody) return;
+      notesBody.textContent = text && text.trim() ? text : '(아직 내용이 없습니다)';
     }
 
-    function bindRoomEvents(root){
-        const startBtn = root.querySelector('#hud-notes-start');
-        const stopBtn  = root.querySelector('#hud-notes-stop');
-        const openBtn  = root.querySelector('#hud-open-notes');
-        const endBtn   = root.querySelector('#hud-end');
-        const micSel   = root.querySelector('#hud-mic');
-
-        const notesModal  = document.getElementById('notes-modal');
-        const notesBody   = document.getElementById('notes-body');
-        const closeNotes  = document.getElementById('btn-close-notes');
-        const clearNotes  = document.getElementById('btn-clear-notes');
-        const exportNotes = document.getElementById('btn-export-notes');
-
-        let mediaStream = null;
-        let mediaRecorder = null;
-        let chunks = [];
-        let meetingId = null;
-        let lastUploadedS3Key = null; // ✅ 이 변수를 추가하세요.
-
-
-        // --- 👇 Agora 관련 변수 추가 ---
-        let agoraClient = null;
-        let localAudioTrack = null;
-        // --- 👆 Agora 관련 변수 추가 ---
-
-        // --- 전사 폴링 상태 ---
-        let pollTimer = null;
-        let pollCount = 0;
-        const MAX_POLL = 120;   // 최대 120회 시도 (약 2분: 1초 간격 가정)
-        const POLL_MS  = 1000;  // 1초 간격
-
-        function setNotes(text){
-            if (!notesBody) return;
-            notesBody.textContent = text && text.trim() ? text : '(아직 내용이 없습니다)';
-        }
-
-        function showNotesStatus(msg){
-            if (!notesBody) return;
-            notesBody.textContent = `⏳ ${msg}`;
-        }
-
-        function extractTranscriptText(payload){
-            // AWS Transcribe 기본 포맷: results.transcripts[0].transcript
-            try {
-                if (typeof payload === 'string') {
-                    // S3가 text/plain으로 내려오면 그대로 사용
-                    return payload;
-                }
-                if (payload?.results?.transcripts?.length) {
-                    return payload.results.transcripts.map(t => t.transcript).join('\n');
-                }
-                // (선택) 향후 diarization 파싱은 payload.results.speaker_labels / items 활용
-                return JSON.stringify(payload);
-            } catch(_) {
-                return '';
-            }
-        }
-
-        async function fetchTranscriptOnce(transcriptKey){
-            const url = `/download/transcript?s3Key=${encodeURIComponent(transcriptKey)}`;
-            const res = await fetch(url, { redirect: 'follow' });
-            if (!res.ok) return { ok:false, status:res.status };
-
-            const ct = res.headers.get('content-type') || '';
-            const body = ct.includes('application/json') ? await res.json() : await res.text();
-            const text = extractTranscriptText(body);
-            return { ok:true, text };
-        }
-
-        function stopPolling(){
-            if (pollTimer) clearTimeout(pollTimer);
-            pollTimer = null; pollCount = 0;
-        }
-
-        // ✅ DB에서 최신 회의록 텍스트를 받아온다 (비어 있으면 빈 문자열 반환)
-        async function fetchTranscriptFromDB(meetingId) {
-            try {
-                const res = await fetch(`/api/transcripts/${meetingId}/latest`, {
-                    headers: { 'Accept': 'text/plain' }
-                });
-                if (!res.ok) return '';
-                const text = (await res.text() || '').trim();
-                return text;
-            } catch (e) {
-                return '';
-            }
-        }
-
-        function pollTranscript(immediate) {
-            if (pollTimer) stopPolling();
-            pollCount = 0;
-
-            const tick = async () => {
-                pollCount++;
-                try {
-                    // 1) ✅ 먼저 DB에서 최신 회의록을 확인한다.
-                    const dbText = await fetchTranscriptFromDB(meetingId);
-                    if (dbText && dbText.length > 0) {
-                        setNotes(dbText);   // 화면에 고정
-                        stopPolling();      // 더 이상 대기/폴링 안 함
-                        return;
-                    }
-
-                    // 2) ⛳ 폴백: S3(프리사인) 경로에 결과 파일이 있으면 그걸 사용
-                    const out = await fetchTranscriptOnce();
-                    if (out.ok) {
-                        setNotes(out.text);
-                        stopPolling();
-                        return;
-                    }
-
-                    // 3) 아직 결과 없음 ⇒ 대기 메시지 업데이트 후 재시도
-                    showNotesStatus(`전사 파일 대기 중... (${pollCount * Math.round(POLL_MS/1000)}s)`);
-                    pollTimer = setTimeout(tick, POLL_MS);
-                } catch (e) {
-                    // 네트워크 오류 등 ⇒ 계속 재시도
-                    showNotesStatus(`전사 파일 대기 중... (${pollCount * Math.round(POLL_MS/1000)}s)`);
-                    pollTimer = setTimeout(tick, POLL_MS);
-                }
-            };
-
-            if (immediate) {
-                tick();
-            } else {
-                pollTimer = setTimeout(tick, POLL_MS);
-            }
-        }
-
-
-        async function startCapture(){
-            console.log("🎤 startCapture: 캡처 및 Agora 연결을 시작합니다...");
-            try {
-                // 1. 로컬 녹음용 스트림 생성
-                const deviceId = micSel && micSel.value ? { deviceId: { exact: micSel.value } } : true;
-                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: deviceId });
-                console.log("✅ 마이크 권한 획득 성공!");
-                chunks = [];
-                mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm' });
-                mediaRecorder.ondataavailable = (e)=>{ if (e.data && e.data.size>0) chunks.push(e.data); };
-                mediaRecorder.start(1000);
-                console.log("⏺️ 로컬 녹음 시작.");
-
-                // --- 👇 Agora 로직 ---
-                const config = CFG();
-                if (!config.agoraAppId) {
-                    console.warn("Agora App ID가 설정되지 않았습니다. 실시간 음성통화를 건너뜁니다.");
-                    return; // App ID 없으면 실행 중단
-                }
-
-                agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-
-                agoraClient.on("user-published", async (user, mediaType) => {
-                    await agoraClient.subscribe(user, mediaType);
-                    if (mediaType === "audio") {
-                        console.log("🔊 다른 참가자 오디오 수신:", user.uid);
-                        user.audioTrack.play();
-                    }
-                });
-
-                const channelName = `project-${getSelectedProjectId(root)}`;
-                const userId = (await apiMe()).id;
-
-                // ❗️ 토큰 서버가 있다면 여기서 토큰을 받아옵니다. 지금은 null로 진행합니다.
-                // const { token } = await api('GET', config.agoraTokenUrl(channelName));
-                const token = null;
-
-                await agoraClient.join(config.agoraAppId, channelName, token, userId);
-                console.log(`✅ Agora 채널 [${channelName}] 참가 성공.`);
-
-                localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-                await agoraClient.publish([localAudioTrack]);
-                console.log("📢 내 마이크 오디오 발행 성공.");
-
-            } catch (err) {
-                console.error("❌ startCapture 실패!", err);
-                alert("마이크/Agora 오류가 발생했습니다. 콘솔을 확인해주세요.");
-            }
-        }
-        async function stopCapture(){
-            if (!mediaRecorder) return null;
-            await new Promise(res => { mediaRecorder.onstop = res; mediaRecorder.stop(); });
-            mediaStream && mediaStream.getTracks().forEach(t=>t.stop());
-            const blob = new Blob(chunks, { type: 'audio/webm' });
-            chunks = []; mediaRecorder = null; mediaStream = null;
-            return blob;
-        }
-
-        async function beginNotes(){
-            const me = await apiMe();
-            const orgId = me.organizationId || me.orgId;
-            const pid = getSelectedProjectId(root);
-            if (!pid){ alert('프로젝트를 먼저 선택하세요.'); return; }
-
-            const created = await api('POST', CFG().startUrl, { organizationId: orgId, projectId: pid });
-            meetingId = created.id || created.meetingId;
-
-            await startCapture();
-
-            startBtn.disabled = true;
-            stopBtn.disabled  = false;
-            root.classList.add('rec-on');
-        }
-        async function endNotes(){
-            try{
-                const me = await apiMe();
-                const orgId = me.organizationId || me.orgId;
-                const pid = getSelectedProjectId(root);
-
-                const blob = await stopCapture();
-                if (!blob) throw new Error('오디오 블랍이 없습니다.');
-
-                const key = s3Key(orgId, pid, meetingId || 'na');
-                lastUploadedS3Key = key; // ✅ 업로드할 키를 변수에 저장
-                const publicUrl = await uploadViaPresigned(blob, key);
-
-                await api('POST', CFG().submitUrl, {
-                    meetingId, audioUrl: publicUrl, mediaType: blob.type
-                });
-                if (meetingId) {
-                    // ❗️ JSP에 정의된 END_URL은 /api/meetings 입니다.
-                    // 백엔드 컨트롤러(@PostMapping("/{meetingId}/end"))에 맞게 URL을 완성합니다.
-                    await api('POST', `${CFG().endUrl}/${encodeURIComponent(meetingId)}/end`);
-                }
-
-                openBtn?.classList.add('show');
-                endToast('회의가 종료되었습니다.');
-                // ✅ 전사 폴링 시작 (바로 한 번 시도)
-                pollTranscript(true);
-            }
-            catch(e){
-                console.error(e);
-                endToast('업로드 또는 처리 중 오류가 발생했습니다.');
-            }finally{
-                startBtn.disabled = false;
-                stopBtn.disabled  = true;
-                root.classList.remove('rec-on');
-            }
-            // --- 👇 Agora 종료 로직 ---
-            if (localAudioTrack) {
-                localAudioTrack.close();
-            }
-            if (agoraClient) {
-                await agoraClient.leave();
-                console.log("👋 Agora 채널 퇴장.");
-            }
-        }
-
-        async function enumerateMics(){
-            try{
-                await navigator.mediaDevices.getUserMedia({audio:true});
-                const list = await navigator.mediaDevices.enumerateDevices();
-                const mics = list.filter(d=>d.kind==='audioinput');
-                if (micSel){
-                    micSel.innerHTML = mics.map(d => `<option value="${d.deviceId}">${d.label||'마이크'}</option>`).join('') || '<option>기본 마이크</option>';
-                }
-            }catch(e){ /* ignore */ }
-        }
-
-        function s3Key(orgId, projectId, meetingId){
-            const ts = Date.now();
-            return `org/${orgId}/project/${projectId}/meeting/${meetingId}/${ts}.webm`;
-        }
-        async function uploadViaPresigned(blob, key){
-            const qs = new URLSearchParams({ key, contentType: blob.type });
-            const presigned = await api('GET', `${CFG().presignUrl}?${qs}`);
-            const put = await fetch(presigned.url, { method:'PUT', headers: presigned.headers || {}, body: blob });
-            if (!put.ok) throw new Error('S3 업로드 실패');
-            return `${CFG().publicBaseUrl}/${key}`;
-        }
-
-        function openNotes(){
-            notesModal?.setAttribute('aria-hidden','false');
-            if (!notesBody) return;
-
-            // 대기 메시지
-            let remainEl = notesBody.querySelector('small');
-            if (!remainEl) {
-                notesBody.innerHTML = '⏳ 전사 파일 대기 중... <small></small>';
-                remainEl = notesBody.querySelector('small');
-            }
-
-            const id = meetingId; // 이미 startMeeting 할 때 세팅됨
-            waitAndLoadTranscript(id, {
-                maxWaitSec: 120,
-                intervalSec: 3,
-                onTick: (sec) => { if (remainEl) remainEl.textContent = `(${sec}s)`; }
-            }).then(text => {
-                notesBody.textContent = (text && text.trim()) ? text : '(아직 내용이 없습니다)';
-            }).catch(err => {
-                notesBody.textContent = '불러오기 실패: ' + (err?.message || err);
-            });
-        }
-
-        function closeNotesFn(){ notesModal?.setAttribute('hidden','true'); }
-        openBtn?.addEventListener('click', openNotes);
-        closeNotes?.addEventListener('click', closeNotesFn);
-        clearNotes?.addEventListener('click', ()=>{ if(notesBody) notesBody.textContent='(아직 내용이 없습니다)'; });
-        exportNotes?.addEventListener('click', () => {
-            if (!notesBody) return;
-            const text = notesBody.textContent || '';
-            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `meeting-${meetingId}-transcript.txt`;
-            a.click();
-            URL.revokeObjectURL(a.href);
-        });
-
-
-        function endToast(msg){ showEndToastAtHangup(msg, endBtn); }
-
-        startBtn?.addEventListener('click', async (e)=>{
-            e.preventDefault();
-            const pid = getSelectedProjectId(root);
-            if (pid){ await gateAccessForCurrentUser(root, pid); }
-            if (document.getElementById('lobby-view')?.style.display === 'flex') return;
-            await beginNotes();
-        });
-        stopBtn ?.addEventListener('click', ()=> endNotes());
-        endBtn  ?.addEventListener('click', ()=> {
-            if (!startBtn.disabled) { /* 작성 중 아님 */ } else { endNotes(); }
-        });
-
-        enumerateMics();
+    function showNotesStatus(msg){
+      if (!notesBody) return;
+      notesBody.textContent = `⏳ ${msg}`;
     }
 
-    function showEndToastAtHangup(message, anchorBtn){
-        let toast = document.getElementById('end-toast');
-        if (!toast) {
-            toast = document.createElement('div');
-            toast.id = 'end-toast';
-            toast.className = 'end-toast';
-            document.body.appendChild(toast);
+    function extractTranscriptText(payload){
+      // AWS Transcribe 기본 포맷: results.transcripts[0].transcript
+      try {
+        if (typeof payload === 'string') {
+          // S3가 text/plain으로 내려오면 그대로 사용
+          return payload;
         }
-        toast.textContent = message;
-
-        toast.classList.add('anchored');
-        toast.style.right = ''; toast.style.bottom = '';
-
-        const btn = anchorBtn || document.querySelector('#hud-end') || document.querySelector('.hud-btn.danger');
-        if (btn) {
-            const r = btn.getBoundingClientRect();
-            toast.style.left = (r.right + 28) + 'px';
-            toast.style.top  = r.top + 'px';
-            requestAnimationFrame(() => {
-                const h = toast.offsetHeight || 40;
-                toast.style.top = Math.round(r.top + (r.height - h) / 2) + 'px';
-                toast.classList.add('in');
-            });
-        } else {
-            toast.classList.remove('anchored');
-            toast.style.right = '24px'; toast.style.bottom = '24px';
-            requestAnimationFrame(() => toast.classList.add('in'));
+        if (payload?.results?.transcripts?.length) {
+          return payload.results.transcripts.map(t => t.transcript).join('\n');
         }
-
-        clearTimeout(showEndToastAtHangup._timer);
-        showEndToastAtHangup._timer = setTimeout(() => {
-            toast.classList.remove('in');
-        }, 1800);
+        // (선택) 향후 diarization 파싱은 payload.results.speaker_labels / items 활용
+        return JSON.stringify(payload);
+      } catch(_) {
+        return '';
+      }
     }
 
-    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
-    const Speech = (function(){
-        let recog=null, running=false;
-        function ensure(){
-            if (recog) return recog;
-            if (!SR){ console.warn('이 브라우저는 음성 인식을 지원하지 않습니다.'); return null; }
-            recog = new SR();
-            recog.lang = 'ko-KR';
-            recog.continuous = true;
-            recog.interimResults = true;
-            recog.onresult = (e)=>{
-                let s=''; for (let i=e.resultIndex; i<e.results.length; i++) s += e.results[i][0].transcript;
-                const body = document.getElementById('notes-body');
-                if (body){
-                    if (body.textContent==='(아직 내용이 없습니다)') body.textContent = s;
-                    else body.textContent += s;
-                }
-            };
-            recog.onend = ()=>{ running=false; };
-            return recog;
+    async function fetchTranscriptOnce(transcriptKey){
+      const url = `/download/transcript?s3Key=${encodeURIComponent(transcriptKey)}`;
+      const res = await fetch(url, { redirect: 'follow' });
+      if (!res.ok) return { ok:false, status:res.status };
+
+      const ct = res.headers.get('content-type') || '';
+      const body = ct.includes('application/json') ? await res.json() : await res.text();
+      const text = extractTranscriptText(body);
+      return { ok:true, text };
+    }
+
+    function stopPolling(){
+      if (pollTimer) clearTimeout(pollTimer);
+      pollTimer = null; pollCount = 0;
+    }
+
+    // ✅ DB에서 최신 회의록 텍스트를 받아온다 (비어 있으면 빈 문자열 반환)
+    async function fetchTranscriptFromDB(meetingId) {
+      try {
+        const res = await fetch(`/api/transcripts/${meetingId}/latest`, {
+          headers: { 'Accept': 'text/plain' }
+        });
+        if (!res.ok) return '';
+        const text = (await res.text() || '').trim();
+        return text;
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function pollTranscript(immediate) {
+      if (pollTimer) stopPolling();
+      pollCount = 0;
+
+      const tick = async () => {
+        pollCount++;
+        try {
+          // 1) ✅ 먼저 DB에서 최신 회의록을 확인한다.
+          const dbText = await fetchTranscriptFromDB(meetingId);
+          if (dbText && dbText.length > 0) {
+            setNotes(dbText);   // 화면에 고정
+            stopPolling();      // 더 이상 대기/폴링 안 함
+            return;
+          }
+
+          // 2) ⛳ 폴백: S3(프리사인) 경로에 결과 파일이 있으면 그걸 사용
+          const out = await fetchTranscriptOnce();
+          if (out.ok) {
+            setNotes(out.text);
+            stopPolling();
+            return;
+          }
+
+          // 3) 아직 결과 없음 ⇒ 대기 메시지 업데이트 후 재시도
+          showNotesStatus(`전사 파일 대기 중... (${pollCount * Math.round(POLL_MS/1000)}s)`);
+          pollTimer = setTimeout(tick, POLL_MS);
+        } catch (e) {
+          // 네트워크 오류 등 ⇒ 계속 재시도
+          showNotesStatus(`전사 파일 대기 중... (${pollCount * Math.round(POLL_MS/1000)}s)`);
+          pollTimer = setTimeout(tick, POLL_MS);
         }
-        return {
-            start(){ const r = ensure(); if (!r || running) return; r.start(); running=true; },
-            stop(){ if (!recog || !running) return; try{ recog.stop(); }catch(e){} running=false; }
-        };
-    })();
+      };
 
-    const Meeting = {
-        mount(target){
-            if (w.__meetingMounted) return;
-            w.__meetingMounted = true;
+      if (immediate) {
+        tick();
+      } else {
+        pollTimer = setTimeout(tick, POLL_MS);
+      }
+    }
 
-            const el = (typeof target === 'string') ? document.querySelector(target) : target;
-            if (!el) return;
-            ensureRoomStyles();
-            el.innerHTML = roomHTML();
 
-            const wrap = el.querySelector('.room-wrap');
-            bindRoomEvents(wrap);
+    async function startCapture(){
+      console.log("🎤 startCapture: 캡처 및 Agora 연결을 시작합니다...");
+      try {
+        // 1. 로컬 녹음용 스트림 생성
+        const deviceId = micSel && micSel.value ? { deviceId: { exact: micSel.value } } : true;
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: deviceId });
+        console.log("✅ 마이크 권한 획득 성공!");
+        chunks = [];
+        mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm' });
+        mediaRecorder.ondataavailable = (e)=>{ if (e.data && e.data.size>0) chunks.push(e.data); };
+        mediaRecorder.start(1000);
+        console.log("⏺️ 로컬 녹음 시작.");
 
-            initProjectSwitcher(wrap);
+        // --- 👇 Agora 로직 ---
+        const config = CFG();
+        if (!config.agoraAppId) {
+          console.warn("Agora App ID가 설정되지 않았습니다. 실시간 음성통화를 건너뜁니다.");
+          return; // App ID 없으면 실행 중단
         }
+
+        agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+        agoraClient.on("user-published", async (user, mediaType) => {
+          await agoraClient.subscribe(user, mediaType);
+          if (mediaType === "audio") {
+            console.log("🔊 다른 참가자 오디오 수신:", user.uid);
+            user.audioTrack.play();
+          }
+        });
+
+        const channelName = `project-${getSelectedProjectId(root)}`;
+        const userId = (await apiMe()).id;
+
+        // ❗️ 토큰 서버가 있다면 여기서 토큰을 받아옵니다. 지금은 null로 진행합니다.
+        // const { token } = await api('GET', config.agoraTokenUrl(channelName));
+        const token = null;
+
+        await agoraClient.join(config.agoraAppId, channelName, token, userId);
+        console.log(`✅ Agora 채널 [${channelName}] 참가 성공.`);
+
+        localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        await agoraClient.publish([localAudioTrack]);
+        console.log("📢 내 마이크 오디오 발행 성공.");
+
+      } catch (err) {
+        console.error("❌ startCapture 실패!", err);
+        alert("마이크/Agora 오류가 발생했습니다. 콘솔을 확인해주세요.");
+      }
+    }
+    async function stopCapture(){
+      if (!mediaRecorder) return null;
+      await new Promise(res => { mediaRecorder.onstop = res; mediaRecorder.stop(); });
+      mediaStream && mediaStream.getTracks().forEach(t=>t.stop());
+      const blob = new Blob(chunks, { type: 'audio/webm' });
+      chunks = []; mediaRecorder = null; mediaStream = null;
+      return blob;
+    }
+
+    async function beginNotes(){
+      const me = await apiMe();
+      const orgId = me.organizationId || me.orgId;
+      const pid = getSelectedProjectId(root);
+      if (!pid){ alert('프로젝트를 먼저 선택하세요.'); return; }
+
+      const created = await api('POST', CFG().startUrl, { organizationId: orgId, projectId: pid });
+      meetingId = created.id || created.meetingId;
+
+      await startCapture();
+
+      startBtn.disabled = true;
+      stopBtn.disabled  = false;
+      root.classList.add('rec-on');
+    }
+    async function endNotes(){
+      try{
+        const me = await apiMe();
+        const orgId = me.organizationId || me.orgId;
+        const pid = getSelectedProjectId(root);
+
+        const blob = await stopCapture();
+        if (!blob) throw new Error('오디오 블랍이 없습니다.');
+
+        const key = s3Key(orgId, pid, meetingId || 'na');
+        lastUploadedS3Key = key; // ✅ 업로드할 키를 변수에 저장
+        const publicUrl = await uploadViaPresigned(blob, key);
+
+        await api('POST', CFG().submitUrl, {
+          meetingId, audioUrl: publicUrl, mediaType: blob.type
+        });
+        if (meetingId) {
+          // ❗️ JSP에 정의된 END_URL은 /api/meetings 입니다.
+          // 백엔드 컨트롤러(@PostMapping("/{meetingId}/end"))에 맞게 URL을 완성합니다.
+          await api('POST', `${CFG().endUrl}/${encodeURIComponent(meetingId)}/end`);
+        }
+
+        openBtn?.classList.add('show');
+        endToast('회의가 종료되었습니다.');
+        // ✅ 전사 폴링 시작 (바로 한 번 시도)
+        pollTranscript(true);
+      }
+      catch(e){
+        console.error(e);
+        endToast('업로드 또는 처리 중 오류가 발생했습니다.');
+      }finally{
+        startBtn.disabled = false;
+        stopBtn.disabled  = true;
+        root.classList.remove('rec-on');
+      }
+      // --- 👇 Agora 종료 로직 ---
+      if (localAudioTrack) {
+        localAudioTrack.close();
+      }
+      if (agoraClient) {
+        await agoraClient.leave();
+        console.log("👋 Agora 채널 퇴장.");
+      }
+    }
+
+    async function enumerateMics(){
+      try{
+        await navigator.mediaDevices.getUserMedia({audio:true});
+        const list = await navigator.mediaDevices.enumerateDevices();
+        const mics = list.filter(d=>d.kind==='audioinput');
+        if (micSel){
+          micSel.innerHTML = mics.map(d => `<option value="${d.deviceId}">${d.label||'마이크'}</option>`).join('') || '<option>기본 마이크</option>';
+        }
+      }catch(e){ /* ignore */ }
+    }
+
+    function s3Key(orgId, projectId, meetingId){
+      const ts = Date.now();
+      return `org/${orgId}/project/${projectId}/meeting/${meetingId}/${ts}.webm`;
+    }
+    async function uploadViaPresigned(blob, key){
+      const qs = new URLSearchParams({ key, contentType: blob.type });
+      const presigned = await api('GET', `${CFG().presignUrl}?${qs}`);
+      const put = await fetch(presigned.url, { method:'PUT', headers: presigned.headers || {}, body: blob });
+      if (!put.ok) throw new Error('S3 업로드 실패');
+      return `${CFG().publicBaseUrl}/${key}`;
+    }
+
+    function openNotes(){
+      notesModal?.setAttribute('aria-hidden','false');
+      if (!notesBody) return;
+
+      // 대기 메시지
+      let remainEl = notesBody.querySelector('small');
+      if (!remainEl) {
+        notesBody.innerHTML = '⏳ 전사 파일 대기 중... <small></small>';
+        remainEl = notesBody.querySelector('small');
+      }
+
+      const id = meetingId; // 이미 startMeeting 할 때 세팅됨
+      waitAndLoadTranscript(id, {
+        maxWaitSec: 120,
+        intervalSec: 3,
+        onTick: (sec) => { if (remainEl) remainEl.textContent = `(${sec}s)`; }
+      }).then(text => {
+        notesBody.textContent = (text && text.trim()) ? text : '(아직 내용이 없습니다)';
+      }).catch(err => {
+        notesBody.textContent = '불러오기 실패: ' + (err?.message || err);
+      });
+    }
+
+    function closeNotesFn(){ notesModal?.setAttribute('hidden','true'); }
+    openBtn?.addEventListener('click', openNotes);
+    closeNotes?.addEventListener('click', closeNotesFn);
+    clearNotes?.addEventListener('click', ()=>{ if(notesBody) notesBody.textContent='(아직 내용이 없습니다)'; });
+    exportNotes?.addEventListener('click', () => {
+      if (!notesBody) return;
+      const text = notesBody.textContent || '';
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `meeting-${meetingId}-transcript.txt`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+
+    function endToast(msg){ showEndToastAtHangup(msg, endBtn); }
+
+    startBtn?.addEventListener('click', async (e)=>{
+      e.preventDefault();
+      const pid = getSelectedProjectId(root);
+      if (pid){ await gateAccessForCurrentUser(root, pid); }
+      if (document.getElementById('lobby-view')?.style.display === 'flex') return;
+      await beginNotes();
+    });
+    stopBtn ?.addEventListener('click', ()=> endNotes());
+    endBtn  ?.addEventListener('click', ()=> {
+      if (!startBtn.disabled) { /* 작성 중 아님 */ } else { endNotes(); }
+    });
+
+    enumerateMics();
+  }
+
+  function showEndToastAtHangup(message, anchorBtn){
+    let toast = document.getElementById('end-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'end-toast';
+      toast.className = 'end-toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+
+    toast.classList.add('anchored');
+    toast.style.right = ''; toast.style.bottom = '';
+
+    const btn = anchorBtn || document.querySelector('#hud-end') || document.querySelector('.hud-btn.danger');
+    if (btn) {
+      const r = btn.getBoundingClientRect();
+      toast.style.left = (r.right + 28) + 'px';
+      toast.style.top  = r.top + 'px';
+      requestAnimationFrame(() => {
+        const h = toast.offsetHeight || 40;
+        toast.style.top = Math.round(r.top + (r.height - h) / 2) + 'px';
+        toast.classList.add('in');
+      });
+    } else {
+      toast.classList.remove('anchored');
+      toast.style.right = '24px'; toast.style.bottom = '24px';
+      requestAnimationFrame(() => toast.classList.add('in'));
+    }
+
+    clearTimeout(showEndToastAtHangup._timer);
+    showEndToastAtHangup._timer = setTimeout(() => {
+      toast.classList.remove('in');
+    }, 1800);
+  }
+
+  const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
+  const Speech = (function(){
+    let recog=null, running=false;
+    function ensure(){
+      if (recog) return recog;
+      if (!SR){ console.warn('이 브라우저는 음성 인식을 지원하지 않습니다.'); return null; }
+      recog = new SR();
+      recog.lang = 'ko-KR';
+      recog.continuous = true;
+      recog.interimResults = true;
+      recog.onresult = (e)=>{
+        let s=''; for (let i=e.resultIndex; i<e.results.length; i++) s += e.results[i][0].transcript;
+        const body = document.getElementById('notes-body');
+        if (body){
+          if (body.textContent==='(아직 내용이 없습니다)') body.textContent = s;
+          else body.textContent += s;
+        }
+      };
+      recog.onend = ()=>{ running=false; };
+      return recog;
+    }
+    return {
+      start(){ const r = ensure(); if (!r || running) return; r.start(); running=true; },
+      stop(){ if (!recog || !running) return; try{ recog.stop(); }catch(e){} running=false; }
     };
-    w.Meeting = Meeting;
+  })();
+
+  const Meeting = {
+    mount(target){
+      if (w.__meetingMounted) return;
+      w.__meetingMounted = true;
+
+      const el = (typeof target === 'string') ? document.querySelector(target) : target;
+      if (!el) return;
+      ensureRoomStyles();
+      el.innerHTML = roomHTML();
+
+      const wrap = el.querySelector('.room-wrap');
+      bindRoomEvents(wrap);
+
+      initProjectSwitcher(wrap);
+    }
+  };
+  w.Meeting = Meeting;
 })(window);
 
 function setProjectUI(pid, root=document){
-    const sel = root.querySelector('#projectSelect');
-    if (!sel) return;
-    if (pid==null){ sel.value = ''; return; }
-    if (String(sel.value) !== String(pid)) sel.value = String(pid);
+  const sel = root.querySelector('#projectSelect');
+  if (!sel) return;
+  if (pid==null){ sel.value = ''; return; }
+  if (String(sel.value) !== String(pid)) sel.value = String(pid);
 }
 
 window.renderPeoplePanel = async function renderPeoplePanel(root=document, projectId){
-    const listEl = root.querySelector('.rp-list'); if (!listEl) return;
-    const cntEl  = root.querySelector('.rp-count, #rp-count');
+  const listEl = root.querySelector('.rp-list'); if (!listEl) return;
+  const cntEl  = root.querySelector('.rp-count, #rp-count');
 
-    const me = await apiMe();
-    const admin = isAdmin(me);
+  const me = await apiMe();
+  const admin = isAdmin(me);
 
-    const members = await apiListProjectMembers(projectId);
+  const members = await apiListProjectMembers(projectId);
 
-    const panel = root.querySelector('.room-people');
-    if (panel) panel.classList.toggle('is-manager', admin);
+  const panel = root.querySelector('.room-people');
+  if (panel) panel.classList.toggle('is-manager', admin);
 
-    listEl.innerHTML = members.map(u => `
+  listEl.innerHTML = members.map(u => `
     <li class="person" data-id="${u.id}">
       <div class="avatar">${(u.name||'U')[0]}</div>
       <div class="p-main">
@@ -740,97 +740,97 @@ window.renderPeoplePanel = async function renderPeoplePanel(root=document, proje
       ${(admin && u.role!=='ADMIN') ? `<button class="chip" data-action="remove" data-id="${u.id}">제외</button>` : ''}
     </li>
   `).join('');
-    if (cntEl) cntEl.textContent = String(members.length);
+  if (cntEl) cntEl.textContent = String(members.length);
 
-    if (panel && admin){
-        listEl.onclick = async (e)=>{
-            const btn = e.target.closest('.chip[data-action="remove"]'); if(!btn) return;
-            const uid = Number(btn.dataset.id);
-            await apiRemove(projectId, uid);
-            renderPeoplePanel(root, projectId);
-        };
-    }
+  if (panel && admin){
+    listEl.onclick = async (e)=>{
+      const btn = e.target.closest('.chip[data-action="remove"]'); if(!btn) return;
+      const uid = Number(btn.dataset.id);
+      await apiRemove(projectId, uid);
+      renderPeoplePanel(root, projectId);
+    };
+  }
 };
 
 function initProjectSwitcher(root=document){
-    const sel = root.querySelector('#projectSelect');
-    if (sel){
-        apiListProjects().then(list=>{
-            const options = list.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-            sel.innerHTML = '<option value="" disabled selected>프로젝트 선택</option>' + options;
-        }).catch(err => {
-            console.error('프로젝트 목록을 불러오지 못했습니다:', err);
-            sel.innerHTML = '<option value="" disabled selected>목록 로딩 실패</option>';
-        });
-    }
-
-    const initialId = getInitialProjectId();
-    if (initialId){
-        setTimeout(() => {
-            setProjectUI(initialId, root);
-            renderPeoplePanel(root, initialId);
-            gateAccessForCurrentUser(root, initialId);
-        }, 100);
-    } else {
-        setProjectUI(null, root);
-        clearPeoplePanel(root);
-        hideLobby(root);
-    }
-
-    sel?.addEventListener('change', (e)=>{
-        const pid = Number(e.target.value);
-        if (!pid) return;
-        setProjectUI(pid, root);
-        renderPeoplePanel(root, pid);
-        gateAccessForCurrentUser(root, pid);
-
-        const url = new URL(location.href);
-        url.searchParams.set('project', String(pid));
-        history.pushState({}, '', url);
+  const sel = root.querySelector('#projectSelect');
+  if (sel){
+    apiListProjects().then(list=>{
+      const options = list.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      sel.innerHTML = '<option value="" disabled selected>프로젝트 선택</option>' + options;
+    }).catch(err => {
+      console.error('프로젝트 목록을 불러오지 못했습니다:', err);
+      sel.innerHTML = '<option value="" disabled selected>목록 로딩 실패</option>';
     });
+  }
+
+  const initialId = getInitialProjectId();
+  if (initialId){
+    setTimeout(() => {
+      setProjectUI(initialId, root);
+      renderPeoplePanel(root, initialId);
+      gateAccessForCurrentUser(root, initialId);
+    }, 100);
+  } else {
+    setProjectUI(null, root);
+    clearPeoplePanel(root);
+    hideLobby(root);
+  }
+
+  sel?.addEventListener('change', (e)=>{
+    const pid = Number(e.target.value);
+    if (!pid) return;
+    setProjectUI(pid, root);
+    renderPeoplePanel(root, pid);
+    gateAccessForCurrentUser(root, pid);
+
+    const url = new URL(location.href);
+    url.searchParams.set('project', String(pid));
+    history.pushState({}, '', url);
+  });
 }
 
 function clearPeoplePanel(root=document){
-    const list = root.querySelector('.rp-list, .room-people-list');
-    const cnt  = root.querySelector('.rp-count, #rp-count');
-    if (list) list.innerHTML = '';
-    if (cnt)  cnt.textContent = '0';
+  const list = root.querySelector('.rp-list, .room-people-list');
+  const cnt  = root.querySelector('.rp-count, #rp-count');
+  if (list) list.innerHTML = '';
+  if (cnt)  cnt.textContent = '0';
 }
 function hideLobby(root=document){
-    const lobby = root.querySelector('#lobby-view');
-    if (lobby) lobby.style.display = 'none';
+  const lobby = root.querySelector('#lobby-view');
+  if (lobby) lobby.style.display = 'none';
 }
 
 async function gateAccessForCurrentUser(root, projectId){
-    const lobby = root.querySelector('#lobby-view'); if (!lobby) return;
+  const lobby = root.querySelector('#lobby-view'); if (!lobby) return;
 
-    const me = await apiMe();
-    const admin = isAdmin(me);
+  const me = await apiMe();
+  const admin = isAdmin(me);
 
-    const memberIds  = await apiListProjectMemberIds(projectId);
-    const invitedIds = await apiListInvitations(projectId);
-    const invited    = invitedIds.includes(Number(me.id));
+  const memberIds  = await apiListProjectMemberIds(projectId);
+  const invitedIds = await apiListInvitations(projectId);
+  const invited    = invitedIds.includes(Number(me.id));
 
-    if (admin || memberIds.includes(Number(me.id))){
-        lobby.style.display = 'none';
-        return;
-    }
+  if (admin || memberIds.includes(Number(me.id))){
+    lobby.style.display = 'none';
+    return;
+  }
 
-    if (invited){
-        openLobby(root, {
-            title: '프로젝트 참여 수락',
-            desc:  '관리자가 보낸 초대를 수락하면 이 프로젝트 회의실을 사용할 수 있어요.',
-            acceptLabel: '수락', declineLabel: '닫기',
-            onAccept: async ()=>{ await apiAccept(projectId, me.id); renderPeoplePanel(root, projectId); },
-            onDecline: async ()=>{ await apiDecline(projectId, me.id); showCancelCard('참가 요청이 취소되었습니다.'); }
-        });
-    }else{
-        openLobby(root, {
-            title: '초대 필요',
-            desc:  '회사 관리자에게 초대를 요청하세요.',
-            acceptLabel: '확인', declineLabel: '닫기', acceptDisabled: true
-        });
-    }
+  if (invited){
+    openLobby(root, {
+      title: '프로젝트 참여 수락',
+      desc:  '관리자가 보낸 초대를 수락하면 이 프로젝트 회의실을 사용할 수 있어요.',
+      acceptLabel: '수락', declineLabel: '닫기',
+      onAccept: async ()=>{ await apiAccept(projectId, me.id); renderPeoplePanel(root, projectId); },
+      onDecline: async ()=>{ await apiDecline(projectId, me.id); showCancelCard('참가 요청이 취소되었습니다.'); }
+    });
+  }else{
+    openLobby(root, {
+      title: '초대 필요',
+      desc:  '회사 관리자에게 초대를 요청하세요.',
+      acceptLabel: '확인', declineLabel: '닫기', acceptDisabled: true
+    });
+  }
 }
 
 window.getInitialProjectId   = getInitialProjectId;
@@ -839,47 +839,47 @@ window.gateAccessForCurrentUser = gateAccessForCurrentUser;
 window.initProjectSwitcher   = initProjectSwitcher;
 
 function openLobby(root, {
-    title = '확인', desc = '', acceptLabel = '확인', declineLabel = '취소',
-    onAccept = () => {}, onDecline = () => {}, acceptDisabled = false
+  title = '확인', desc = '', acceptLabel = '확인', declineLabel = '취소',
+  onAccept = () => {}, onDecline = () => {}, acceptDisabled = false
 } = {}) {
-    const lobby = root.querySelector('#lobby-view');
-    if (!lobby) return;
+  const lobby = root.querySelector('#lobby-view');
+  if (!lobby) return;
 
-    const t  = lobby.querySelector('.lobby-title');
-    const d  = lobby.querySelector('.lobby-desc');
-    let ok   = lobby.querySelector('#btn-join');
-    let no   = lobby.querySelector('#btn-decline');
+  const t  = lobby.querySelector('.lobby-title');
+  const d  = lobby.querySelector('.lobby-desc');
+  let ok   = lobby.querySelector('#btn-join');
+  let no   = lobby.querySelector('#btn-decline');
 
-    t.textContent = title;
-    d.textContent = desc;
+  t.textContent = title;
+  d.textContent = desc;
 
-    const okNew = ok.cloneNode(true);
-    const noNew = no.cloneNode(true);
-    ok.replaceWith(okNew);
-    no.replaceWith(noNew);
-    ok = okNew;
-    no = noNew;
+  const okNew = ok.cloneNode(true);
+  const noNew = no.cloneNode(true);
+  ok.replaceWith(okNew);
+  no.replaceWith(noNew);
+  ok = okNew;
+  no = noNew;
 
-    ok.textContent = acceptLabel;
-    no.textContent = declineLabel;
-    ok.disabled = !!acceptDisabled;
+  ok.textContent = acceptLabel;
+  no.textContent = declineLabel;
+  ok.disabled = !!acceptDisabled;
 
-    ok.addEventListener('click', async () => {
-        lobby.style.display = 'none';
-        try { await onAccept(); } catch(e) {}
-    });
-    no.addEventListener('click', async () => {
-        lobby.style.display = 'none';
-        try { await onDecline(); } catch(e) {}
-    });
+  ok.addEventListener('click', async () => {
+    lobby.style.display = 'none';
+    try { await onAccept(); } catch(e) {}
+  });
+  no.addEventListener('click', async () => {
+    lobby.style.display = 'none';
+    try { await onDecline(); } catch(e) {}
+  });
 
-    lobby.style.display = 'flex';
+  lobby.style.display = 'flex';
 }
 
 (function setupCancelCard(){
-    function ensureCancelStyles() {
-        if (document.getElementById('cancel-card-style')) return;
-        const css = `
+  function ensureCancelStyles() {
+    if (document.getElementById('cancel-card-style')) return;
+    const css = `
 .cancel-state{
   display:grid; place-items:center;
   min-height:calc(100dvh - 150px);
@@ -898,57 +898,57 @@ function openLobby(root, {
   from{ transform:translateY(6px); opacity:0; }
   to{   transform:translateY(0);   opacity:1; }
 }`;
-        const s = document.createElement('style');
-        s.id = 'cancel-card-style';
-        s.textContent = css;
-        document.head.appendChild(s);
-    }
-    window.__ensureCancelStyles__ = ensureCancelStyles;
+    const s = document.createElement('style');
+    s.id = 'cancel-card-style';
+    s.textContent = css;
+    document.head.appendChild(s);
+  }
+  window.__ensureCancelStyles__ = ensureCancelStyles;
 })();
 window.showCancelCard = function showCancelCard(message = '입장이 취소되었습니다.') {
-    (window.__ensureCancelStyles__ || function(){})();
+  (window.__ensureCancelStyles__ || function(){})();
 
-    document.querySelectorAll('.cancel-layer').forEach(n => n.remove());
+  document.querySelectorAll('.cancel-layer').forEach(n => n.remove());
 
-    const layer = document.createElement('div');
-    layer.className = 'cancel-layer';
+  const layer = document.createElement('div');
+  layer.className = 'cancel-layer';
 
-    const state = document.createElement('div');
-    state.className = 'cancel-state';
+  const state = document.createElement('div');
+  state.className = 'cancel-state';
 
-    const card = document.createElement('div');
-    card.className = 'cancel-card';
+  const card = document.createElement('div');
+  card.className = 'cancel-card';
 
-    const ico = document.createElement('div');
-    Object.assign(ico.style, {
-        display: 'grid', placeItems: 'center',
-        width: '40px', height: '40px', borderRadius: '999px',
-        background: 'linear-gradient(180deg,#fca5a5,#ef4444)',
-        color: '#fff', fontSize: '18px',
-        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.35)'
-    });
-    ico.textContent = '⛔';
+  const ico = document.createElement('div');
+  Object.assign(ico.style, {
+    display: 'grid', placeItems: 'center',
+    width: '40px', height: '40px', borderRadius: '999px',
+    background: 'linear-gradient(180deg,#fca5a5,#ef4444)',
+    color: '#fff', fontSize: '18px',
+    boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.35)'
+  });
+  ico.textContent = '⛔';
 
-    const txt = document.createElement('div');
-    txt.textContent = message;
+  const txt = document.createElement('div');
+  txt.textContent = message;
 
-    card.appendChild(ico);
-    card.appendChild(txt);
-    state.appendChild(card);
-    layer.appendChild(state);
+  card.appendChild(ico);
+  card.appendChild(txt);
+  state.appendChild(card);
+  layer.appendChild(state);
 
-    document.body.appendChild(layer);
+  document.body.appendChild(layer);
 
-    setTimeout(() => {
-        layer.classList.add('hide');
-        setTimeout(() => layer.remove(), 220);
-    }, 1600);
+  setTimeout(() => {
+    layer.classList.add('hide');
+    setTimeout(() => layer.remove(), 220);
+  }, 1600);
 
-    return layer;
+  return layer;
 };
 
 document.addEventListener('click', (e) => {
-    const declineBtn = e.target.closest('[data-action="decline"], .btn-decline, .btn-cancel, #btn-invite-decline');
-    if (!declineBtn) return;
-    showCancelCard?.('참가 요청이 취소되었습니다.');
+  const declineBtn = e.target.closest('[data-action="decline"], .btn-decline, .btn-cancel, #btn-invite-decline');
+  if (!declineBtn) return;
+  showCancelCard?.('참가 요청이 취소되었습니다.');
 });

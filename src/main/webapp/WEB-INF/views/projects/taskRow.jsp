@@ -149,7 +149,6 @@
     </div>
   </div>
 
-
   <!-- 수정일 -->
   <div class="task-cell updated-at-cell" data-cell="updatedAt">
     <span class="updated-at-text">${empty currentTask.updatedAt ? '-' : fn:substring(currentTask.updatedAt, 2, 10)}</span>

@@ -47,7 +47,7 @@
 <main id="room-root"></main>
 
 <script>
-    window.addEventListener('DOMContentLoaded', function () {
-        if (window.Meeting) window.Meeting.mount('#room-root');
-    });
+  window.addEventListener('DOMContentLoaded', function () {
+    if (window.Meeting) window.Meeting.mount('#room-root');
+  });
 </script>

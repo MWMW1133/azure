@@ -1,18 +1,8 @@
 package com.azure.service.impl;
 
-import com.azure.event.ChatMessageCreatedEvent;
-import com.azure.model.chat.*;
-import com.azure.model.enums.ChannelType;
-import com.azure.model.file.FileObject;
-import com.azure.model.project.Project;
-import com.azure.model.user.User;
-import com.azure.repository.*;
-import com.azure.service.ChatService;
-import com.azure.service.chat.ChatNlpService;
-import com.azure.service.exception.BadRequestException;
-import com.azure.service.exception.NotFoundException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -21,16 +11,35 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 채팅 서비스 구현.
- *
- * <h2>핵심 규칙</h2>
- * <ul>
- *   <li>메시지 읽음 표시(MessageRead)는 upsert 방식으로 저장</li>
- *   <li>채널 접근/메시지 전송/읽음표시 등은 채널 멤버만 가능(서비스에서 1차 체크)</li>
- *   <li>파일/답글 참조는 존재 여부 + 동일 채널 여부 확인</li>
- * </ul>
- */
+import com.azure.dto.ProjectChatDTO;
+import com.azure.event.ChatMessageCreatedEvent;
+import com.azure.model.chat.ChannelMember;
+import com.azure.model.chat.ChannelMemberId;
+import com.azure.model.chat.ChatChannel;
+import com.azure.model.chat.Message;
+import com.azure.model.chat.MessageRead;
+import com.azure.model.chat.MessageReadId;
+import com.azure.model.enums.ChannelType;
+import com.azure.model.file.FileObject;
+import com.azure.model.project.Project;
+import com.azure.model.user.User;
+import com.azure.repository.ChannelMemberRepository;
+import com.azure.repository.ChatChannelRepository;
+import com.azure.repository.FileObjectRepository;
+import com.azure.repository.MessageReadRepository;
+import com.azure.repository.MessageRepository;
+import com.azure.repository.ProjectRepository;
+import com.azure.repository.UserRepository;
+import com.azure.service.ChatService;
+import com.azure.service.chat.ChatNlpService;
+import com.azure.service.exception.BadRequestException;
+import com.azure.service.exception.NotFoundException;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
 @Service
 @Transactional
@@ -45,19 +54,21 @@ public class ChatServiceImpl implements ChatService {
     private final FileObjectRepository fileObjectRepository;
     private final ApplicationEventPublisher publisher;
     private final ChatNlpService chatNlpService;
+    private final ProjectRepository projectRepository;
 
-    /** 강제 번역(디버그용) - application.properties: mt.force=true */
+    @PersistenceContext
+    private EntityManager em;
+
+    /** 디버그용 강제 번역 (application.properties: mt.force=true) */
     @Value("${mt.force:false}")
     private boolean mtForce;
 
-    // ───────────────────────── 내부 유틸(멤버십/검증) ─────────────────────────
+    // ───────────── 내부 유틸 ─────────────
 
-    /** 해당 사용자가 채널 멤버인지 검사 */
     private boolean isMember(Long channelId, Long userId) {
         return channelMemberRepository.existsById_ChannelIdAndId_UserId(channelId, userId);
     }
 
-    /** 라벨/널 방어하여 언어코드 정규화 */
     private String normalizeTarget(String t) {
         if (t == null) return "en";
         String s = t.trim().toLowerCase();
@@ -70,11 +81,11 @@ public class ChatServiceImpl implements ChatService {
         };
     }
 
-    // ───────────────────────── DM 채널 get-or-create ─────────────────────────
+    // ───────────── DM 채널 ─────────────
+
     @Override
     public Long getOrCreateDmChannel(long me, long peer) {
         if (me == peer) throw new BadRequestException("me == peer");
-
         final long a = Math.min(me, peer);
         final long b = Math.max(me, peer);
 
@@ -84,10 +95,8 @@ public class ChatServiceImpl implements ChatService {
         var foundReverse = chatChannelRepository.findDmChannelIdByTwoMembers(b, a);
         if (foundReverse.isPresent()) return foundReverse.get();
 
-        var meUser   = userRepository.findById(me)
-                .orElseThrow(() -> new NotFoundException("me not found"));
-        var peerUser = userRepository.findById(peer)
-                .orElseThrow(() -> new NotFoundException("peer not found"));
+        var meUser = userRepository.findById(me).orElseThrow(() -> new NotFoundException("me not found"));
+        var peerUser = userRepository.findById(peer).orElseThrow(() -> new NotFoundException("peer not found"));
 
         try {
             ChatChannel dm = new ChatChannel();
@@ -95,21 +104,17 @@ public class ChatServiceImpl implements ChatService {
             dm.setName("DM:" + a + ":" + b);
 
             ChatChannel saved = chatChannelRepository.save(dm);
-
             addMember(saved.getId(), meUser.getId());
             addMember(saved.getId(), peerUser.getId());
-
             return saved.getId();
         } catch (DataIntegrityViolationException e) {
-            var again = chatChannelRepository.findDmChannelIdByTwoMembers(a, b);
-            if (again.isPresent()) return again.get();
-            var again2 = chatChannelRepository.findDmChannelIdByTwoMembers(b, a);
-            if (again2.isPresent()) return again2.get();
-            throw e;
+            return chatChannelRepository.findDmChannelIdByTwoMembers(a, b)
+                    .or(() -> chatChannelRepository.findDmChannelIdByTwoMembers(b, a))
+                    .orElseThrow(() -> e);
         }
     }
 
-    // ───────────────────────── 채널 ─────────────────────────
+    // ───────────── 채널 ─────────────
 
     @Override
     public ChatChannel createChannel(ChannelType type, Long projectId, String name, Long createdBy) {
@@ -121,7 +126,6 @@ public class ChatServiceImpl implements ChatService {
         if (projectId != null) { c.setProject(new Project()); c.getProject().setId(projectId); }
         c.setName(name);
         if (createdBy != null) { c.setCreatedBy(new User()); c.getCreatedBy().setId(createdBy); }
-
         return chatChannelRepository.save(c);
     }
 
@@ -135,7 +139,6 @@ public class ChatServiceImpl implements ChatService {
         ChannelMemberId id = new ChannelMemberId();
         id.setChannelId(channel.getId());
         id.setUserId(user.getId());
-
         if (channelMemberRepository.existsById(id)) return;
 
         ChannelMember m = new ChannelMember();
@@ -153,48 +156,27 @@ public class ChatServiceImpl implements ChatService {
         channelMemberRepository.deleteById(id);
     }
 
-    // ───────────────────────── 메시지 ─────────────────────────
+    // ───────────── 메시지 ─────────────
 
-    /** 기존 시그니처는 새 오버로드로 위임 (하위호환) */
     @Override
     public Message postMessage(Long channelId, Long authorId, String body, Long fileId, Long replyToId) {
         return postMessage(channelId, authorId, body, fileId, replyToId, Boolean.FALSE, "en");
     }
 
-    /** 번역 옵션이 포함된 새 오버로드 (인터페이스 요구사항) */
     @Override
-    public Message postMessage(Long channelId,
-                               Long authorId,
-                               String body,
-                               Long fileId,
-                               Long replyToId,
-                               Boolean translateEnabled,
-                               String targetLang) {
-
+    public Message postMessage(Long channelId, Long authorId, String body, Long fileId, Long replyToId,
+                               Boolean translateEnabled, String targetLang) {
         ChatChannel channel = chatChannelRepository.findById(channelId)
                 .orElseThrow(() -> new NotFoundException("Channel not found: " + channelId));
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + authorId));
 
-        if (!isMember(channelId, authorId)) {
-            throw new BadRequestException("채널 멤버만 메시지를 보낼 수 있습니다.");
-        }
-        if (body == null || body.isBlank()) {
-            throw new BadRequestException("메시지 내용은 비어 있을 수 없습니다.");
-        }
+        if (!isMember(channelId, authorId)) throw new BadRequestException("채널 멤버만 메시지를 보낼 수 있습니다.");
+        if (body == null || body.isBlank()) throw new BadRequestException("메시지 내용은 비어 있을 수 없습니다.");
 
-        // ===== 전송 직전 번역 적용 (mt.force=true면 체크박스 무시하고 강제 번역) =====
         String normalized = normalizeTarget(targetLang);
         boolean doTranslate = mtForce || Boolean.TRUE.equals(translateEnabled);
-        log.info("[MT] opts tr?={}, force={}, tgt={}", translateEnabled, mtForce, normalized);
-
-        String finalBody = doTranslate
-                ? chatNlpService.translate(body, normalized)
-                : body;
-
-        log.info("[MT] result preview={}",
-                finalBody.length() > 40 ? finalBody.substring(0, 40) + "..." : finalBody);
-        // =====================================================================
+        String finalBody = doTranslate ? chatNlpService.translate(body, normalized) : body;
 
         Message msg = new Message();
         msg.setChannel(channel);
@@ -206,22 +188,17 @@ public class ChatServiceImpl implements ChatService {
                     .orElseThrow(() -> new NotFoundException("File not found: " + fileId));
             msg.setFile(f);
         }
-
         if (replyToId != null) {
             Message ref = messageRepository.findById(replyToId)
                     .orElseThrow(() -> new NotFoundException("Message not found: " + replyToId));
-            if (!ref.getChannel().getId().equals(channelId)) {
+            if (!ref.getChannel().getId().equals(channelId))
                 throw new BadRequestException("다른 채널 메시지를 답글로 참조할 수 없습니다.");
-            }
             msg.setReplyTo(ref);
         }
 
         Message saved = messageRepository.save(msg);
-
-        // 알림 이벤트 발행 (번역 적용된 본문 기준)
         String preview = finalBody.length() > 20 ? finalBody.substring(0, 20) + "..." : finalBody;
         publisher.publishEvent(new ChatMessageCreatedEvent(channelId, saved.getId(), authorId, preview));
-
         return saved;
     }
 
@@ -231,13 +208,9 @@ public class ChatServiceImpl implements ChatService {
         return messageRepository.findByChannel_IdOrderByIdAsc(channelId, pageable);
     }
 
-    // ───────────────────────── 읽음표시 ─────────────────────────
-
     @Override
     public void markRead(Long channelId, Long userId, Long lastReadMessageId) {
-        if (!isMember(channelId, userId)) {
-            throw new BadRequestException("채널 멤버만 읽음 표시를 업데이트할 수 있습니다.");
-        }
+        if (!isMember(channelId, userId)) throw new BadRequestException("채널 멤버만 읽음 표시를 업데이트할 수 있습니다.");
 
         MessageReadId id = new MessageReadId();
         id.setChannelId(channelId);
@@ -254,15 +227,83 @@ public class ChatServiceImpl implements ChatService {
         if (lastReadMessageId != null) {
             Message msg = messageRepository.findById(lastReadMessageId)
                     .orElseThrow(() -> new NotFoundException("Message not found: " + lastReadMessageId));
-            if (!msg.getChannel().getId().equals(channelId)) {
+            if (!msg.getChannel().getId().equals(channelId))
                 throw new BadRequestException("다른 채널 메시지를 읽음 위치로 설정할 수 없습니다.");
-            }
+
             Long prev = mr.getLastReadMessageId();
-            if (prev == null || lastReadMessageId > prev) {
-                mr.setLastReadMessageId(lastReadMessageId);
-            }
+            if (prev == null || lastReadMessageId > prev) mr.setLastReadMessageId(lastReadMessageId);
         }
 
         messageReadRepository.save(mr);
+    }
+
+    // ───────────── 프로젝트 채널/목록 ─────────────
+
+    @Override
+    public Long getOrCreateProjectChannel(Long projectId, String projectName, Long createdBy) {
+        if (projectId == null) throw new BadRequestException("projectId is required");
+
+        var existing = chatChannelRepository
+                .findByMembers_User_IdAndChannelType(createdBy, ChannelType.PROJECT)
+                .stream()
+                .filter(c -> c.getProject() != null && projectId.equals(c.getProject().getId()))
+                .findFirst();
+        if (existing.isPresent()) return existing.get().getId();
+
+        Project prj = projectRepository.findById(projectId)
+                .orElseThrow(() -> new NotFoundException("Project not found: " + projectId));
+
+        ChatChannel ch = new ChatChannel();
+        ch.setChannelType(ChannelType.PROJECT);
+        ch.setProject(prj);
+        ch.setName((projectName != null && !projectName.isBlank()) ? projectName : prj.getName());
+
+        if (createdBy != null) {
+            User creator = userRepository.findById(createdBy)
+                    .orElseThrow(() -> new NotFoundException("User not found: " + createdBy));
+            ch.setCreatedBy(creator);
+        }
+
+        ChatChannel saved = chatChannelRepository.save(ch);
+        if (createdBy != null) addMember(saved.getId(), createdBy);
+        return saved.getId();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProjectChatDTO> listProjectRooms(Long userId) {
+        if (userId == null) throw new BadRequestException("userId is required");
+
+        String sql = """
+            SELECT  p.id        AS project_id,
+                    p.name      AS name,
+                    (
+                      SELECT c.id
+                      FROM chat_channels c
+                      WHERE c.project_id = p.id
+                        AND c.channel_type = 'PROJECT'
+                      ORDER BY c.id
+                      LIMIT 1
+                    )           AS channel_id
+            FROM projects p
+            JOIN project_members pm
+              ON pm.project_id = p.id
+            WHERE pm.user_id = :uid
+            ORDER BY p.id
+            """;
+
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = em.createNativeQuery(sql)
+                .setParameter("uid", userId)
+                .getResultList();
+
+        List<ProjectChatDTO> list = new ArrayList<>();
+        for (Object[] r : rows) {
+            Long projectId = ((Number) r[0]).longValue();
+            String name    = (String) r[1];
+            Long channelId = (r[2] == null) ? null : ((Number) r[2]).longValue();
+            list.add(new ProjectChatDTO(projectId, name, channelId));
+        }
+        return list;
     }
 }

@@ -1,59 +1,29 @@
 package com.azure.service;
 
-import com.azure.model.chat.ChatChannel;
-import com.azure.model.chat.Message;
-import com.azure.model.enums.ChannelType;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import com.azure.dto.ProjectChatDTO;
+import com.azure.model.chat.ChatChannel;
+import com.azure.model.chat.Message;
+import com.azure.model.enums.ChannelType;
+
 /**
- * 채팅 도메인 서비스 (채널/멤버/메시지/읽음표시)
- *
- * <h2>역할</h2>
- * <ul>
- *   <li>컨트롤러에서 레포지토리 직접 접근을 막고 비즈니스 규칙(멤버십, 참조 유효성, 읽음 위치 처리)을 캡슐화</li>
- *   <li>트랜잭션 경계 제공: 쓰기 메서드는 기본 트랜잭션, 조회는 readOnly 최적화</li>
- * </ul>
- *
- * <h2>일반 규칙</h2>
- * <ul>
- *   <li>채널/메시지 접근은 <b>채널 멤버</b>만 가능(권한 체크는 서비스에서 1차 방어 권장)</li>
- *   <li>파일/답글(스레드) 참조 시 <b>존재 여부 + 동일 채널</b> 검증</li>
- * </ul>
+ * 채팅 도메인 서비스
  */
 public interface ChatService {
 
-    /** 채널 생성(프로젝트/그룹/DM 등). 필수값 검증(타입/이름), 필요 시 프로젝트 ID 연결. */
     ChatChannel createChannel(ChannelType type, Long projectId, String name, Long createdBy);
 
-    /** 채널 멤버 추가/삭제. 중복 추가는 무시(멱등) 또는 예외 중 택1(구현에 따름). */
     void addMember(Long channelId, Long userId);
     void removeMember(Long channelId, Long userId);
 
-    /**
-     * 메시지 전송(파일/답글 옵션 포함). 내용 공백/멤버십/참조 유효성 체크.
-     *
-     * <p><b>하위호환 전송 API</b> — 번역을 사용하지 않는 기존 호출부는 이 메서드를 그대로 사용.</p>
-     * 구현체에서는 이 메서드가 {@link #postMessage(Long, Long, String, Long, Long, Boolean, String)}
-     * 을 기본값(translateEnabled=false, targetLang="en")으로 위임하도록 하면 됨.
-     */
     default Message postMessage(Long channelId, Long authorId, String body, Long fileId, Long replyToId) {
-        // 구현체가 오버라이드하지 않아도 컴파일 가능하도록 디폴트 위임 시그니처를 제공
         return postMessage(channelId, authorId, body, fileId, replyToId, Boolean.FALSE, "en");
     }
 
-    /**
-     * 메시지 전송(번역 옵션 포함).
-     *
-     * @param channelId        채널 ID
-     * @param authorId         작성자 ID
-     * @param body             원문 메시지 본문(최대 3줄 권장 — 스텁 번역기 정책)
-     * @param fileId           첨부 파일 ID(없으면 null)
-     * @param replyToId        답글 대상 메시지 ID(없으면 null)
-     * @param translateEnabled true면 전송 직전에 번역 적용
-     * @param targetLang       타겟 언어 코드("en" | "ko" | "ja" | "zh" 등). null/라벨이면 구현체에서 정규화
-     * @return 저장된 메시지
-     */
     Message postMessage(Long channelId,
                         Long authorId,
                         String body,
@@ -62,12 +32,15 @@ public interface ChatService {
                         Boolean translateEnabled,
                         String targetLang);
 
-    /** 메시지 목록(페이징). 보통 채널 멤버만 열람 가능. */
     Page<Message> listMessages(Long channelId, Pageable pageable);
 
-    /** 읽음 위치 업데이트(해당 채널의 마지막 읽은 메시지 ID 저장). */
     void markRead(Long channelId, Long userId, Long lastReadMessageId);
 
-    /** DM 채널을 찾거나 생성해서 ID 반환 */
     Long getOrCreateDmChannel(long me, long peer);
+
+    /** 🔥 로그인 사용자 기준 프로젝트 채팅 목록 */
+    List<ProjectChatDTO> listProjectRooms(Long userId);
+
+    /** 프로젝트 기준 채널 get-or-create */
+    Long getOrCreateProjectChannel(Long projectId, String projectName, Long createdBy);
 }
