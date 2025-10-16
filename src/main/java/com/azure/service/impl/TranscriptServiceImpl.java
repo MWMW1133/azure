@@ -59,17 +59,8 @@ public class TranscriptServiceImpl implements TranscriptService {
         String s3Key = s3.deriveKeyFromPublicUrl(audioUrl);          // org/.../1760576842190.webm
         String fileName = s3Key.substring(s3Key.lastIndexOf('/') + 1);
 
-        // 3) FileObject 저장
-        FileObject recording = new FileObject();
-        recording.setStorageKey(s3Key);
-        recording.setFileName(fileName);
-        recording.setMimeType(mediaType);
-        recording.setOrganization(meeting.getOrganization());
-        FileObject savedRecording = fileObjectRepository.save(recording);
-
-        // 4) Meeting 업데이트
+        // ✅ 녹음 원본은 file_objects에 저장/연결하지 않음
         meeting.setStatus(MeetingStatus.TRANSCRIBING);
-        meeting.setRecordingFile(savedRecording);
         meetingRepository.save(meeting);
 
         // 5) Transcribe 잡 시작
