@@ -27,15 +27,30 @@ public class FileStorageService {
     }
 
     /** 파일 삭제 */
+//    public void delete(String storageKey) throws IOException {
+//        if (storageKey == null || storageKey.isBlank()) return;
+//
+//        Path path = Path.of(storageKey);
+//        if (Files.exists(path)) {
+//            Files.delete(path);
+//            System.out.println("[DEBUG] 파일 삭제 완료: " + path);
+//        } else {
+//            System.out.println("[DEBUG] 삭제할 파일이 존재하지 않음: " + path);
+//        }
+//    }
     public void delete(String storageKey) throws IOException {
         if (storageKey == null || storageKey.isBlank()) return;
+        if (storageKey.contains("/meeting/") || storageKey.contains("\\meeting\\")) {
+            System.out.println("[WARN] 회의록 경로이므로 삭제 스킵: " + storageKey);
+            return;
+        }
 
         Path path = Path.of(storageKey);
         if (Files.exists(path)) {
             Files.delete(path);
             System.out.println("[DEBUG] 파일 삭제 완료: " + path);
         } else {
-            System.out.println("[DEBUG] 삭제할 파일이 존재하지 않음: " + path);
+            System.out.println("[WARN] 삭제 대상 파일이 존재하지 않음: " + path);
         }
     }
 }
