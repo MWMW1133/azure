@@ -117,7 +117,3 @@
         </div>
     </div>
 </div>
-
-<%--<script>--%>
-<%--    window.PROJECT_ID = "${projectId}";--%>
-<%--</script>--%>

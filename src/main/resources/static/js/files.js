@@ -171,10 +171,10 @@
     //     window.location.href = `/projects/${projectId}/documents/new?templateKey=${templateKey}`;
     // };
     window.selectTemplate = function (templateKey) {
-        // 1️⃣ 우선 window.PROJECT_ID 시도
+        // 우선 window.PROJECT_ID 시도
         let projectId = window.PROJECT_ID;
 
-        // 2️⃣ 없다면 DOM에서 추출
+        // 없다면 DOM에서 추출
         if (!projectId) {
             const grid = document.querySelector('#fileGrid');
             if (grid) {
