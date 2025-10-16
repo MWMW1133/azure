@@ -10,6 +10,7 @@ import com.azure.model.tag.Tag;
 import com.azure.model.task.Task;
 import com.azure.model.user.User;
 import com.azure.service.NotificationService;
+import com.azure.service.ProjectInvitationService;
 import com.azure.service.ProjectService;
 import com.azure.service.TagService;
 import com.azure.service.UserService;
@@ -41,6 +42,8 @@ public class ProjectApiController {
     private final NotificationService notificationService;
     private final UserService userService;
 
+    private final ProjectInvitationService invitationService; // ⬅️ 서비스 주입
+    
     @GetMapping("/{projectId}")
   public ProjectDTO get(@PathVariable Long projectId) {
     var p = projectService.get(projectId);
@@ -148,6 +151,12 @@ public class ProjectApiController {
                     return dto;
                 })
                 .toList();
+            }
+
+    @GetMapping("/{projectId}/invitations")
+    public List<Long> listProjectInvitations(@PathVariable Long projectId) {
+        return invitationService.getPendingInvitedUserIds(projectId);
+    }
     }
 
   public record InviteMembersRequest(List<Long> userIds) {}
