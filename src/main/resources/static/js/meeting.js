@@ -401,6 +401,18 @@ function getSelectedProjectId(root=document){
                     // 백엔드 컨트롤러(@PostMapping("/{meetingId}/end"))에 맞게 URL을 완성합니다.
                     await api('POST', `${CFG().endUrl}/${encodeURIComponent(meetingId)}/end`);
                 }
+                if(meetingId){
+                    try{
+                        const r = await api('POST', `/api/meetings/${encodeURIComponent(meetingId)}/summarize`);
+                        if (notesBody && r && r.summaryMd){
+                            notesBody.textContent = r.summaryMd; // (간단 표시) 필요하면 Markdown 뷰어로 교체
+                            openBtn?.classList.add('show');
+                            openBtn?.click(); // 자동으로 회의록 모달 열기
+                        }
+                    }catch (e) {
+                        console.warn('회의록 요약 실패:', e);
+                    }
+                }
 
                 openBtn?.classList.add('show');
                 endToast('회의가 종료되었습니다.');
