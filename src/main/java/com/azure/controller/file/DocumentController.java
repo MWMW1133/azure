@@ -251,7 +251,21 @@ public class DocumentController {
                 org.apache.poi.xwpf.usermodel.XWPFDocument doc = new org.apache.poi.xwpf.usermodel.XWPFDocument();
                 org.apache.poi.xwpf.usermodel.XWPFParagraph p = doc.createParagraph();
                 org.apache.poi.xwpf.usermodel.XWPFRun run = p.createRun();
-                run.setText(content.replaceAll("<[^>]*>", "")); // HTML 태그 제거
+
+                // HTML 본문 정리
+                String pureText = content
+                        .replaceAll("(?is)<style[^>]*>.*?</style>", "")   // <style> 제거
+                        .replaceAll("(?is)<script[^>]*>.*?</script>", "") // <script> 제거
+                        .replaceAll("(?i)<br\\s*/?>", "\n")                // <br> → 줄바꿈
+                        .replaceAll("(?i)</p>", "\n\n")                    // </p> → 단락 줄바꿈
+                        .replaceAll("(?i)<[^>]*>", "")                     // 나머지 HTML 태그 제거
+                        .replaceAll("&nbsp;", " ")                         // 공백 정리
+                        .replaceAll("\\s+", " ")                           // 중복 공백 제거
+                        .trim();
+
+                run.setText(pureText);
+                run.setFontFamily("Malgun Gothic"); // 한글 폰트 지정
+                run.setFontSize(11);
 
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 doc.write(out);
@@ -259,6 +273,14 @@ public class DocumentController {
                 fileBytes = out.toByteArray();
                 mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
                 extension = ".docx";
+//                run.setText(content.replaceAll("<[^>]*>", "")); // HTML 태그 제거
+//
+//                ByteArrayOutputStream out = new ByteArrayOutputStream();
+//                doc.write(out);
+//
+//                fileBytes = out.toByteArray();
+//                mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+//                extension = ".docx";
 
             } else {
                 throw new IllegalArgumentException("지원되지 않는 파일 형식입니다: " + format);
