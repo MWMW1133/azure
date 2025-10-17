@@ -125,7 +125,8 @@ public class InviteController {
                     "sender", sender.getName(),
                     "organizationId", org.getId(),
                     "organization", org.getName(),
-                    "link", "/organization/invitations"
+                     "link", "/organization/invitations"
+//                    "link", "/home"
             );
 
             // 지우지마세요~~ㅠㅠ

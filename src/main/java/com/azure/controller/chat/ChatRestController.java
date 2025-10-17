@@ -134,16 +134,19 @@ public class ChatRestController {
         }
     }
 
-    /** 채널 메시지 로드 (그룹/DM 공통) */
     @GetMapping("/{channelId}/messages")
     public List<MessageDTO> recentMessages(@PathVariable Long channelId,
                                            @RequestParam(defaultValue = "50") int limit) {
         int size = Math.min(Math.max(limit, 1), 200);
-        var page = PageRequest.of(0, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        // ✅ 최신 N개를 받기 위해 DESC로 요청
+        var page = PageRequest.of(0, size, Sort.by(Sort.Direction.DESC, "id"));
 
         Page<Message> result = chatService.listMessages(channelId, page);
+
         var list = result.getContent().stream().map(this::toDto).collect(Collectors.toList());
-        Collections.reverse(list); // 오래된 → 최신
+        // ✅ 화면 표시용으로 오래→최신 정렬
+        java.util.Collections.reverse(list);
         return list;
     }
 

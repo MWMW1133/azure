@@ -54,7 +54,12 @@ document.addEventListener('click', (e) => {
 
   // 선택: 카드 클릭 시 링크가 있으면 이동
   if (notif?.link && notif.link !== '#') {
-    window.location.href = notif.link;
+    // 존재하지 않는 경로면 홈으로 리다이렉트
+    if (notif.link === '/organization/invitations') {
+      window.location.href = '/home';      // 또는 '/noInvitePage'
+    } else {
+      window.location.href = notif.link;
+    }
   }
 });
 
@@ -231,16 +236,31 @@ window.handleInviteAction = function (notifId, action) {
   console.log('[FETCH] sending body =', bodyData);
   console.log('[FETCH] JSON.stringify =', JSON.stringify(bodyData));
 
+
   fetch(`/api/invite/${action}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(bodyData),
   })
-    .then((res) => res.json())
-    .then((data) => {
-      alert(data.message);
-      window.notifications = window.notifications.filter((n) => n.id !== notifId);
-      renderNotifs(window.notifications);
-    })
-    .catch((err) => alert('처리 중 오류 발생: ' + err));
+      .then((res) => res.text()) // ← JSON 대신 text로 받아서
+      .then((text) => {
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { message: text || '요청이 완료되었습니다.' };
+        }
+
+        alert(data.message);
+        window.notifications = window.notifications.filter((n) => n.id !== notifId);
+        renderNotifs(window.notifications);
+
+        if (action === 'accept') {
+          window.location.href = '/home';
+        } else if (action === 'reject') {
+          window.location.href = '/noInvitePage';
+        }
+      })
+      .catch((err) => console.warn('[INVITE FETCH ERROR]', err));
+
 };

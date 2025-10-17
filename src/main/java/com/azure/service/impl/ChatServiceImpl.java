@@ -7,7 +7,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -205,7 +207,16 @@ public class ChatServiceImpl implements ChatService {
     @Override
     @Transactional(readOnly = true)
     public Page<Message> listMessages(Long channelId, Pageable pageable) {
-        return messageRepository.findByChannel_IdOrderByIdAsc(channelId, pageable);
+        Pageable sorted = pageable;
+        if (pageable == null || pageable.getSort().isUnsorted()) {
+            // ✅ 기본은 id DESC (가장 최근 먼저) 로 가져오도록
+            sorted = PageRequest.of(
+                    pageable != null ? pageable.getPageNumber() : 0,
+                    pageable != null ? pageable.getPageSize() : 50,
+                    Sort.by(Sort.Direction.DESC, "id")   // createdAt 대신 id도 OK. 인덱싱 쉬움
+            );
+        }
+        return messageRepository.findByChannel_Id(channelId, sorted);
     }
 
     @Override

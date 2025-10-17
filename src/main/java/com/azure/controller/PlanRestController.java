@@ -56,17 +56,17 @@ public class PlanRestController {
         if (meId == null) throw new org.springframework.web.server.ResponseStatusException(
                 org.springframework.http.HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
 
-        ProjectProposal entity;
+
         if ("APPROVED".equalsIgnoreCase(status)) {
-            proposalService.approve(proposalId, getCurrentUserId());
+            proposalService.approve(proposalId, meId); // ✅ 수정
         } else if ("REJECTED".equalsIgnoreCase(status)) {
-            entity = proposalService.reject(proposalId, getCurrentUserId());
+            proposalService.reject(proposalId, meId);
         } else {
             throw new IllegalArgumentException("Unknown status: " + status);
         }
 
         // entity 최신화
-        entity = proposalService.get(proposalId);
+        ProjectProposal entity = proposalService.get(proposalId);
 
         // DTO 변환
         ProjectProposalDTO dto = new ProjectProposalDTO();
