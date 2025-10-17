@@ -1,6 +1,7 @@
 package com.azure.controller.api;
 
 import com.azure.dto.EventDto;
+import com.azure.model.calendar.EventAttendee;
 import com.azure.model.calendar.ProjectCalendar;
 import com.azure.model.task.Task;
 import com.azure.model.user.User;
@@ -11,7 +12,6 @@ import com.azure.service.CalendarService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,7 +30,8 @@ public class ProjectCalendarApiController {
     private final ProjectCalendarRepository projectCalendarRepository;
     private final TaskRepository taskRepository;
     private final EventAttendeeRepository eventAttendeeRepository;
-
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager em;
     // ───────── 공통 유틸 ─────────
     private Long currentUserId(HttpSession session) {
         User u = (User) session.getAttribute("loginUser");
@@ -77,7 +78,7 @@ public class ProjectCalendarApiController {
         if (e.getRelatedTask() != null) ext.put("relatedTaskId", String.valueOf(e.getRelatedTask().getId()));
         dto.setExtendedProps(ext);
 
-        // 참석자 ID 목록(이 DTO는 화면 렌더용 참고값)
+        // 참석자 ID 목록
         List<Long> attendeeIds = eventAttendeeRepository.findByEvent_Id(e.getId())
                 .stream().map(a -> a.getUser().getId()).toList();
         dto.setAttendeeIds(attendeeIds);
@@ -127,14 +128,14 @@ public class ProjectCalendarApiController {
 
     // ───────── 생성 ─────────
     @PostMapping("/events")
+    @Transactional
     public EventDto create(HttpSession session,
                            @PathVariable Long projectId,
                            @RequestBody EventDto in) {
 
         Long uid = currentUserId(session);
         if (uid == null) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
         }
 
         boolean allDay = in.isAllDay();
@@ -160,11 +161,16 @@ public class ProjectCalendarApiController {
             taskRepository.findById(relatedTaskId).ifPresent(saved::setRelatedTask);
 
         saved = projectCalendarRepository.save(saved);
+
+        // 프런트가 별도 /attendees 호출하므로 여기서는 참석자 저장 생략(필요시 아래 주석 해제)
+        // replaceAttendees(saved, in.getAttendeeIds());
+
         return toEventDto(saved);
     }
 
     // ───────── 수정 ─────────
     @PutMapping("/events/{id}")
+    @Transactional
     public EventDto update(@PathVariable Long projectId,
                            @PathVariable("id") String id,
                            @RequestBody EventDto in) {
@@ -176,8 +182,7 @@ public class ProjectCalendarApiController {
 
         // 프로젝트 일치 검증
         if (e.getProject() == null || !Objects.equals(e.getProject().getId(), projectId)) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.NOT_FOUND, "Event not in project");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not in project");
         }
 
         boolean allDay = in.isAllDay();
@@ -197,11 +202,16 @@ public class ProjectCalendarApiController {
         else e.setRelatedTask(null);
 
         e = projectCalendarRepository.save(e);
+
+        // 프런트가 별도 /attendees 호출하므로 여기서도 참석자 저장 생략(필요시 아래 주석 해제)
+        // replaceAttendees(e, in.getAttendeeIds());
+
         return toEventDto(e);
     }
 
     // ───────── 삭제 ─────────
     @DeleteMapping("/events/{id}")
+    @Transactional
     public ResponseEntity<Void> delete(@PathVariable Long projectId,
                                        @PathVariable("id") String id) {
         if (id.startsWith("T-")) return ResponseEntity.badRequest().build();
@@ -226,8 +236,7 @@ public class ProjectCalendarApiController {
         ProjectCalendar ev = projectCalendarRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found: " + eventId));
         if (ev.getProject() == null || !Objects.equals(ev.getProject().getId(), projectId)) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.NOT_FOUND, "Event not in project");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not in project");
         }
 
         return eventAttendeeRepository.findByEvent_Id(eventId).stream()
@@ -244,59 +253,85 @@ public class ProjectCalendarApiController {
 
     /** 참석자 저장(전체 교체): body = [1,5,9] 또는 {attendeeIds:[...]} */
     @PutMapping(value = "/events/{id}/attendees", consumes = "application/json")
-@Transactional
-public ResponseEntity<Void> putAttendees(
-        HttpSession session,
-        @PathVariable Long projectId,
-        @PathVariable("id") Long eventId,
-        @RequestBody Object body) {
+    @Transactional
+    public ResponseEntity<Void> putAttendees(
+            HttpSession session,
+            @PathVariable Long projectId,
+            @PathVariable("id") Long eventId,
+            @RequestBody Object body) {
 
-    Long uid = currentUserId(session);
-    if (uid == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+        Long uid = currentUserId(session);
+        if (uid == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
 
-    ProjectCalendar event = projectCalendarRepository.findById(eventId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found: " + eventId));
+        ProjectCalendar event = projectCalendarRepository.findById(eventId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found: " + eventId));
 
-    if (event.getProject() == null || !Objects.equals(event.getProject().getId(), projectId)) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event not in project");
+        if (event.getProject() == null || !Objects.equals(event.getProject().getId(), projectId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event not in project");
+        }
+
+        // [1] 바디 파싱(배열 또는 {attendeeIds:[...]})
+        List<Long> ids = new ArrayList<>();
+        if (body instanceof List<?> arr) {
+            for (Object o : arr) if (o instanceof Number n) ids.add(n.longValue());
+        } else if (body instanceof Map<?,?>) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = (Map<String, Object>) body;
+
+            Object cand = map.get("attendeeIds");
+            if (cand == null) cand = map.get("userIds");
+            if (cand == null) cand = map.get("attendees");
+
+            if (cand instanceof List<?> arr2) {
+                for (Object o : arr2) if (o instanceof Number n) ids.add(n.longValue());
+            } else {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid body");
+            }
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid body");
+        }
+        ids = ids.stream().filter(Objects::nonNull).distinct().toList();
+
+        // [2] 전체 교체
+        eventAttendeeRepository.deleteByEvent_Id(eventId);
+
+        if (!ids.isEmpty()) {
+            List<EventAttendee> rows = new ArrayList<>(ids.size());
+            for (Long userId : ids) {
+                var row = new EventAttendee();
+                row.setEvent(event);
+                row.setUser(em.getReference(User.class, userId));
+                rows.add(row);
+            }
+            eventAttendeeRepository.saveAll(rows);
+        }
+        return ResponseEntity.ok().build();
     }
 
-    // [1] 바디 파싱(배열 또는 {attendeeIds:[...]})
-    List<Long> ids = new ArrayList<>();
-    if (body instanceof List<?> arr) {
-        for (Object o : arr) if (o instanceof Number n) ids.add(n.longValue());
-    } else if (body instanceof Map<?,?>) {
-    @SuppressWarnings("unchecked")
-    Map<String, Object> map = (Map<String, Object>) body;
-
-    Object cand = map.get("attendeeIds");
-    if (cand == null) cand = map.get("userIds");
-    if (cand == null) cand = map.get("attendees");
-
-    if (cand instanceof List<?> arr2) {
-        for (Object o : arr2) if (o instanceof Number n) ids.add(n.longValue());
-    } else {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid body");
+    @GetMapping("/events/{id}")
+    public EventDto getOne(@PathVariable Long projectId,
+                           @PathVariable("id") Long eventId) {
+        ProjectCalendar e = projectCalendarRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found: " + eventId));
+        if (e.getProject() == null || !Objects.equals(e.getProject().getId(), projectId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not in project");
+        }
+        return toEventDto(e);
     }
-    } else {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid body");
-    }
-    ids = ids.stream().filter(Objects::nonNull).distinct().toList();
 
-    // [2] 전체 교체
-    eventAttendeeRepository.deleteByEvent_Id(eventId);
+    // 공통 유틸: attendeeIds 교체 저장 (현재는 사용 안 함)
+    private void replaceAttendees(ProjectCalendar event, List<Long> ids) {
+        eventAttendeeRepository.deleteByEvent_Id(event.getId());
+        if (ids == null || ids.isEmpty()) return;
 
-    if (!ids.isEmpty()) {
         List<com.azure.model.calendar.EventAttendee> rows = new ArrayList<>(ids.size());
-        for (Long userId : ids) {
+        for (Long userId : ids.stream().filter(Objects::nonNull).distinct().toList()) {
             var row = new com.azure.model.calendar.EventAttendee();
-            row.setEvent(event);              
+            row.setEvent(event);
             var u = new com.azure.model.user.User(); u.setId(userId);
-            row.setUser(u);
+            row.setUser(em.getReference(User.class, userId));
             rows.add(row);
         }
         eventAttendeeRepository.saveAll(rows);
     }
-    return ResponseEntity.ok().build();
-}
 }

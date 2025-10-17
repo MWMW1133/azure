@@ -5,9 +5,9 @@ import com.azure.model.project.ProjectProposal;
 import com.azure.service.ProjectProposalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
+
+import static com.azure.security.SecurityUtil.getCurrentUserId;
 
 import java.time.LocalDate;
 
@@ -27,8 +27,8 @@ public class PlanRestController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueDate
     ) {
-        if (proposerId == null)
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+        if (proposerId == null) throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
 
         ProjectProposal entity = proposalService.create(
                 proposerId, organizationId, name, description, startDate, dueDate);
@@ -48,26 +48,27 @@ public class PlanRestController {
         dto.setCreatedAt(entity.getCreatedAt());
         return dto;
     }
-
     @PutMapping("/{proposalId}/status")
     public ProjectProposalDTO updateStatus(@PathVariable Long proposalId,
                                            @RequestParam String status,
                                            @ModelAttribute("currentUserId") Long meId) {
 
-        if (meId == null)
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+        if (meId == null) throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
 
+        ProjectProposal entity;
         if ("APPROVED".equalsIgnoreCase(status)) {
-            proposalService.approve(proposalId, meId);   // ✅ entity 대입 + meId 사용
+            proposalService.approve(proposalId, getCurrentUserId());
         } else if ("REJECTED".equalsIgnoreCase(status)) {
-            proposalService.reject(proposalId, meId);
+            entity = proposalService.reject(proposalId, getCurrentUserId());
         } else {
             throw new IllegalArgumentException("Unknown status: " + status);
         }
 
-        // 최신 상태 조회 (정합성 보장)
-        ProjectProposal entity = proposalService.get(proposalId);
+        // entity 최신화
+        entity = proposalService.get(proposalId);
 
+        // DTO 변환
         ProjectProposalDTO dto = new ProjectProposalDTO();
         dto.setId(entity.getId());
         dto.setStatus(entity.getStatus().name());

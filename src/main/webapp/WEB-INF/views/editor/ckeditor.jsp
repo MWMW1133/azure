@@ -49,9 +49,9 @@
         </button>
 
         <!-- Word로 저장 -->
-        <button type="submit" class="btn btn-outline-primary px-4" formaction="/projects/${projectId}/documents/save/docx">
-            <i class="bi bi-file-earmark-word"></i> Word로 저장
-        </button>
+<%--        <button type="submit" class="btn btn-outline-primary px-4" formaction="/projects/${projectId}/documents/save/docx">--%>
+<%--            <i class="bi bi-file-earmark-word"></i> Word로 저장--%>
+<%--        </button>--%>
     </div>
 </form>
 <script>

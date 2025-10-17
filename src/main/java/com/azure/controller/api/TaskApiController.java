@@ -32,33 +32,33 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/tasks")
 @RequiredArgsConstructor
 public class TaskApiController {
-  private final TaskService taskService;
-  private final UserService userService;
-  private final WebUserAdvice webUserAdvice;
+    private final TaskService taskService;
+    private final UserService userService;
+    private final WebUserAdvice webUserAdvice;
 
-  @PatchMapping("/{taskId}/assignee")
-  public TaskUpdateDTO setAssignee(@PathVariable Long taskId, @RequestBody AssigneeReq req, HttpSession session) {
-    Long userId = webUserAdvice.currentUserId(session);
-    Task t = taskService.assign(taskId, req.getUserId(), userService.get(userId));
+    @PatchMapping("/{taskId}/assignee")
+    public TaskUpdateDTO setAssignee(@PathVariable Long taskId, @RequestBody AssigneeReq req, HttpSession session) {
+        Long userId = webUserAdvice.currentUserId(session);
+        Task t = taskService.assign(taskId, req.getUserId(), userService.get(userId));
 
-    TaskUpdateDTO dto = new TaskUpdateDTO();
-    dto.setId(t.getId());
+        TaskUpdateDTO dto = new TaskUpdateDTO();
+        dto.setId(t.getId());
 
-    User u = t.getAssignee();
-    if (u != null) {
-      dto.setAssigneeId(u.getId());
-    } else {
-      dto.setAssigneeId(null);
+        User u = t.getAssignee();
+        if (u != null) {
+            dto.setAssigneeId(u.getId());
+        } else {
+            dto.setAssigneeId(null);
+        }
+        return dto;
     }
-    return dto;
-  }
-  @Data
-  static class AssigneeReq { Long userId; }
+    @Data
+    static class AssigneeReq { Long userId; }
 
     @PatchMapping("/{taskId}/workflow")
     public TaskUpdateDTO setWorkflow(@PathVariable Long taskId, @RequestBody WorkflowReq req, HttpSession session) {
-      Long userId = webUserAdvice.currentUserId(session);
-      Task t = taskService.setWorkflow(taskId, req.getWorkflowId(), userService.get(userId));
+        Long userId = webUserAdvice.currentUserId(session);
+        Task t = taskService.setWorkflow(taskId, req.getWorkflowId(), userService.get(userId));
 
         TaskUpdateDTO dto = new TaskUpdateDTO();
         dto.setId(t.getId());
@@ -107,9 +107,9 @@ public class TaskApiController {
         return dto;
     }
 
-  @Data
-  static class DatesReq {
-      private java.time.LocalDate startDate;
-      private java.time.LocalDate dueDate;
-  }
+    @Data
+    static class DatesReq {
+        private java.time.LocalDate startDate;
+        private java.time.LocalDate dueDate;
+    }
 }

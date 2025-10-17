@@ -95,7 +95,7 @@ public interface TaskService {
 
     /** 메인 테이블용: 프로젝트의 최상위 ‘진행중’ 태스크 리스트 */
     List<Task> listByProject(Long projectId);
-    
+
     /** 첨부파일 연결/해제 */
     void addAttachment(Long taskId, Long fileId);
     void removeAttachment(Long taskId, Long fileId);

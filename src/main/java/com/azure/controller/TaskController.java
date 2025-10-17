@@ -148,18 +148,17 @@ public class TaskController {
         taskService.assign(taskId, req.getUserId(), userService.get(userId)); // null 처리 규칙은 서비스가 수행
         return ResponseEntity.noContent().build();
     }
-    
+
 
     @GetMapping("/tasks") // 엔드포인트 이름은 원하시는 대로
     public List<Map<String, Object>> listProjectTasks(@PathVariable Long projectId) {
         return taskRepository.findByProject_Id(projectId).stream()
-            .map(t -> {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("id", t.getId());
-                m.put("title", t.getTitle());
-                return m;
-            })
-            .toList();
+                .map(t -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", t.getId());
+                    m.put("title", t.getTitle());
+                    return m;
+                })
+                .toList();
     }
 }
-

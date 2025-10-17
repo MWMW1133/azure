@@ -454,13 +454,13 @@ public class TaskServiceImpl implements TaskService {
         String afterNm = (saved.getAssignee()==null? null : saved.getAssignee().getName());
 
         auditService.log(
-            actor,
-            com.azure.model.enums.AuditEnums.EntityType.TASK,
-            saved.getId(),
-            ActionType.ASSIGNEE_CHANGED,
-            new AuditDiff()
-                .put("assigneeId",   beforeId, afterId)
-                .put("assigneeName", beforeNm, afterNm)
+                actor,
+                com.azure.model.enums.AuditEnums.EntityType.TASK,
+                saved.getId(),
+                ActionType.ASSIGNEE_CHANGED,
+                new AuditDiff()
+                        .put("assigneeId",   beforeId, afterId)
+                        .put("assigneeName", beforeNm, afterNm)
         );
         return saved;
     }
@@ -490,14 +490,14 @@ public class TaskServiceImpl implements TaskService {
 
         //로그남기기
         auditService.log(
-            actor,
-            com.azure.model.enums.AuditEnums.EntityType.TASK,
-            saved.getId(),
-            ActionType.WORKFLOW_CHANGED,
-            new AuditDiff()
-                .put("workflowId",   beforeId, afterId)
-                .put("workflowName", beforeNm, afterNm)
-                .put("workflowColor",beforeCo, afterCo)
+                actor,
+                com.azure.model.enums.AuditEnums.EntityType.TASK,
+                saved.getId(),
+                ActionType.WORKFLOW_CHANGED,
+                new AuditDiff()
+                        .put("workflowId",   beforeId, afterId)
+                        .put("workflowName", beforeNm, afterNm)
+                        .put("workflowColor",beforeCo, afterCo)
         );
 
         //알??림
@@ -536,13 +536,13 @@ public class TaskServiceImpl implements TaskService {
         String afterNm = (saved.getPriority()==null? null : saved.getPriority().getName());
 
         auditService.log(
-            actor,
-            com.azure.model.enums.AuditEnums.EntityType.TASK,
-            saved.getId(),
-            ActionType.PRIORITY_CHANGED,
-            new AuditDiff()
-                .put("priorityId",   beforeId, afterId)
-                .put("priorityName", beforeNm, afterNm)
+                actor,
+                com.azure.model.enums.AuditEnums.EntityType.TASK,
+                saved.getId(),
+                ActionType.PRIORITY_CHANGED,
+                new AuditDiff()
+                        .put("priorityId",   beforeId, afterId)
+                        .put("priorityName", beforeNm, afterNm)
         );
         return saved;
     }
@@ -564,13 +564,13 @@ public class TaskServiceImpl implements TaskService {
 
         // 감사 로그
         auditService.log(
-            actor,
-            com.azure.model.enums.AuditEnums.EntityType.TASK,
-            saved.getId(),
-            ActionType.DATES_CHANGED,
-            new AuditDiff()
-                .put("startDate", beforeStart, saved.getStartDate())
-                .put("dueDate",   beforeDue,   saved.getDueDate())
+                actor,
+                com.azure.model.enums.AuditEnums.EntityType.TASK,
+                saved.getId(),
+                ActionType.DATES_CHANGED,
+                new AuditDiff()
+                        .put("startDate", beforeStart, saved.getStartDate())
+                        .put("dueDate",   beforeDue,   saved.getDueDate())
         );
 
         return saved;
@@ -688,7 +688,7 @@ public class TaskServiceImpl implements TaskService {
         int snap = Boolean.TRUE.equals(picked.getIsTerminal())
                 ? 100
                 : Math.max(computeStageFloorPct(stages, picked) + (100 / (stages.size())),
-                           computeStageFloorPct(stages, picked));
+                computeStageFloorPct(stages, picked));
         if (snap >= 100 && !Boolean.TRUE.equals(picked.getIsTerminal())) snap = 99;
         parent.setProgressPct(BigDecimal.valueOf(snap));
 

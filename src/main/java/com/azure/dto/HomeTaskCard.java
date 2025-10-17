@@ -14,5 +14,5 @@ public class HomeTaskCard {
     private String dueDate;
     private String workflow;
     private String workflowColor;
-    private String priority;    
+    private String priority;
 }

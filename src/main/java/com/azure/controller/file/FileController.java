@@ -1,17 +1,21 @@
 package com.azure.controller.file;
 
 
+import com.azure.config.S3Props;
 import com.azure.model.file.FileObject;
 import com.azure.model.user.User;
 import com.azure.service.file.FileService;
+import com.azure.service.s3.S3UploadService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -24,6 +28,10 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/api/files")
 public class FileController {
+
+    private final S3Presigner presigner;
+    private final S3Props s3Props;
+    private final S3UploadService s3UploadService;
 
     private final FileService fileService;
 
@@ -94,5 +102,19 @@ public class FileController {
         response.setContentType(file.getMimeType());
         response.setHeader("Content-Disposition", "attachment; filename=\"" + URLEncoder.encode(file.getFileName(), StandardCharsets.UTF_8) + "\"");
         Files.copy(Paths.get(file.getStorageKey()), response.getOutputStream());
+    }
+
+    // ⬇️⬇️⬇️ 이 /presign 메소드를 아래 내용으로 교체하세요 ⬇️⬇️⬇️
+    @GetMapping("/presign")
+    @ResponseBody
+    public ResponseEntity<S3UploadService.PresignResp> presign(
+            @RequestParam String key,
+            // ✅ contentType을 선택적 파라미터로 받도록 변경
+            @RequestParam(required = false) String contentType) {
+
+        // S3UploadService를 호출하여 Presigned URL 생성
+        S3UploadService.PresignResp presignedResponse = s3UploadService.presignPut(key, contentType);
+
+        return ResponseEntity.ok(presignedResponse);
     }
 }
