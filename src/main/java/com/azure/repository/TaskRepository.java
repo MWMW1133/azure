@@ -2,11 +2,14 @@ package com.azure.repository;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.azure.model.task.Task;
+
+import jakarta.transaction.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -121,4 +124,17 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     // 드롭다운(관련 태스크 선택)용 — 프로젝트 제한
     List<Task> findByProject_Id(Long projectId);
+
+
+    // ✅ 1) 부모 참조 끊기 (self-FK: parent_task_id)
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE tasks SET parent_task_id = NULL WHERE project_id = :projectId", nativeQuery = true)
+    void detachParentsByProjectId(Long projectId);
+
+    // ✅ 2) 프로젝트 내 태스크 전체 삭제
+    @Modifying
+    @Transactional
+    @Query(value = "DELETE FROM tasks WHERE project_id = :projectId", nativeQuery = true)
+    void deleteByProjectId(Long projectId);
 }

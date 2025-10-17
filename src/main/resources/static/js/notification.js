@@ -11,23 +11,28 @@ function renderNotifs(data) {
   if (!notifList) return;
   notifList.innerHTML = '';
 
-  // 다른 알림 오면 렌더링 확장 가능
   data.forEach((n) => {
     let actionsHtml = '';
     if (n.type === 'INVITE_ORGANIZATION') {
       actionsHtml = `
-              <div class="mt-2 d-flex gap-2">
-                <button class="btn btn-sm btn-primary" onclick="handleInviteAction(${n.id}, 'accept')">수락</button>
-                <button class="btn btn-sm btn-outline-secondary" onclick="handleInviteAction(${n.id}, 'reject')">거절</button>
-              </div>`;
+        <div class="mt-2 d-flex gap-2">
+          <button class="btn btn-sm btn-primary" onclick="handleInviteAction(${n.id}, 'accept')">수락</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="handleInviteAction(${n.id}, 'reject')">거절</button>
+        </div>`;
     }
+
+    const linkHtml = (n.link && n.link !== '#')
+      ? `<div class="mt-2"><a class="small text-decoration-underline" href="${n.link}">바로가기</a></div>`
+      : '';
+
     notifList.innerHTML += `
-          <div class="notif-card ${n.isRead ? 'opacity-75' : ''}" data-id="${n.id}">
-            <div class="fw-bold">${n.title}</div>
-            <div>${n.message}</div>
-            ${actionsHtml}
-            <div class="text-end text-muted small mt-1">${n.createdAt}</div>
-          </div>`;
+      <div class="notif-card ${n.isRead ? 'opacity-75' : ''}" data-id="${n.id}">
+        <div class="fw-bold">${n.title}</div>
+        <div>${n.message}</div>
+        ${linkHtml}
+        ${actionsHtml}
+        <div class="text-end text-muted small mt-1">${n.createdAt}</div>
+      </div>`;
   });
 }
 renderNotifs(window.notifications || []);
@@ -38,11 +43,18 @@ renderNotifs(window.notifications || []);
 document.addEventListener('click', (e) => {
   const notifCard = e.target.closest('.notif-card');
   if (!notifCard) return;
+
   const id = parseInt(notifCard.dataset.id, 10);
   const notif = window.notifications.find((n) => n.id === id);
+
   if (notif && !notif.isRead) {
     notif.isRead = true;
     renderNotifs(window.notifications);
+  }
+
+  // 선택: 카드 클릭 시 링크가 있으면 이동
+  if (notif?.link && notif.link !== '#') {
+    window.location.href = notif.link;
   }
 });
 
@@ -57,7 +69,6 @@ window.connectNotificationSocket = function (userId) {
     reconnectDelay: 5000,
   });
 
-  // 소켓으로 연결하는 데이터는 확인이 안돼서 로그 남겨둡니다
   client.onConnect = () => {
     console.log('Notification WebSocket connected');
     client.subscribe(`/topic/notifications/${userId}`, (msg) => {
@@ -67,67 +78,113 @@ window.connectNotificationSocket = function (userId) {
       console.log('[STEP3] typeof payload:', typeof data.payload);
       console.log('[STEP3] payload content:', data.payload);
 
+      // payload 원본은 그대로 유지
       const payload = data.payload;
 
-      // 알림 추가하실분.. 여기서 switch문으로 분기 추가하시면 될겁니다
-      switch (data.type) {
+      // 견고성: 문자열일 수도 있으니 별도의 객체 변수에만 파싱 적용
+      let payloadObj = payload;
+      if (typeof payload === 'string') {
+        try { payloadObj = JSON.parse(payload); } catch (e) {}
+      }
+
+      // 타입 정규화(대소문자/공백 문제 방지)
+      const type = String(data.type || '').trim().toUpperCase();
+      console.log('[TYPE]', type);
+
+      switch (type) {
         case 'INVITE_ORGANIZATION': {
-          const inviteNotif = {
+          window.notifications.unshift({
             id: data.id || Date.now(),
-            type: data.type,
-            payload,
+            type,
+            payload: payloadObj,
             title: '조직 초대 알림',
-            message: `${payload.sender}님이 ${payload.organization} 조직에 초대했습니다.`,
-            organizationId: payload.organizationId,
-            link: payload.link || '#',
+            message: `${payloadObj?.sender ?? '관리자'}님이 ${payloadObj?.organization ?? ''} 조직에 초대했습니다.`,
+            organizationId: payloadObj?.organizationId,
+            link: payloadObj?.link || '#',
             createdAt: new Date().toLocaleString(),
             isRead: false,
-          };
-          window.notifications.unshift(inviteNotif);
+          });
           break;
         }
 
         case 'TASK_WORKFLOW_CHANGED': {
-          const taskChangeNotif = {
+          window.notifications.unshift({
             id: data.id || Date.now(),
-            type: data.type,
-            payload,
+            type,
+            payload: payloadObj,
             title: '태스크 상태 변경 알림',
-            message: `[${payload.taskTitle}] 태스크 상태 : ${payload.from} → ${payload.to} (변경자: ${payload.sender})`,
-            link: payload.link || '#',
+            message: `[${payloadObj?.taskTitle ?? '태스크'}] 상태: ${payloadObj?.from ?? '-'} → ${payloadObj?.to ?? '-'} (변경자: ${payloadObj?.sender ?? '-'})`,
+            link: payloadObj?.link || '#',
             createdAt: new Date().toLocaleString(),
             isRead: false,
-          };
-          window.notifications.unshift(taskChangeNotif);
+          });
           break;
         }
 
         case 'PROJECT_MEMBER_ADDED': {
-          const memberAddedNotif = {
+          // 멤버로 추가됨 알림 (콘솔에서 이 타입이 보였음)
+          const message = `${payloadObj?.adderName ?? '관리자'}님이 '${payloadObj?.projectName ?? '프로젝트'}'에 당신을 추가했습니다.`;
+          let link = '#';
+          if (payloadObj?.projectId) {
+            link = `${window.APP_CTX || ''}/projects/${payloadObj.projectId}`;
+          }
+          window.notifications.unshift({
             id: data.id || Date.now(),
-            type: data.type,
-            payload,
-            title: '프로젝트 초대 알림',
-            message: `${payload.sender}님이 ${payload.projectTitle} 프로젝트에 초대하셨습니다.`,
-            link: payload.link || '#',
+            type,
+            payload: payloadObj,
+            title: '프로젝트 멤버로 추가됨',
+            message,
+            organizationId: payloadObj?.organizationId,
+            link,
             createdAt: new Date().toLocaleString(),
             isRead: false,
-          };
-          window.notifications.unshift(memberAddedNotif);
+          });
+          break;
+        }
+
+        case 'PROPOSAL_STATUS_CHANGED': {
+          // 서버 payload 예: { proposalId, projectId, organizationId, status, name, message }
+          const status = payloadObj?.status; // APPROVED | REJECTED
+          const pname  = payloadObj?.name || '제안';
+          const title  = '프로젝트 제안 상태 변경';
+          const message = payloadObj?.message
+            || (status === 'APPROVED'
+                ? `‘${pname}’ 제안이 승인되었습니다.`
+                : `‘${pname}’ 제안이 거절되었습니다.`);
+
+          let link = '#';
+          if (status === 'APPROVED' && payloadObj?.projectId) {
+            link = `${window.APP_CTX || ''}/projects/${payloadObj.projectId}`;
+          } else if (payloadObj?.proposalId) {
+            link = `${window.APP_CTX || ''}/project-plan?proposalId=${payloadObj.proposalId}`;
+          } else {
+            link = `${window.APP_CTX || ''}/project-plan`;
+          }
+
+          window.notifications.unshift({
+            id: data.id || Date.now(),
+            type,
+            payload: payloadObj,
+            title,
+            message,
+            organizationId: payloadObj?.organizationId,
+            link,
+            createdAt: new Date().toLocaleString(),
+            isRead: false,
+          });
           break;
         }
 
         default: {
-          const generic = {
+          window.notifications.unshift({
             id: data.id || Date.now(),
-            type: data.type,
-            payload,
+            type,
+            payload: payloadObj,
             title: '새 알림',
-            message: payload?.message || '새로운 알림이 있습니다.',
+            message: payloadObj?.message || '새로운 알림이 있습니다.',
             createdAt: new Date().toLocaleString(),
             isRead: false,
-          };
-          window.notifications.unshift(generic);
+          });
         }
       }
 
@@ -159,8 +216,6 @@ window.connectNotificationSocket = function (userId) {
 /** ======================================
  *  [5] 초대 수락/거절 처리
  * ====================================== */
-// 클릭 시 다른 api랑 연동 및 insert 되어야 하므로
-// 일반적인 알람은 이렇게안해도됨
 window.handleInviteAction = function (notifId, action) {
   const notif = window.notifications.find((n) => n.id === notifId);
   if (!notif) return;
@@ -173,14 +228,12 @@ window.handleInviteAction = function (notifId, action) {
 
   const bodyData = { organizationId: orgId };
 
-  console.log('[FETCH] sending body =', bodyData); // 🔍 확인용 로그
+  console.log('[FETCH] sending body =', bodyData);
   console.log('[FETCH] JSON.stringify =', JSON.stringify(bodyData));
 
   fetch(`/api/invite/${action}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(bodyData),
   })
     .then((res) => res.json())

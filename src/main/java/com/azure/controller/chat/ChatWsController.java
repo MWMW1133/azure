@@ -1,8 +1,11 @@
 package com.azure.controller.chat;
 
-import java.time.LocalDateTime;
-
-import org.springframework.dao.DataIntegrityViolationException;
+import com.azure.dto.MessageDTO;
+import com.azure.model.chat.Message;
+import com.azure.service.ChatService;                    // ★ 서비스로 위임
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -10,14 +13,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.azure.dto.MessageDTO;
-import com.azure.model.chat.Message;
-import com.azure.repository.ChatChannelRepository;
-import com.azure.repository.MessageRepository;
-import com.azure.repository.UserRepository;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
 
 @Slf4j
 @Controller
@@ -25,49 +21,54 @@ import lombok.extern.slf4j.Slf4j;
 public class ChatWsController {
 
     private final SimpMessagingTemplate messagingTemplate;
-    private final MessageRepository messageRepo;
-    private final ChatChannelRepository channelRepo;
-    private final UserRepository userRepo;
+    private final ChatService chatService;               // ★ 레포지토리 대신 서비스 주입
 
+    /**
+     * 클라이언트 publish: /app/chat/{channelId}/send
+     * body(JSON): {
+     *   "authorId":1, "body":"안녕",
+     *   "translateEnabled":true, "targetLang":"en|ko|ja|zh",
+     *   "fileId":null, "replyToId":null
+     * }
+     */
     @Transactional
     @MessageMapping("/chat/{channelId}/send")
-    public void send(@DestinationVariable Long channelId, @Payload MessageDTO payload) {
-        log.info("[WS] recv -> ch={}, author={}, body={}", channelId, payload.getAuthorId(), payload.getBody());
+    public void send(@DestinationVariable Long channelId, @Payload SendPayload payload) {
+        log.info("[WS] recv -> ch={}, author={}, tr?={}, tgt={}, body={}",
+                channelId, payload.authorId(), payload.translateEnabled(), payload.targetLang(), payload.body());
 
-        // 브로드캐스트용 DTO 초안
+        // ★ 서비스에 '번역 옵션' 포함하여 저장 (번역은 서비스/스텁에서 처리됨)
+        Message saved = chatService.postMessage(
+                channelId,
+                payload.authorId(),
+                payload.body(),
+                payload.fileId(),
+                payload.replyToId(),
+                payload.translateEnabled(),
+                payload.targetLang()
+        );
+
+        // 브로드캐스트용 DTO
         MessageDTO out = new MessageDTO();
+        out.setId(saved.getId());
         out.setChannelId(channelId);
-        out.setAuthorId(payload.getAuthorId());
-        out.setBody(payload.getBody());
-        out.setCreatedAt(LocalDateTime.now());
+        out.setAuthorId(saved.getAuthor() != null ? saved.getAuthor().getId() : payload.authorId());
+        out.setBody(saved.getBody()); // ★ 번역이 적용된 본문
+        out.setCreatedAt(saved.getCreatedAt() != null ? saved.getCreatedAt() : LocalDateTime.now());
 
-        try {
-            // FK가 유효해야 함 (없으면 여기서 예외)
-            var channelRef = channelRepo.getReferenceById(channelId);
-
-            Message m = new Message();
-            m.setChannel(channelRef);
-
-            if (payload.getAuthorId() != null) {
-                m.setAuthor(userRepo.getReferenceById(payload.getAuthorId()));
-            }
-            m.setBody(payload.getBody());
-            m.setCreatedAt(LocalDateTime.now());
-
-            var saved = messageRepo.save(m);
-            // 저장 성공 시 실제 값 반영
-            out.setId(saved.getId());
-            out.setCreatedAt(saved.getCreatedAt());
-        } catch (DataIntegrityViolationException e) {
-            // FK 실패 등 저장 문제 → 로그만 남기고 계속 브로드캐스트
-            log.warn("[WS] save failed (FK or constraint). Broadcasting anyway. ch={}, author={}",
-                    channelId, payload.getAuthorId(), e);
-        } catch (Exception e) {
-            log.error("[WS] unexpected error while saving", e);
-        }
-
-        var topic = "/topic/chat/" + channelId;
+        String topic = "/topic/chat/" + channelId;
         messagingTemplate.convertAndSend(topic, out);
         log.info("[WS] send -> {} : {}", topic, out.getBody());
     }
+
+    // ===== 수신 페이로드 DTO =====
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static record SendPayload(
+            Long authorId,
+            String body,
+            Boolean translateEnabled,
+            String targetLang,
+            Long fileId,
+            Long replyToId
+    ) {}
 }

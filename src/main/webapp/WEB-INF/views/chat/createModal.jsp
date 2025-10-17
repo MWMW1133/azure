@@ -9,8 +9,24 @@
   <div class="chat-modal__backdrop" onclick="closeChatModal()"></div>
 
   <div class="chat-modal__panel" role="dialog" aria-modal="true">
-    <header class="chat-modal__header">
-      <h3 id="chatHeaderTitle">대화방</h3>
+    <header class="chat-modal__header" style="display:flex; align-items:center; gap:12px;">
+      <h3 id="chatHeaderTitle" style="margin:0; flex:1 1 auto;">대화방</h3>
+
+      <!-- ▼▼▼ 번역 컨트롤 (헤더 오른쪽) -->
+      <div class="d-flex align-items-center gap-2" style="flex:0 0 auto;">
+        <label class="me-2 d-flex align-items-center" style="gap:6px; margin:0;">
+          <input type="checkbox" id="mt-enable"> 번역
+        </label>
+
+        <select id="mt-target" class="form-select form-select-sm" style="width:auto; display:inline-block">
+          <option value="en">영어</option>
+          <option value="ko">한국어</option>
+          <option value="ja">일본어</option>
+          <option value="zh">중국어</option>
+        </select>
+      </div>
+      <!-- ▲▲▲ -->
+
       <button type="button" class="btn btn-light" onclick="closeChatModal()">
         <i class="bi bi-x-lg"></i>
       </button>
@@ -26,7 +42,7 @@
           <ul id="groupChatList" class="chat-list"></ul>
         </section>
 
-        <!-- DM 섹션 (정적 항목 제거, 컨테이너만 유지) -->
+        <!-- DM 섹션 -->
         <section class="chat-section">
           <button type="button" class="btn btn-sm btn-link p-0 d-flex align-items-center"
                   onclick="toggleDMList()">
@@ -49,59 +65,4 @@
       <section class="chat-modal__content">
         <div id="chatMessages" class="chat-messages"></div>
 
-        <form class="chat-input mt-3" onsubmit="return false;">
-          <div class="row g-2">
-            <div class="col-auto">
-              <select id="projectSelect" class="form-select form-select-sm"></select>
-            </div>
-            <div class="col">
-              <input id="chatTextInput" type="text" class="form-control form-control-sm" placeholder="메시지 입력…" />
-            </div>
-            <div class="col-auto">
-              <button type="button" class="btn btn-primary btn-sm"
-                      id="btnChatSend" onclick="sendMessage()"> 
-                보내기
-              </button>
-            </div>
-          </div>
-        </form>
-      </section>
-    </div>
-  </div>
-</div>
-
-<!-- =========================================
-     Create Chat Modal (채팅방 생성)
-   ========================================= -->
-<div id="createChatModal" class="chat-modal" style="display:none;">
-  <div class="chat-modal__backdrop" onclick="closeCreateChatModal()"></div>
-
-  <div class="chat-modal__panel" role="dialog" aria-modal="true">
-    <header class="chat-modal__header">
-      <h3>채팅방 만들기</h3>
-      <button type="button" class="btn btn-light" onclick="closeCreateChatModal()">
-        <i class="bi bi-x-lg"></i>
-      </button>
-    </header>
-
-    <div class="chat-modal__body">
-      <form onsubmit="return false;">
-        <div class="mb-3">
-          <label class="form-label">방 이름</label>
-          <input type="text" class="form-control" id="createRoomName" placeholder="예: 프로젝트 A 회의방" />
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">참여자(쉼표로 구분)</label>
-          <input type="text" class="form-control" id="createRoomMembers" placeholder="예: 박소현, 김테스트" />
-        </div>
-
-        <div class="d-flex gap-2 justify-content-end">
-          <button type="button" class="btn btn-outline-secondary" onclick="closeCreateChatModal()">취소</button>
-          <button type="button" class="btn btn-primary"
-                  onclick="/* TODO: 생성 API 연동 */ closeCreateChatModal()">생성</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
+        <form class="chat-input mt-3" onsubmit

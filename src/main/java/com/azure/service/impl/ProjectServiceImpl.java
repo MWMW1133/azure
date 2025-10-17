@@ -12,17 +12,22 @@ import com.azure.repository.OrganizationMemberRepository;
 import com.azure.repository.OrganizationRepository;
 import com.azure.repository.ProjectMemberRepository;
 import com.azure.repository.ProjectRepository;
+import com.azure.repository.TagRepository;
+import com.azure.repository.TaskRepository;
 import com.azure.repository.UserRepository;
+import com.azure.repository.WorkflowRepository;
 import com.azure.service.ProjectService;
 import com.azure.service.WorkflowService;
 import com.azure.service.exception.NotFoundException;
+
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import jakarta.persistence.PersistenceContext;  // ⬅️ 추가
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -33,12 +38,20 @@ public class ProjectServiceImpl implements ProjectService {
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
     private final UserRepository userRepository;
+    private final WorkflowRepository workflowRepository; // 🔹 추가
+    // ✅ 중복 제거: memberRepository 필드 삭제
+    private final TaskRepository taskRepository;
+    private final TagRepository tagRepository;
 
     // ✅ 워크플로우 생성 책임은 전담 서비스에 위임
     private final WorkflowService workflowService;
 
+    
     // 📢 프로젝트 멤버 추가/삭제 이벤트 발행
     private final ApplicationEventPublisher publisher;
+    
+     @PersistenceContext              // ⬅️ 이 애노테이션 추가
+    private EntityManager em; // 🔹 flush/clear용
 
     @Override
     @Transactional(readOnly = true)
@@ -76,7 +89,7 @@ public class ProjectServiceImpl implements ProjectService {
 
         Project saved = projectRepository.save(p);
 
-        // ✅ 기본 워크플로우 4단계를 보장(없으면 생성, 있으면 스킵)
+        // ✅ 기본 워크플로우 보장
         workflowService.ensureDefaultStages(saved.getId());
 
         // ✅ 소유자를 프로젝트 멤버로 자동 등록 (없을 때만)
@@ -88,7 +101,7 @@ public class ProjectServiceImpl implements ProjectService {
             pm.setId(pmId);
             pm.setProject(saved);
             pm.setUser(owner);
-            pm.setRole(OrganizationRole.MEMBER); // <- 이 줄 필수
+            pm.setRole(OrganizationRole.MEMBER);
             projectMemberRepository.save(pm);
         }
 
@@ -104,8 +117,31 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
+    @Transactional
     public void delete(Long projectId) {
-        projectRepository.delete(get(projectId));
+        // 존재 확인
+        projectRepository.findById(projectId)
+                .orElseThrow(() -> new NotFoundException("project not found: " + projectId));
+
+        // 1) self-FK 끊기 → 태스크 삭제
+        taskRepository.detachParentsByProjectId(projectId);
+        taskRepository.deleteByProjectId(projectId);
+
+        // 2) 태그 삭제
+        tagRepository.deleteByProjectId(projectId);
+
+        // 3) 멤버 삭제
+        projectMemberRepository.deleteByProjectId(projectId);
+
+        // 4) 워크플로우 삭제(프로젝트 기본 단계 등)
+        workflowRepository.deleteByProjectId(projectId);
+
+        // 🔸 벌크쿼리 이후 1차 캐시와 DB 상태 동기화
+        em.flush();
+        em.clear();
+
+        // 5) 마지막에 프로젝트 자체 삭제 (엔티티 메소드 대신 벌크쿼리 사용)
+        projectRepository.deleteByIdHard(projectId);
     }
 
     @Override
@@ -114,7 +150,7 @@ public class ProjectServiceImpl implements ProjectService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
 
-        // 장기 휴가자는 등록 불가 (정책)
+        // 정책: 장기 휴가자는 등록 불가
         if (user.getWorkStatus() == User.WorkStatus.LONG_LEAVE) {
             throw new IllegalArgumentException("장기 휴가 중인 사용자는 프로젝트에 추가할 수 없습니다: " + user.getName());
         }

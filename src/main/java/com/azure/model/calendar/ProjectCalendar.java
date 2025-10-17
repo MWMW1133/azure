@@ -47,8 +47,8 @@ public class ProjectCalendar {
     @JoinColumn(name = "related_task_id")
     private Task relatedTask;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
 
     @Column(name = "created_at", insertable = false, updatable = false)

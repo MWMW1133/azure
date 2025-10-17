@@ -20,7 +20,6 @@
                 <span>홈</span>
             </a>
 
-            <div style="background:pink;">DEBUG: activePage = ${activePage}</div>
             <a class="nav-item ${activePage eq 'tasks' ? 'active' : ''}"
                href="${pageContext.request.contextPath}/tasks/my">
             <span class="ic">

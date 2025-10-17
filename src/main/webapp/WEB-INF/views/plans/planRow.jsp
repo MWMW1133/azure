@@ -38,7 +38,14 @@
   </div>
 
   <!-- 작성일 -->
-  <div class="pplan-cell pplan-created-at-cell">${fn:substring(projectPlan.createdAt, 0, 10)}</div>
+  <div class="pplan-cell pplan-created-at-cell">
+  <c:choose>
+    <c:when test="${not empty projectPlan.createdAt}">
+      ${fn:substring(projectPlan.createdAt, 0, 10)}
+    </c:when>
+    <c:otherwise>-</c:otherwise>
+  </c:choose>
+</div>
 
   <!-- 상태 -->
   <div class="pplan-cell pplan-status-cell">
